@@ -304,7 +304,8 @@
             "mode": {
               "enum": [
                 "concat",
-                "interpolation"
+                "interpolation",
+                "record"
               ]
             },
             "locale": {
@@ -349,6 +350,17 @@
                   "type": "string"
                 }
               }
+            },
+            "format": {
+              "enum": [
+                "integer",
+                "number",
+                "time_ms"
+              ],
+              "description": "Só no modo record (Plugin SDK §9.1)."
+            },
+            "number_formats": {
+              "$ref": "project.schema.json#/properties/settings/properties/number_formats"
             }
           },
           "unevaluatedProperties": false
@@ -600,6 +612,262 @@
                   }
                 }
               ]
+            }
+          },
+          "unevaluatedProperties": false
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Base"
+            }
+          ],
+          "required": [
+            "board",
+            "entries",
+            "submit"
+          ],
+          "properties": {
+            "kind": {
+              "const": "record"
+            },
+            "board": {
+              "type": "object",
+              "required": [
+                "order",
+                "keep",
+                "format"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "order": {
+                  "enum": [
+                    "asc",
+                    "desc"
+                  ]
+                },
+                "keep": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100
+                },
+                "format": {
+                  "enum": [
+                    "integer",
+                    "number",
+                    "time_ms"
+                  ]
+                }
+              }
+            },
+            "entries": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "score",
+                  "at"
+                ],
+                "properties": {
+                  "score": {
+                    "type": "number"
+                  },
+                  "at": {
+                    "type": "string"
+                  },
+                  "meta": {
+                    "type": "object"
+                  }
+                }
+              }
+            },
+            "submit": {
+              "type": "object",
+              "required": [
+                "score",
+                "at"
+              ],
+              "properties": {
+                "score": {
+                  "type": "number"
+                },
+                "at": {
+                  "type": "string"
+                },
+                "meta": {
+                  "type": "object"
+                }
+              }
+            },
+            "locale": {
+              "$ref": "common.schema.json#/$defs/Locale"
+            },
+            "expect": {
+              "type": "object",
+              "required": [
+                "rank",
+                "entries"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "rank": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "entries": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "score",
+                      "at"
+                    ],
+                    "properties": {
+                      "score": {
+                        "type": "number"
+                      },
+                      "at": {
+                        "type": "string"
+                      },
+                      "meta": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                },
+                "display": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "unevaluatedProperties": false
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Base"
+            }
+          ],
+          "required": [
+            "scene",
+            "inputs"
+          ],
+          "properties": {
+            "kind": {
+              "const": "flow"
+            },
+            "scene": {
+              "type": "object",
+              "required": [
+                "id",
+                "nodes"
+              ],
+              "description": "Cena no formato de scene.schema.json (sem scheduling)."
+            },
+            "variables": {
+              "$ref": "#/$defs/Variables"
+            },
+            "locale": {
+              "$ref": "common.schema.json#/$defs/Locale"
+            },
+            "inputs": {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "const": "advance"
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "choose"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "choose": {
+                        "$ref": "common.schema.json#/$defs/EntityId"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "activity"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "activity": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "outcome": {
+                            "type": "string"
+                          },
+                          "payload": {
+                            "type": "object"
+                          },
+                          "skipped": {
+                            "type": "boolean"
+                          },
+                          "failed": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "expect": {
+              "type": "object",
+              "required": [
+                "trace"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "trace": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "minProperties": 1,
+                    "maxProperties": 1,
+                    "properties": {
+                      "event": {
+                        "type": "string"
+                      },
+                      "node": {
+                        "$ref": "common.schema.json#/$defs/EntityId"
+                      },
+                      "text": {
+                        "type": "string"
+                      },
+                      "options": {
+                        "type": "array"
+                      },
+                      "changes": {
+                        "type": "array"
+                      },
+                      "end": {},
+                      "waiting": {
+                        "enum": [
+                          "line",
+                          "choice",
+                          "plugin"
+                        ]
+                      },
+                      "error": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                }
+              }
             }
           },
           "unevaluatedProperties": false

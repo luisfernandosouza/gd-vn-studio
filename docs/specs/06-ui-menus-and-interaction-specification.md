@@ -43,6 +43,17 @@ meu-projeto/
 
 Tela ausente em `ui/` vem do preset. O id da tela é o nome do arquivo e segue o formato `Id` (`^[a-z][a-z0-9_]{0,63}$`). As telas `title`, `pause`, `save`, `load`, `settings`, `gallery`, `credits` e `hud` têm papel fixo no runtime (§6); qualquer outro id é uma **tela própria**, aberta por uma ação `open_screen`.
 
+### 2.1. Presets
+
+Um preset é um projeto parcial, no mesmo formato e validado pelos mesmos schemas: `presets/<nome>/theme.json`, `presets/<nome>/ui/*.json` e `presets/<nome>/locales/<lang>.json`. O v1 traz o preset **`classic`** ([`presets/classic/`](presets/classic/)); `modern` e `minimal` ficam para depois. O compilador do bundle (Build System §5.1) aplica o preset assim:
+
+- **Tema:** fusão profunda do `theme.json` do preset com o do projeto; o projeto vence em cada chave. O preset define o estilo padrão de cada tipo de elemento (`button`, `choice`, `slot`, `slider`, `toggle`, `select`, `hotspot`, `label`), mais `title_label` e `hud_button`, e o layout padrão da caixa de texto, da plaquinha de nome e das escolhas.
+- **Telas:** uma tela do projeto substitui inteira a do preset com o mesmo id. O `classic` traz `title`, `pause`, `save`, `load`, `settings`, `gallery`, `credits`, `hud`, `backlog` (aberta por `open_backlog`) e `minigames`.
+- **`minigames`:** se o projeto não tiver a própria, o compilador a gera a partir das atividades de plugin com `free_play`: um botão `play_activity` por atividade e o quadro de recordes do plugin. Sem nenhuma atividade com `free_play`, a tela some e `sys.ui.has_minigames` é falso.
+- **Textos:** o preset traz as traduções dos seus textos (`ui/<tela>/<elemento>`) e das mensagens do runtime (`runtime/…`) para os idiomas do produto (Req §9.1). As traduções do projeto vencem as do preset. Para um idioma do jogo, o compilador procura a tag exata no preset, depois a tag base (`es-MX` usa `es`) e, na falta das duas, usa o inglês. Nesse último caso, as telas do preset e as mensagens do runtime aparecem em inglês até o projeto traduzi-las, e o validador avisa (W021) quando faltam chaves `runtime/`.
+- **Título do jogo:** um texto do preset igual a `$project.title` é trocado pelo `title` do projeto.
+- **Fontes:** os ids `preset/font_*` são reservados e apontam para fontes embutidas no runtime (`res://vn_runtime/presets/fonts/…`). Um projeto pode sobrescrever um desses ids em `assets.json`.
+
 ## 3. Tela
 
 ```json
@@ -98,10 +109,11 @@ Todo elemento tem `id` (legível, único na tela), `type` e uma **posição**:
 | `toggle` | Liga/desliga ligado a uma configuração | `bind` |
 | `select` | Lista de opções ligada a uma configuração | `bind`, `options` (ausente = opções do próprio `bind`) |
 | `slot_grid` | Grade de slots de save | `mode` (`save`/`load`), `columns`, `rows`, `slot_style` |
-| `gallery_grid` | Grade da galeria | `source` (`endings`, `images`, `music`), `columns`, `locked_asset` |
+| `gallery_grid` | Grade da galeria | `source` (`endings`, `images`, `music`), `columns`, `locked_asset`. `endings` lista `project.json → endings`; `images` e `music` listam os assets com `gallery: true` em `assets.json` (cenários e músicas), na ordem de `gallery_order` e depois do id. Itens ainda não vistos (`profile.seen_assets`, RT §5.2) aparecem com `locked_asset` e o texto `runtime/gallery/locked` |
 | `backlog_list` | Histórico de falas | `max_items` |
 | `container` | Agrupa e alinha elementos | `layout` (`row`, `column`, `grid`), `spacing`, `children` |
 | `records_list` | Quadro de recordes de um minijogo (Plugin SDK §9.1) | `board` (`<namespace>.<quadro>`), `max_items`, `empty_text` |
+| `licenses_list` | Licenças de terceiros, para a tela de créditos (Build System §4.5) | `include` (`plugins`, `fonts` ou os dois, padrão) |
 
 ### 3.2. Condições no menu
 
@@ -113,6 +125,9 @@ No título ainda não existe partida, então `visible_if`, `enabled_if` e condi�
 | `sys.ui.in_game` | boolean | Há uma partida em andamento (pausa, HUD) |
 | `sys.ui.platform` | string | `windows`, `linux`, `macos`, `web` (ex.: esconder "Sair" no Web) |
 | `sys.ui.activity` | boolean | Um minijogo está rodando |
+| `sys.ui.has_minigames` | boolean | Existe ao menos uma atividade com `free_play` (botão "Minijogos") |
+| `sys.ui.last_activity_outcome` | string | Resultado da última atividade jogada no modo livre (`completed`, `cancelled`, `failed` ou o `outcome` declarado); vazio antes da primeira |
+| `sys.ui.last_record_rank` | integer | Posição do último recorde enviado no modo livre; 0 se não entrou no quadro |
 
 Durante a partida (pausa, HUD, telas próprias abertas no jogo), valem também as variáveis globais e de personagem.
 
@@ -126,7 +141,7 @@ Textos de telas e sets são escritos no idioma `default_locale` e traduzidos com
 | `tooltip` | `ui/<tela>/<elemento>/tooltip` | `ui/<tela>.json` |
 | Texto de opção de `select` | `ui/<tela>/<elemento>/option/<valor>` | `ui/<tela>.json` |
 | `text` da n-ésima ação `confirm` de um elemento (ou de `on_open`, `on_close`, `back`) | `ui/<tela>/<elemento>/confirm<n>` | `ui/<tela>.json` |
-| `label` de hotspot de set | `sets/<set>/<hotspot>` | `ui/sets.json` |
+| `label` de hotspot de set | `sets/<set>/<hotspot>` | `sets/<set>.json` |
 | `prompt`, `label` de hotspot e de `exit` do nó `interact` | `<cena>/<nó>`, `<cena>/<nó>/<hotspot>`, `<cena>/<nó>/exit` | `scenes/<cena>.json` |
 
 `<n>` conta a partir de 1, na ordem em que as ações aparecem (inclusive dentro de `else` e `then`). No título, a interpolação segue a regra de §3.2.
@@ -145,7 +160,7 @@ Botões, hotspots e eventos de tela executam uma **lista de ações**, em ordem.
 | `quit` | `confirm` | Qualquer (escondido no Web) |
 | `save` / `load` | `slot` (ausente = abre a tela) | `save`: jogo; `load`: qualquer |
 | `quick_save` / `quick_load` | — | Jogo / qualquer |
-| `toggle_auto`, `toggle_skip`, `hide_textbox`, `open_backlog` | — | Jogo |
+| `toggle_auto`, `toggle_skip`, `hide_textbox`, `open_backlog` | — | Jogo. `open_backlog` abre a tela `backlog` |
 | `set_setting` | `setting`, `value` | Qualquer |
 | `play_sfx` | `asset` | Qualquer |
 | `set_state` | `target`, `state` | Qualquer (§5.1) |
@@ -156,7 +171,8 @@ Botões, hotspots e eventos de tela executam uma **lista de ações**, em ordem.
 | `emit` | `event` (`story.*`), `payload` | Jogo |
 | `open_url` | `url` | Qualquer; sempre pede confirmação; desligado no Web e com `build.allow_urls: false` |
 | `confirm` | `text`, `then`, `else` | Qualquer: caixa de confirmação do tema |
-| `play_activity` | `activity` (`<namespace>.<atividade>`), `params` | Fora do jogo (título e telas abertas a partir dele): joga o minijogo no modo livre (Plugin SDK §6.1) e volta à tela |
+| `play_activity` | `activity` (`<namespace>.<atividade>`), `params` | Fora do jogo (título e telas abertas a partir dele): joga o minijogo no modo livre (Plugin SDK §6.1) e volta à tela. Com uma partida em andamento, o botão fica oculto e a ação é recusada, mesmo numa tela própria aberta da pausa (RT §5.3) |
+| `reset_profile` | `text` (opcional; padrão `runtime/confirm/reset_profile`) | Só fora do jogo (título e telas abertas a partir dele): pede confirmação e apaga o perfil, ou seja, finais, galeria, textos lidos, variáveis `profile` e recordes. Os saves ficam (RT §8.5) |
 
 `target` aponta para um elemento da tela (`btn_new_game`), uma camada ou hotspot do cenário (`set:sky`) ou, numa cena, para o cenário em cena (`stage:lamp`).
 
@@ -288,7 +304,25 @@ A tela `settings` liga controles (`slider`, `toggle`, `select`) a configuraçõe
 
 **FPS da novel × FPS dos minijogos.** Uma VN quase parada não precisa de 144 quadros por segundo (gasta bateria e esquenta notebook), mas um minijogo de ação precisa. O runtime aplica `fps_limit_vn` fora de atividades e troca para `fps_limit_activity` quando uma atividade de plugin começa, voltando ao terminar (RT §5.3). Uma atividade PODE declarar `min_fps` no manifesto (Plugin SDK §6). Se o limite vem do padrão do projeto e é menor que `min_fps`, o runtime usa `min_fps` durante aquela atividade. Se o próprio jogador gravou o limite em `settings.json` (por exemplo, para economizar bateria), vale a escolha dele, e a tela de configurações mostra um aviso ao lado do controle. No Web, o navegador controla a taxa; os dois controles ficam escondidos.
 
-O autor escolhe quais controles aparecem e onde; um controle omitido usa o valor padrão do projeto (`project.json → settings.display`).
+O autor escolhe quais controles aparecem e onde; um controle omitido usa o valor padrão do projeto (`project.json → settings`) ou, na falta dele, o padrão do runtime:
+
+| Configuração | Padrão |
+|---|---|
+| `locale` | Idioma do sistema, se o jogo o tiver; senão `default_locale` |
+| `text_speed` | 40 caracteres por segundo (`0` = instantâneo) |
+| `auto_delay` | 1,5 s |
+| `skip_unread` | `false` |
+| `display_mode` | `windowed` |
+| `resolution` | A primeira de `settings.display.resolutions` que cabe no monitor |
+| `vsync` | `true` |
+| `fps_limit_vn` / `fps_limit_activity` | 60 / 0 |
+| `volume.master`, `volume.music`, `volume.ambient`, `volume.sfx` | 0,8 |
+| `volume.voice` | 1,0 |
+| `text_scale` | 1,0 |
+| `reduce_motion`, `high_contrast`, `show_hotspots` | `false` |
+| `subtitles` | `true` |
+
+Os mesmos valores estão como `default` em `save.schema.json → PlayerSettings`. O antigo campo `fullscreen` foi removido: o modo de tela é só `display_mode`.
 
 ## 9. Menu Editor (Studio)
 
@@ -350,11 +384,14 @@ O autor escolhe quais controles aparecem e onde; um controle omitido usa o valor
 | U001 | erro | Ação, `target`, `focus`, `focus_start`, `set`, área ou `board` cita elemento, camada, estado, set, tela ou quadro de recordes inexistente; id de tela ou set diferente do nome do arquivo; id repetido na tela ou no set |
 | U002 | erro | Estilo inexistente no tema, ou ciclo em `extends` |
 | U003 | erro | Condição de tela de título usa variável que não é `profile`, `sys.endings.*` nem `sys.ui.*` |
-| U004 | erro | Ação não cosmética em hotspot de set; ação fora do lugar onde vale (§4), inclusive `play_activity` em `pause` ou `hud`; `effects` no título em variável que não é `profile` |
+| U004 | erro | Ação não cosmética em hotspot de set; ação fora do lugar onde vale (§4), inclusive `play_activity` ou `reset_profile` em `pause` ou `hud`; `effects` no título em variável que não é `profile` |
 | U005 | erro | Controle ou valor que não combina com a configuração: `toggle` em configuração não booleana, `slider` em não numérica, opção de `select` ou `set_setting` com tipo errado, idioma fora de `project.json → locales` (configuração desconhecida já é barrada pelo schema) |
 | U006 | erro | Tela obrigatória sem botão para sair: título sem `new_game`, pausa sem `close_screen`/`back` |
-| U007 | aviso | Elemento com `size` que sai da tela na resolução base |
+| U007 | aviso | Elemento com `size` que sai da tela na resolução base. Conferido pelo Studio; o validador de referência não calcula o tamanho de elementos sem `size` |
 | U008 | aviso | Elemento clicável sem texto nem `tooltip` (sem nome para teclado e acessibilidade) |
+| U009 | aviso | A tela `credits` não tem `licenses_list`, mas algum plugin habilitado ou fonte do tema traz licença |
+| U010 | aviso | Um `play_activity` pode ser alcançado a partir da pausa ou do HUD (por uma cadeia de `open_screen`); o botão vai ficar oculto durante a partida |
+| U011 | aviso | Uma `gallery_grid` de `images` ou `music` não tem nenhum asset com `gallery: true` |
 | W020 | aviso | Texto de um idioma usa caracteres que nem a fonte do estilo nem as reservas daquele idioma cobrem. Conferido pelo Studio, que lê os arquivos de fonte; o validador de referência não confere, porque não tem os arquivos |
 
 ## 12. Runtime

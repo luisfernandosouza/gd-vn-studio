@@ -135,13 +135,15 @@ De cada `.vnplugin` são copiados para `vn_plugins/<namespace>/` somente:
 - `plugin.json`, `LICENSE`;
 - `runtime/` inteiro (scripts, cenas e assets).
 
-Não entram no jogo: `editor/`, `tests/`, `docs/`, `README.md`, `CHANGELOG.md` (SDK §2.1). As licenças de todos os plugins são reunidas em `vn_content/licenses.txt`, exibido na tela de créditos.
+Não entram no jogo: `editor/`, `tests/`, `docs/`, `README.md`, `CHANGELOG.md` (SDK §2.1). As licenças de todos os plugins e das fontes do tema são reunidas em `vn_content/licenses.txt`. A tela de créditos as mostra com o elemento `licenses_list` (UI Spec §3.1), que o preset `classic` já traz; um projeto com tela `credits` própria sem esse elemento recebe o aviso U009.
 
 ## 5. Bundle narrativo
 
 ### 5.1. Compilação
 
-O compilador produz primeiro a forma canônica em JSON, exatamente como descrita no RT §2 (`bundle.json`, `locales/<lang>.json`, `plugins.json`): validada, com defaults resolvidos, variáveis de personagem instanciadas e aliases de `renamed_from` reunidos. O conteúdo continua citando assets **por ID**, e `bundle.json → assets` mapeia cada ID para o caminho `res://vn_content/assets/…`, para que plugins, o palco salvo e saves antigos resolvam IDs.
+O compilador produz primeiro a forma canônica em JSON, exatamente como descrita no RT §2 (`bundle.json`, `locales/<lang>.json`, `plugins.json`): validada, com defaults resolvidos, variáveis de personagem instanciadas, aliases de `renamed_from` reunidos e o preset aplicado (UI Spec §2.1). Os três arquivos têm schema ([`bundle.schema.json`](schemas/bundle.schema.json), [`bundle-locale.schema.json`](schemas/bundle-locale.schema.json), [`bundle-plugins.schema.json`](schemas/bundle-plugins.schema.json)).
+
+**Compilador de referência.** [`tools/compile_bundle.py`](tools/compile_bundle.py) implementa esta seção em Python e é a primeira peça do Build System: `python3 tools/compile_bundle.py <projeto> <saída> [pastas-de-plugins…] [--stage]`. Ele roda o validador antes (para em erro) e grava a forma canônica com o `content_hash`. Com `--stage`, copia também os assets e os plugins; com `--godot <projeto-godot>`, grava tudo em `vn_content/` e `vn_plugins/` desse projeto, para rodar o jogo no editor do Godot sem o Studio (RT §2.1). O compilador do Studio DEVE gerar o mesmo `bundle.json`, byte a byte, para o mesmo projeto.
 
 **JSON canônico:** UTF-8, chaves ordenadas, sem espaços, números no formato mais curto que preserva o valor, strings com escape mínimo (RFC 8785, JCS). `content_hash` = SHA-256 do `bundle.json` canônico, como no RT §2. Ele independe da codificação final, então o mesmo conteúdo tem o mesmo hash no Preview e no jogo.
 
@@ -276,7 +278,7 @@ Ao carregar cada `.vnb`, o runtime descomprime, calcula o SHA-256 do JSON e comp
 |---|---|
 | `ignore` | Carrega normalmente. A assinatura é gravada, mas não conferida |
 | `flag` (padrão) | Carrega, registra no log e liga `sys.save_modified` (somente leitura, `persistence: session`). O autor pode usar a variável em condições, por exemplo para não liberar um final secreto. Saves de builds de debug também caem aqui |
-| `reject` | Mostra "Este save foi modificado e não pode ser carregado." e não carrega. Para o perfil, começa um perfil novo e guarda o antigo como `profile.rejected.json` |
+| `reject` | Mostra "Este save foi modificado e não pode ser carregado." e não carrega. Para o perfil, começa um perfil novo, guarda o antigo como `profile.rejected.json` e mostra G006 no título |
 
 ### 8.4. Criptografia do PCK (opção avançada)
 
@@ -297,7 +299,7 @@ Por padrão `<Documentos>/VN Studio Builds/<project_id>/<versão>/`, configuráv
 
 ### 9.2. `build-manifest.json`
 
-Gravado na pasta de saída e, numa forma resumida (`build_id`, `version`, `content_hash`, `runtime`, `godot`), em `res://vn_content/build.json` dentro do jogo, para o runtime mostrar no log e na tela "Sobre".
+Schema: [`build-manifest.schema.json`](schemas/build-manifest.schema.json). Gravado na pasta de saída e, numa forma resumida (`build_id`, `version`, `content_hash`, `runtime`, `godot`), em `res://vn_content/build.json` dentro do jogo, para o runtime mostrar no log e na tela "Sobre".
 
 ```json
 {
@@ -415,7 +417,7 @@ Mesmo padrão de mensagens simples de Req §6; o texto técnico fica em "Detalhe
 
 ### 13.1. Mensagens do runtime para o jogador
 
-Erros que o **jogador** vê no jogo exportado, no idioma do jogo (traduzíveis pelo caminho `runtime/message/<código>`):
+Erros que o **jogador** vê no jogo exportado, no idioma do jogo (traduzíveis pelo caminho `runtime/message/<código em minúsculas>`, ex.: `runtime/message/g002`):
 
 | Código | Quando | Mensagem (pt-BR) |
 |---|---|---|
@@ -424,6 +426,9 @@ Erros que o **jogador** vê no jogo exportado, no idioma do jogo (traduzíveis p
 | G003 | Save com `save_tamper: reject` e assinatura inválida (§8.3) | Este save foi modificado e não pode ser carregado. |
 | G004 | Save com `save_format` MAJOR desconhecido ou de outro projeto (RT §8.3) | Este save é de uma versão incompatível do jogo. |
 | G005 | Falha ao gravar save ou perfil (disco cheio, permissão) | Não foi possível salvar o jogo. Verifique o espaço em disco. |
+| G006 | Perfil com `save_tamper: reject` e assinatura inválida (§8.3, RT §3.0) | Os dados do jogo foram modificados e não puderam ser usados. Um perfil novo foi criado: finais, galeria e recordes foram zerados. |
+
+As traduções dessas mensagens para os idiomas do produto vêm no preset (`presets/classic/locales/`).
 
 ## 14. Fora de escopo do v1
 
@@ -439,5 +444,4 @@ Erros que o **jogador** vê no jogo exportado, no idioma do jogo (traduzíveis p
 1. Medir o tempo de import e export do demo-project em cada plataforma, para calibrar o cache e a estimativa de espaço.
 2. Confirmar no Godot 4.7.2 os nomes e valores exatos das opções de preset citadas no §7 (inclusive o valor de `script_export_mode` e `variant/thread_support` no Web).
 3. Definir o guia de compilação dos templates com criptografia para Windows, macOS e Linux.
-4. Escrever `build-manifest.schema.json`.
-5. Medir o tempo de decifrar e descomprimir um `.vnb` de 10 MB no Web, para confirmar AES-CBC + Zstandard no boot.
+4. Medir o tempo de decifrar e descomprimir um `.vnb` de 10 MB no Web, para confirmar AES-CBC + Zstandard no boot.

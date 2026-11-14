@@ -91,7 +91,7 @@ Por que misto:
 
 **Namespaces reservados.** Nenhum plugin pode usar `sys`, `story`, `vn`, `global`, `character`, `chapter`, `scene` nem `plugin` como namespace: eles colidiriam com eventos do runtime e do conteúdo, com escopos de variável, com as ações de input `vn_*` e com o prefixo `VN` do SDK. O schema do manifesto recusa, e o catálogo também.
 
-Unicidade: UUIDs são únicos no projeto inteiro; `key` de personagem é única no projeto; IDs de opção, dentro do nó de escolha. O nome do arquivo de uma cena, capítulo ou personagem é derivado do título e é só organização: o Studio PODE renomeá-lo, e o vínculo é sempre o `id` interno.
+Unicidade: UUIDs são únicos no projeto inteiro; `key` de personagem é única no projeto. Opções de escolha e hotspots de `interact` também têm UUID e seguem a mesma regra. O nome do arquivo de uma cena, capítulo ou personagem é derivado do título e é só organização: o Studio PODE renomeá-lo, e o vínculo é sempre o `id` interno.
 
 O **caminho de texto** de uma fala é `<cena>/<nó>` e o de uma opção é `<cena>/<nó>/<opção>`, com os UUIDs. É a chave usada em traduções e em "texto já lido". Ferramentas de tradução exibem o título da cena e o texto-fonte ao lado da chave.
 
@@ -161,6 +161,9 @@ Somente leitura, mantidas pelo runtime. Lista mínima do v1:
 | `sys.locale` | string | Idioma atual |
 | `sys.ui.has_save`, `sys.ui.in_game`, `sys.ui.activity` | boolean | Estado da interface: existe save, há partida em andamento, minijogo rodando (UI Spec §3.2) |
 | `sys.ui.platform` | string | `windows`, `linux`, `macos` ou `web` |
+| `sys.ui.has_minigames` | boolean | Existe ao menos uma atividade de plugin com `free_play` (UI Spec §3.2) |
+| `sys.ui.last_activity_outcome` | string | Resultado da última atividade jogada no modo livre (`completed`, `cancelled`, `failed` ou vazio) |
+| `sys.ui.last_record_rank` | integer | Posição do último recorde enviado no modo livre (0 se não entrou no quadro) |
 | `sys.save_modified` | boolean | O save ou o perfil carregado tem assinatura inválida e a política é `flag` (Build System §8.3); `persistence: session` |
 
 Isso responde à necessidade de "cena X já aconteceu?" sem criar variáveis manuais: `{"variable": "sys.scenes.scene_beach.plays", "operator": "greater_than", "value": 0}`.
@@ -276,7 +279,7 @@ A semântica é a mesma nos dois interpretadores (Runtime Spec §12.1). "Inteiro
 
 Número e tipo de argumentos errados são erro T007. `clamp` com `min > max` devolve `min`. Inteiros valem no intervalo ±(2^53 − 1) (Runtime Spec §12.1).
 
-Os sorteios (`random_int`, `weighted_random`) só são reproduzíveis quando o projeto liga `settings.reproducible_rng`, que é **opcional** e vem desligado. Desligado, eles funcionam normalmente com o RNG comum do motor.
+Os sorteios (a função `random_int` e o desempate `weighted_random` do capítulo) só são reproduzíveis quando o projeto liga `settings.reproducible_rng`, que é **opcional** e vem desligado. Desligado, eles funcionam normalmente com o RNG comum do motor.
 
 ### 6.2. Efeitos
 
@@ -391,6 +394,7 @@ Campos comuns a todos os nós: `id`, `type`, `next`, `note` (comentário do auto
 ## 9. Textos e internacionalização
 
 - O texto é escrito **inline** no idioma `default_locale` do projeto. Roteiristas não manipulam chaves de tradução.
+- Um projeto tem de 1 a *n* idiomas: `default_locale` mais uma pasta `locales/<lang>/` por tradução, com qualquer tag BCP 47. Os idiomas do jogo são independentes dos idiomas da interface do Studio (Req §9.1). `build.locales` escolhe quais entram num build.
 - Traduções ficam em `locales/<lang>/`, indexadas pelo caminho de texto. O arquivo é escolhido **pelo id**, não pelo título, para não mudar quando o título muda.
 - `source_hash` em cada tradução permite ao Studio marcar traduções desatualizadas quando o texto-fonte muda. É o SHA-256 do texto-fonte normalizado em NFC e sem espaços nas pontas, nos 16 primeiros caracteres hex.
 - Interpolação: `{global.player_money}`, `{character.alice.affection}`. Chaves literais: `{{` e `}}`. Interpoláveis: qualquer variável que o texto possa ler naquele ponto (mesma regra de escopo das condições), inclusive `sys.*` e derivadas; variável inexistente ou fora de escopo é erro R019. Vale em falas, opções, `prompt`, `display_name`, títulos e descrições de finais, textos de telas (UI Spec §3.3) e traduções. Números usam o separador decimal e de milhar do idioma, numa tabela própria do runtime (Runtime Spec §12.1); booleanos aparecem como `true`/`false`. Enums aparecem pelo rótulo de `constraints.labels`, traduzível, ou pelo valor se não houver rótulo.
@@ -404,13 +408,13 @@ Campos comuns a todos os nós: `id`, `type`, `next`, `note` (comentário do auto
 | Nome e `display_name` de personagem | `character/<personagem>/name`, `character/<personagem>/display_name` | `project.json` |
 | Título e descrição de final | `ending/<final>/title`, `ending/<final>/description` | `project.json` |
 | Título do jogo | `project/title` | `project.json` |
-| Textos de telas e sets (menus, botões, créditos) | `ui/<tela>/<elemento>…`, `sets/<set>/<hotspot>` (UI Spec §3.3) | `ui/<tela>.json`, `ui/sets.json` |
+| Textos de telas e sets (menus, botões, créditos) | `ui/<tela>/<elemento>…`, `sets/<set>/<hotspot>` (UI Spec §3.3) | `ui/<tela>.json`, `sets/<set>.json` |
 | `prompt` e rótulos do nó `interact` | `<cena>/<nó>`, `<cena>/<nó>/<hotspot>`, `<cena>/<nó>/exit` | `scenes/<cena>.json` |
 | Rótulo de valor de enum | `variable/<id qualificado>/value/<valor>` | `project.json` |
-| Mensagens do runtime ao jogador | `runtime/message/<código>` (Build System §13.1) | `project.json` |
+| Mensagens e textos prontos do runtime | `runtime/message/<código em minúsculas>` (Build System §13.1), `runtime/confirm/…`, `runtime/settings/…` (preset, UI Spec §2) | `project.json` |
 | Textos de plugin | `plugin/<namespace>/…` (Plugin SDK §5.7) | `plugins/<namespace>.json` |
 
-`<cena>`, `<nó>`, `<opção>`, `<capítulo>` e `<personagem>` são os UUIDs; `<final>` é o id legível.
+`<cena>`, `<nó>`, `<opção>`, `<capítulo>` e `<personagem>` são os UUIDs; `<final>` é o id legível. O nome do arquivo de uma cena em `locales/<lang>/scenes/` é o UUID da cena, que não muda quando o título muda; o tradutor trabalha pela planilha (Req §9), não por esses arquivos. Um texto num arquivo diferente do da tabela gera o aviso W023.
 
 ### 9.1. Marcação de texto
 
@@ -449,7 +453,8 @@ Fora dessa lista, o Studio converte quando pode (ex.: GIF → sequência) ou rec
 ### 10.2. Palco: posição, âncora e escala
 
 - `show.position` aceita os nomes `far_left` (0.1), `left` (0.25), `center` (0.5), `right` (0.75), `far_right` (0.9) ou uma fração da largura da tela.
-- Cada sprite tem `anchor` (padrão `[0.5, 1.0]`, centro dos pés) e `scale` (padrão 1.0). A âncora fica na posição horizontal escolhida e na base da tela.
+- Cada sprite tem `anchor` (padrão `[0.5, 1.0]`, centro dos pés) e `scale` (padrão 1.0). A âncora fica na posição horizontal escolhida e na base da tela. `scale: 1.0` desenha o sprite com o tamanho em pixels da imagem na resolução base (`settings.resolution`); a tela inteira é escalada junto (Runtime Spec §1.1).
+- **Galeria.** `assets.json → gallery: true` põe um `image`/`background` na galeria de imagens e um `audio_music` na de músicas (UI Spec §3.1). O runtime marca o asset em `profile.seen_assets` na primeira vez que ele aparece em cena (`background`, `show` com essa expressão ou `audio` de música); a galeria mostra `locked_asset` para os não vistos. `gallery_order` ordena.
 - O Character Manager mostra o sprite sobre um cenário de exemplo e permite arrastar a âncora e ajustar a escala, com os valores gravados em `assets.json`.
 
 ### 10.3. Aparência do jogo (tema)
@@ -532,10 +537,13 @@ O JSON Schema garante a forma. O Content Validator (implementação de referênc
 | W017 | aviso | Resultado `number` gravado em variável `integer` (será truncado) |
 | W018 | aviso | Capítulo que não aparece em `project.chapters` |
 | W019 | aviso | `event_since_last_selection` com evento `sys.*` (sempre falso, Runtime Spec §7.2) |
+| W021 | aviso | Idioma do jogo fora dos idiomas do produto sem tradução dos textos prontos do runtime (`runtime/…`); caem no inglês (Req §9.1) |
+| W022 | aviso | Plugin com quadros de recordes sem a concessão de `profile.data`: recordes e dados de perfil seriam recusados |
+| W023 | aviso | Tradução num arquivo de `locales/<lang>/` diferente do que a tabela do §9 define |
 
 Todo código tem uma mensagem em linguagem simples no idioma do Studio e leva ao ponto exato do problema (ver [Requisitos de autoria](04-studio-authoring-requirements.md) §6).
 
-Telas, sets e estilos têm regras próprias (U001–U008, W020) na UI Spec §11. O validador de referência implementa todos os códigos acima e os da UI Spec, exceto W005 e W020 (que exige ler os arquivos de fonte), que exige análise de satisfatibilidade das condições. W006 e W010 são aproximações: W006 avisa quando todas as opções têm `visible_if` (no `interact`, quando todos os hotspots têm `visible_if` e não há `exit`), e W010 quando a `fallback_scene` não escreve em nenhuma variável citada em `completion.conditions`. `tools/test_validate.py` contém um caso quebrado de propósito para cada código implementado.
+Telas, sets e estilos têm regras próprias (U001–U011, W020) na UI Spec §11. O validador de referência implementa todos os códigos acima e os da UI Spec, exceto W005, que exige análise de satisfatibilidade das condições, e W020, que exige ler os arquivos de fonte. W006 e W010 são aproximações: W006 avisa quando todas as opções têm `visible_if` (no `interact`, quando todos os hotspots têm `visible_if` e não há `exit`), e W010 quando a `fallback_scene` não escreve em nenhuma variável citada em `completion.conditions`. `tools/test_validate.py` contém um caso quebrado de propósito para cada código implementado.
 
 O `tools/validate.py` é a **referência de conformidade**: o validador do Studio (TypeScript) implementa as mesmas regras e passa nos mesmos casos.
 

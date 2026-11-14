@@ -12,6 +12,7 @@
           "runtime:audio.play",
           "runtime:ui.overlay",
           "runtime:input.capture",
+          "runtime:profile.data",
           "editor:preview"
         ],
         "variables": {
@@ -22,7 +23,8 @@
       },
       "config": {
         "show_tutorial": true,
-        "rare_fish_chance": 0.05
+        "rare_fish_chance": 0.05,
+        "rare_fish_sound": "sfx/shell"
       }
     }
   }

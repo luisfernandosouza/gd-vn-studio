@@ -44,12 +44,16 @@ MARKUP = re.compile(r"\[\[|\]\]|\[(/?)([a-z]+)(=[^\]]*)?\]")
 PAIRED, SINGLE = {"b", "i", "color", "speed"}, {"pause"}
 SYS_FIXED = {"sys.chapter.id": "string", "sys.scene.id": "string", "sys.selection_count": "integer",
              "sys.locale": "string", "sys.save_modified": "boolean",
-             "sys.ui.has_save": "boolean", "sys.ui.in_game": "boolean", "sys.ui.platform": "string", "sys.ui.activity": "boolean"}
+             "sys.ui.has_save": "boolean", "sys.ui.in_game": "boolean", "sys.ui.platform": "string", "sys.ui.activity": "boolean",
+             "sys.ui.has_minigames": "boolean", "sys.ui.last_activity_outcome": "string", "sys.ui.last_record_rank": "integer"}
 # UI Spec §4, §5.1, §8
 COSMETIC = {"set_state", "toggle_state", "play_animation", "play_sfx", "show", "hide", "toggle_visible"}
 TITLE_ONLY = {"new_game", "continue"}
 GAME_ONLY = {"return_to_title", "save", "quick_save", "toggle_auto", "toggle_skip", "hide_textbox", "open_backlog", "emit"}
 FIXED_SCREENS = {"title", "pause", "save", "load", "settings", "gallery", "credits", "hud"}
+PRESET_SCREENS = {"backlog", "minigames"}   # telas próprias que o preset traz (UI Spec §2)
+PRODUCT_LOCALES = {"en", "pt-BR", "es", "fr", "it", "de", "ja", "zh-Hans", "zh-Hant"}   # Req §9.1
+PRESETS = Path(__file__).resolve().parent.parent / "presets"
 DEFAULT_STYLES = {"button", "choice", "slot", "slider", "toggle", "select", "hotspot", "label"}
 SETTING_TYPES = {"volume.master": "number", "volume.music": "number", "volume.ambient": "number", "volume.sfx": "number",
                  "volume.voice": "number", "display_mode": "string", "resolution": "list", "vsync": "boolean",
@@ -186,7 +190,8 @@ def check_ui(root, project, theme, theme_file, screens, sets, assets, resolve, c
     stage_parts = set()
     for st_id in sets:
         layers, hs = set_parts(st_id); stage_parts |= set(layers) | hs
-    known_screens = set(screens) | FIXED_SCREENS
+    known_screens = set(screens) | FIXED_SCREENS | PRESET_SCREENS
+    opens = {}   # tela → telas que ela abre (U010)
     base = project.get("settings", {}).get("resolution", [1920, 1080])
 
     def profile_ok(ref):
@@ -223,7 +228,10 @@ def check_ui(root, project, theme, theme_file, screens, sets, assets, resolve, c
             if ctx["in_set"] and do not in COSMETIC: err("U004", where, f"ação {do} não é cosmética (hotspots de set só aceitam {', '.join(sorted(COSMETIC))})")
             if do in TITLE_ONLY and ctx["kind"] != "title": err("U004", where, f"{do} só vale na tela de título")
             if do in GAME_ONLY and ctx["kind"] == "title": err("U004", where, f"{do} só vale durante o jogo")
-            if do == "open_screen" and a["screen"] not in known_screens: err("U001", where, f"tela {a['screen']} não existe")
+            if do == "open_screen":
+                if a["screen"] not in known_screens: err("U001", where, f"tela {a['screen']} não existe")
+                opens.setdefault(ctx.get("screen"), set()).add(a["screen"])
+            if do == "reset_profile" and ctx["kind"] in ("pause", "hud"): err("U004", where, "reset_profile não vale durante o jogo")
             if "target" in a:
                 states = check_target(a["target"], where, ctx["elem_ids"], ctx["set"], ctx["in_set"])
                 for stn in ([a["state"]] if "state" in a else a.get("states", [])):
@@ -238,6 +246,7 @@ def check_ui(root, project, theme, theme_file, screens, sets, assets, resolve, c
             if do == "emit" and not a["event"].startswith("story."): err("R020", where, f"emit de {a['event']}: só eventos story.*")
             if do == "set_setting": check_setting_value(a["setting"], a["value"], where)
             if do == "play_activity":
+                plays.add(ctx.get("screen"))
                 if ctx["kind"] in ("pause", "hud"): err("U004", where, "play_activity só vale fora do jogo (título e telas abertas a partir dele)")
                 act = activities.get(a["activity"])
                 if act is None or "free_play" not in act[1]: err("P020", where, f"atividade {a['activity']} inexistente ou sem free_play")
@@ -256,6 +265,8 @@ def check_ui(root, project, theme, theme_file, screens, sets, assets, resolve, c
         if not ok: err("U005", where, f"{setting} espera {t}, recebeu {value!r}")
         elif setting == "locale" and value not in project.get("locales", []): err("U005", where, f"idioma {value} fora de project.json → locales")
 
+    plays = set()
+    gallery_sources = {"images": {"image", "background"}, "music": {"audio_music"}}
     for scr_id, scr in screens.items():
         where = f"ui/{scr_id}.json"
         title = scr["kind"] == "title"
@@ -267,7 +278,7 @@ def check_ui(root, project, theme, theme_file, screens, sets, assets, resolve, c
         if scr.get("focus_start") and scr["focus_start"] not in elem_ids: err("U001", where, f"focus_start {scr['focus_start']} não existe")
         for k in ("on_open", "on_close", "back"):
             check_actions(scr.get(k), f"{where}/{k}", {"kind": scr["kind"], "elem_ids": elem_ids, "set": scr.get("set"),
-                                                        "in_set": False, "title": title, "conf": 0, "path": f"ui/{scr_id}/{k}"})
+                                                        "in_set": False, "title": title, "conf": 0, "path": f"ui/{scr_id}/{k}", "screen": scr_id})
         all_do = {a["do"] for k in ("on_open", "on_close", "back") for a in ui_actions(scr.get(k))}
         for e in elems:
             ew = f"{where}#{e['id']}"; tp = f"ui/{scr_id}/{e['id']}"
@@ -279,7 +290,7 @@ def check_ui(root, project, theme, theme_file, screens, sets, assets, resolve, c
                 if e.get(k): check_style(e[k], ew)
             for k in ("actions", "on_hover"):
                 check_actions(e.get(k), ew, {"kind": scr["kind"], "elem_ids": elem_ids, "set": scr.get("set"),
-                                             "in_set": False, "title": title, "conf": 0, "path": tp})
+                                             "in_set": False, "title": title, "conf": 0, "path": tp, "screen": scr_id})
                 all_do |= {a["do"] for a in ui_actions(e.get(k))}
             for k in ("text", "label"):
                 if e.get(k):
@@ -293,6 +304,9 @@ def check_ui(root, project, theme, theme_file, screens, sets, assets, resolve, c
                 ns, _, board = e["board"].partition(".")
                 m = next((m for m in manifests.values() if m["namespace"] == ns), None)
                 if m is None or board not in {r["id"] for r in m.get("records", [])}: err("U001", ew, f"quadro de recordes {e['board']} não existe")
+            if e["type"] == "gallery_grid" and e["source"] in gallery_sources:
+                if not any(a.get("gallery") and a["type"] in gallery_sources[e["source"]] for a in assets.values()):
+                    warn("U011", ew, f"galeria de {e['source']} vazia: nenhum asset com gallery: true desse tipo")
             for o in e.get("options", []):
                 text_paths.add(f"{tp}/option/{o['value']}")
                 check_setting_value(e["bind"], o["value"], ew)
@@ -315,8 +329,21 @@ def check_ui(root, project, theme, theme_file, screens, sets, assets, resolve, c
                 if x0 < 0 or y0 < 0 or x0 + size[0] > base[0] or y0 + size[1] > base[1]:
                     warn("U007", ew, f"elemento sai da tela na resolução base {base[0]}x{base[1]}")
         if scr["kind"] == "title" and "new_game" not in all_do: err("U006", where, "tela de título sem ação new_game")
+        licensed = [m["id"] for m in manifests.values() if m.get("license")]
+        if scr["kind"] == "credits" and licensed and not any(e["type"] == "licenses_list" for e in elems):
+            warn("U009", where, f"créditos sem licenses_list, mas os plugins {', '.join(sorted(licensed))} têm licença (Build System §4.5)")
         if scr["kind"] == "pause" and not ({"close_screen", "back"} & all_do) and "back" not in scr:
             err("U006", where, "tela de pausa sem close_screen nem back")
+
+    # U010: play_activity numa tela alcançável a partir da pausa ou do HUD
+    in_game = {k for k, s in screens.items() if s["kind"] in ("pause", "hud")} | ({"pause", "hud"} - set(screens))
+    frontier = set(in_game)
+    while frontier:
+        nxt = set()
+        for k in frontier: nxt |= opens.get(k, set()) - in_game
+        in_game |= nxt; frontier = nxt
+    for k in sorted(plays & in_game - {s for s in screens if screens[s]["kind"] in ("pause", "hud")}):
+        warn("U010", f"ui/{k}.json", "play_activity numa tela que a pausa ou o HUD abrem: o botão fica escondido durante a partida (Runtime Spec §5.3)")
 
     for st_id, st in sets.items():
         where = f"sets/{st_id}.json"
@@ -792,7 +819,14 @@ def main(root, plugin_dirs):
 
     check_ui(root, project, theme, theme_file, screens, sets, assets, resolve, check_style, set_parts, text_paths, vars_, endings, activities, manifests)
     for p in sorted((root / "locales").rglob("*.json")):
+        rel = p.relative_to(root / "locales")
         for k, v in load(p)["strings"].items():
+            head = k.split("/")[0]
+            expected = (f"scenes/{head}.json" if head in scenes else f"ui/{k.split('/')[1]}.json" if head == "ui"
+                        else f"sets/{k.split('/')[1]}.json" if head == "sets" else f"plugins/{k.split('/')[1]}.json" if head == "plugin"
+                        else "project.json")
+            if len(rel.parts) > 1 and "/".join(rel.parts[1:]) != expected:
+                warn("W023", p.relative_to(root), f"{k} deveria estar em locales/{rel.parts[0]}/{expected} (Data Model §9)")
             if k.count("/") >= 1 and (k.split("/")[0] in scenes or k.split("/")[0] in ("ui", "sets")) and k not in text_paths:
                 warn("W003", p.relative_to(root), f"tradução órfã {k}")
             t = v if isinstance(v, str) else v.get("text", "")
@@ -867,6 +901,25 @@ def main(root, plugin_dirs):
             for pl in project.get("build", {}).get("platforms", []):
                 if pl not in plats: warn("W008", pid, f"projeto exporta para {pl}, fora de compatibility.platforms")
         check_plugin_code(pid, m, plugin_roots[pid])
+
+    # W021: idioma do jogo fora dos idiomas do produto sem as chaves runtime/ traduzidas (Req §9.1)
+    preset_en = PRESETS / theme.get("preset", "classic") / "locales" / "en.json"
+    if preset_en.exists():
+        runtime_keys = {k for k in load(preset_en)["strings"] if k.startswith("runtime/")}
+        for lang in project.get("locales", []):
+            if lang in PRODUCT_LOCALES or lang.split("-")[0] in PRODUCT_LOCALES or lang == project["default_locale"] and lang in PRODUCT_LOCALES: continue
+            have = set()
+            for p in (root / "locales" / lang).rglob("*.json") if (root / "locales" / lang).is_dir() else []:
+                have |= set(load(p)["strings"])
+            missing = sorted(runtime_keys - have)
+            if missing: warn("W021", f"locales/{lang}", f"{len(missing)} textos prontos do runtime sem tradução (ex.: {missing[0]}); caem no inglês")
+
+    # W022: recurso que depende de profile.data sem a concessão
+    for pid, m in manifests.items():
+        cfg = plugins_cfg["plugins"].get(pid)
+        if cfg is None or not m.get("records"): continue
+        if "runtime:profile.data" not in cfg.get("grants", {}).get("capabilities", []) and "profile.data" in m.get("capabilities", {}).get("runtime", []):
+            warn("W022", f"plugins.json/{pid}", "o plugin tem quadros de recordes mas profile.data não foi concedido: recordes e dados de perfil serão recusados")
 
     # idiomas do build (R013, Build System §5.3)
     bl = project.get("build", {}).get("locales")

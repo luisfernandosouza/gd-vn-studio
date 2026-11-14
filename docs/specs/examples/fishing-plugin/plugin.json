@@ -251,6 +251,13 @@
         "default": 0.05,
         "title": "Rare fish chance",
         "description": "From 0 to 0.5. Each hooked fish has this chance of being rare."
+      },
+      "rare_fish_sound": {
+        "type": "string",
+        "format": "vn-asset",
+        "vn-asset-type": "audio_sfx",
+        "title": "Rare fish sound",
+        "description": "Sound effect played when a rare fish is caught. Empty: no sound."
       }
     }
   },
@@ -286,6 +293,8 @@
       "activity/fishing_game/suggested/won_flag": "Guardar se venceu",
       "config/rare_fish_chance/description": "De 0 a 0,5. Cada peixe fisgado tem essa chance de ser raro.",
       "config/rare_fish_chance/title": "Chance de peixe raro",
+      "config/rare_fish_sound/description": "Efeito sonoro tocado quando um peixe raro é fisgado. Vazio: sem som.",
+      "config/rare_fish_sound/title": "Som do peixe raro",
       "config/show_tutorial/title": "Mostrar tutorial na primeira pescaria",
       "record/high_scores/name": "Recordes",
       "runtime/hud/fish_count": "Peixes: {count}",

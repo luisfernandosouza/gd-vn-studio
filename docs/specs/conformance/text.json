@@ -4,6 +4,7 @@
   "covers": [
     "DM §6.1.1 (concat)",
     "DM §9",
+    "Plugin SDK §9.1",
     "RT §12.1"
   ],
   "cases": [
@@ -220,6 +221,126 @@
       "locale": "pt-BR",
       "expect": {
         "text": "true"
+      }
+    },
+    {
+      "id": "record_time_ms_minutos",
+      "description": "time_ms: 1 min 2,345 s em pt-BR → 1:02,34 (centésimos truncados)",
+      "kind": "text",
+      "mode": "record",
+      "format": "time_ms",
+      "value": 62345,
+      "locale": "pt-BR",
+      "expect": {
+        "text": "1:02,34"
+      }
+    },
+    {
+      "id": "record_time_ms_horas",
+      "description": "time_ms acima de uma hora",
+      "kind": "text",
+      "mode": "record",
+      "format": "time_ms",
+      "value": 3725678,
+      "locale": "en",
+      "expect": {
+        "text": "1:02:05.67"
+      }
+    },
+    {
+      "id": "record_time_ms_zero",
+      "description": "time_ms zero",
+      "kind": "text",
+      "mode": "record",
+      "format": "time_ms",
+      "value": 0,
+      "locale": "en",
+      "expect": {
+        "text": "0:00.00"
+      }
+    },
+    {
+      "id": "record_integer_de",
+      "description": "integer com milhar em alemão",
+      "kind": "text",
+      "mode": "record",
+      "format": "integer",
+      "value": 12345,
+      "locale": "de",
+      "expect": {
+        "text": "12.345"
+      }
+    },
+    {
+      "id": "override_idioma_fora_da_tabela",
+      "description": "settings.number_formats para ru (fora da tabela): vírgula decimal e espaço inseparável",
+      "kind": "text",
+      "mode": "interpolation",
+      "value": {
+        "type": "number",
+        "value": 1234567.5
+      },
+      "locale": "ru",
+      "number_formats": {
+        "ru": {
+          "decimal": ",",
+          "group": " "
+        }
+      },
+      "expect": {
+        "text": "1 234 567,5"
+      }
+    },
+    {
+      "id": "override_sem_milhar",
+      "description": "number_formats com group vazio",
+      "kind": "text",
+      "mode": "interpolation",
+      "value": 1234567,
+      "locale": "pl",
+      "number_formats": {
+        "pl": {
+          "decimal": ",",
+          "group": ""
+        }
+      },
+      "expect": {
+        "text": "1234567"
+      }
+    },
+    {
+      "id": "override_sobre_a_tabela",
+      "description": "number_formats tem precedência sobre a tabela (de com espaço fino)",
+      "kind": "text",
+      "mode": "interpolation",
+      "value": {
+        "type": "number",
+        "value": 12345.25
+      },
+      "locale": "de",
+      "number_formats": {
+        "de": {
+          "decimal": ",",
+          "group": " ",
+          "min_grouping": 5
+        }
+      },
+      "expect": {
+        "text": "12 345,25"
+      }
+    },
+    {
+      "id": "sem_override_ko",
+      "description": "ko sem number_formats usa o inglês",
+      "kind": "text",
+      "mode": "interpolation",
+      "value": {
+        "type": "number",
+        "value": 1234567.5
+      },
+      "locale": "ko",
+      "expect": {
+        "text": "1,234,567.5"
       }
     }
   ]

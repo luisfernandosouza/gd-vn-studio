@@ -507,6 +507,14 @@
           "description": "Assinatura hmac-sha256-<base64> do JSON canônico sem este campo, com a chave de saves do projeto (Build System §8.3).",
           "type": "string",
           "pattern": "^hmac-sha256-[A-Za-z0-9+/]+=*$"
+        },
+        "seen_assets": {
+          "description": "Assets com gallery: true que o jogador já viu (Runtime Spec §5.2), por id, em ordem lexicográfica.",
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/AssetRef"
+          },
+          "uniqueItems": true
         }
       }
     },
@@ -516,24 +524,24 @@
       "additionalProperties": false,
       "properties": {
         "locale": {
-          "$ref": "common.schema.json#/$defs/Locale"
+          "$ref": "common.schema.json#/$defs/Locale",
+          "description": "Idioma do jogo escolhido pelo jogador. Ausente = idioma do sistema, se o build o tiver, senão default_locale."
         },
         "text_speed": {
           "type": "number",
           "minimum": 0,
-          "description": "Caracteres por segundo; 0 = texto instantâneo."
+          "description": "Caracteres por segundo; 0 = texto instantâneo. Padrão: project.json → settings.text_speed, senão 40.",
+          "default": 40
         },
         "auto_delay": {
-          "description": "Segundos de espera no modo automático.",
+          "description": "Segundos de espera no modo automático depois de a fala terminar. Padrão: project.json → settings.auto_delay, senão 1,5.",
           "type": "number",
-          "minimum": 0
+          "minimum": 0,
+          "default": 1.5
         },
         "skip_unread": {
           "type": "boolean",
           "default": false
-        },
-        "fullscreen": {
-          "type": "boolean"
         },
         "volume": {
           "type": "object",
@@ -542,27 +550,32 @@
             "master": {
               "type": "number",
               "minimum": 0,
-              "maximum": 1
+              "maximum": 1,
+              "default": 0.8
             },
             "music": {
               "type": "number",
               "minimum": 0,
-              "maximum": 1
+              "maximum": 1,
+              "default": 0.8
             },
             "ambient": {
               "type": "number",
               "minimum": 0,
-              "maximum": 1
+              "maximum": 1,
+              "default": 0.8
             },
             "sfx": {
               "type": "number",
               "minimum": 0,
-              "maximum": 1
+              "maximum": 1,
+              "default": 0.8
             },
             "voice": {
               "type": "number",
               "minimum": 0,
-              "maximum": 1
+              "maximum": 1,
+              "default": 1.0
             }
           }
         },
@@ -593,7 +606,8 @@
             "windowed",
             "fullscreen",
             "borderless"
-          ]
+          ],
+          "default": "windowed"
         },
         "resolution": {
           "type": "array",
@@ -606,19 +620,22 @@
           "description": "Tamanho da janela; a resolução base do jogo continua settings.resolution do projeto."
         },
         "vsync": {
-          "type": "boolean"
+          "type": "boolean",
+          "default": true
         },
         "fps_limit_vn": {
           "description": "Limite de quadros por segundo fora de minijogos; 0 = sem limite (UI Spec §8).",
           "type": "integer",
           "minimum": 0,
-          "maximum": 360
+          "maximum": 360,
+          "default": 60
         },
         "fps_limit_activity": {
           "description": "Limite durante atividades de plugin; 0 = sem limite.",
           "type": "integer",
           "minimum": 0,
-          "maximum": 360
+          "maximum": 360,
+          "default": 0
         },
         "show_hotspots": {
           "description": "Destaca todos os hotspots (acessibilidade).",

@@ -11,13 +11,25 @@
       "text": "Roteiro e arte: Seaside Team",
       "position": [
         0.5,
-        0.45
+        0.25
       ],
       "align": "center",
       "appear": {
         "kind": "fade",
         "duration": 1.0
       }
+    },
+    {
+      "id": "licenses",
+      "type": "licenses_list",
+      "position": [
+        0.5,
+        0.58
+      ],
+      "size": [
+        1200,
+        420
+      ]
     },
     {
       "id": "btn_back",

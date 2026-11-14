@@ -1,6 +1,6 @@
 # Fishing Minigame (`vnstudio.fishing`)
 
-Plugin de referência do Visual Novel Studio. Esta pasta corresponde a `vn_plugins/fishing/` do projeto de desenvolvimento (Plugin SDK §2.4).
+Plugin de referência do Visual Novel Studio. Esta pasta é só o conteúdo de `vn_plugins/fishing/` do projeto de desenvolvimento (Plugin SDK §2.4, spec 09 §2): não tem `project.godot` nem `sandbox/`. Quando o código começar, o exemplo passa a ser gerado a partir de `plugins/fishing/` do monorepo.
 
 ## Para o autor da VN
 
@@ -16,7 +16,8 @@ O plugin não altera nenhuma variável do projeto. Ele mantém duas variáveis p
 | --- | --- |
 | `ui.overlay` | Desenhar o lago sobre a cena |
 | `input.capture` | Receber o "fisgar" do jogador durante a pescaria |
-| `audio.play` | Som do peixe raro |
+| `audio.play` | Som do peixe raro (o asset escolhido em *Rare fish sound* na configuração) |
+| `profile.data` | Quadro de recordes *High scores* do modo livre |
 | `events.emit` | Avisar a história com `fishing.completed` e `fishing.rare_fish_caught` |
 | `save.data` | Guardar o nível da vara e se o tutorial já foi visto |
 | `editor:preview` | Desenhar o substituto do minijogo no Preview no Studio |
@@ -30,4 +31,4 @@ vnplugin test               # tests/runtime com relógio virtual
 vnplugin link ../seaside-story   # depurar dentro de uma VN (modo desenvolvedor do Studio)
 ```
 
-`editor/dist/` é gerado a partir de `editor/src/`, e os assets de `runtime/assets/` (como `rare_fish.ogg`) não estão neste exemplo.
+`editor/dist/` é gerado a partir de `editor/src/`. O plugin não traz assets de áudio: o som do peixe raro é um asset do projeto escolhido na configuração (`rare_fish_sound`, formato `vn-asset`).

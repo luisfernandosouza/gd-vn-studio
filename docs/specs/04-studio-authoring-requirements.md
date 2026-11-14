@@ -154,7 +154,10 @@ O Build Reporter DEVE produzir, para cada plataforma: sucesso ou falha, tamanho 
 
 ### 9.1. Idiomas do produto
 
-Decisão de 2026-11-14. Vale para os textos que **o produto** escreve, não para o conteúdo do autor, que pode estar em qualquer idioma (`default_locale`).
+Decisão de 2026-11-14. Há dois conjuntos de idiomas, independentes:
+
+- **Idiomas do jogo:** de 1 a *n*, escolhidos pelo autor em cada projeto (`default_locale` e as traduções em `locales/`). Qualquer tag BCP 47 vale, inclusive idiomas que o Studio não tem na própria interface (coreano, russo, árabe, tupi…). O Studio não limita nem sugere uma lista: o autor acrescenta um idioma no projeto e passa a ter a coluna dele na planilha de tradução (§9).
+- **Idiomas do produto:** a lista fixa da tabela abaixo. Vale só para os textos que **o produto** escreve (a interface do Studio, as mensagens do validador e os textos prontos do runtime), e não restringe os idiomas do jogo.
 
 | Onde | Idioma principal | Idiomas secundários no v1 |
 |---|---|---|
@@ -163,10 +166,12 @@ Decisão de 2026-11-14. Vale para os textos que **o produto** escreve, não para
 | Plugins oficiais (`vnstudio.*`) | inglês (`default_locale: en`) | os mesmos, em `plugin_locales` |
 
 - O inglês é a fonte: todo texto do produto nasce em inglês, e falta de tradução cai no inglês. Uma string só entra numa versão quando existe em inglês.
-- Os idiomas secundários são arquivos de tradução, no mesmo formato de `locales/` (Data Model §9). Acrescentar um idioma (coreano, russo, polonês, árabe…) é só acrescentar um arquivo, sem mudar código. Idiomas da direita para a esquerda (árabe, hebraico) ficam fora do v1, porque exigem espelhar layouts.
+- Os idiomas secundários do produto são arquivos de tradução, no mesmo formato de `locales/` (Data Model §9). Acrescentar um idioma ao produto é só acrescentar um arquivo, sem mudar código. A **interface do Studio** em idiomas da direita para a esquerda fica fora do v1, porque exige espelhar os layouts do editor.
+- **Jogo em idioma da direita para a esquerda.** O texto do jogo (falas, opções, botões) em árabe ou hebraico é desenhado na direção certa pelo motor de texto do Godot. O que não é automático no v1 é espelhar as telas: o autor posiciona os elementos no Menu Editor para esse idioma, ou usa o mesmo layout.
 - O Studio abre no idioma do sistema, se estiver na lista; senão em inglês. O jogador escolhe o idioma do jogo em Configurações (`locale`); o jogo começa no idioma do sistema, se o build o tiver, senão em `default_locale`.
-- Textos prontos do runtime são traduzidos para os idiomas de `build.locales` que estiverem na lista acima; para os demais, o autor traduz pela planilha (§9), nas chaves `runtime/…`.
-- Números seguem a tabela por idioma do Runtime Spec §12.1. Japonês e chinês usam as fontes de reserva do tema (UI Spec §7.2).
+- Textos prontos do runtime vêm traduzidos para os idiomas do jogo que estiverem na lista acima. Para os demais idiomas do jogo, a planilha de tradução (§9) inclui as chaves `runtime/…` com o texto em inglês como fonte, e o autor as traduz como o resto. Chave `runtime/…` sem tradução cai no inglês, e o validador avisa (W021).
+- Números seguem a tabela por idioma do Runtime Spec §12.1. Um idioma do jogo fora da tabela usa o formato do inglês, a menos que o projeto declare o formato dele em `settings.number_formats`.
+- Fontes: o tema declara fontes de reserva por sistema de escrita (UI Spec §7.2). Idioma do jogo cujo alfabeto nenhuma fonte cobre gera o aviso W020.
 - As specs deste repositório continuam em português; os identificadores e o código, em inglês.
 
 ## 10. Importar roteiro

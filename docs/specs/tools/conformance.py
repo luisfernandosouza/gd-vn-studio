@@ -95,7 +95,11 @@ NUMBER_FORMATS = {
     "es": (",", ".", 5), "fr": (",", " ", 4),
 }
 
+OVERRIDES = {}   # project.json → settings.number_formats (Runtime Spec §12.1)
+
 def number_format(locale):
+    if locale in OVERRIDES:
+        o = OVERRIDES[locale]; return (o["decimal"], o.get("group", ""), o.get("min_grouping", 4))
     if locale in NUMBER_FORMATS: return NUMBER_FORMATS[locale]
     lang = locale.split("-")[0]
     return NUMBER_FORMATS.get(lang, NUMBER_FORMATS["en"])
@@ -113,12 +117,35 @@ def format_number(v, locale):
     s = format(abs(d), "f")
     ip, _, fp = s.partition(".")
     fp = fp.rstrip("0")
-    if len(ip) >= min_grp:
+    if len(ip) >= min_grp and grp_sep:
         groups = []
         while len(ip) > 3: groups.insert(0, ip[-3:]); ip = ip[:-3]
         groups.insert(0, ip); ip = grp_sep.join(groups)
     out = ip + (dec_sep + fp if fp else "")
     return ("-" if neg and out.strip("0" + dec_sep + grp_sep) else "") + out
+
+def format_record(score, fmt, locale):
+    """Exibição de uma marca de recorde (Plugin SDK §9.1): integer e number como na interpolação;
+    time_ms como m:ss.cc (h:mm:ss.cc a partir de uma hora), centésimos truncados, separador decimal do idioma."""
+    if fmt == "time_ms":
+        cs = int(score) // 10
+        h, rest = divmod(cs, 360000); m, rest = divmod(rest, 6000); sec, c = divmod(rest, 100)
+        dec = number_format(locale)[0]
+        return (f"{h}:{m:02d}:{sec:02d}" if h else f"{m}:{sec:02d}") + f"{dec}{c:02d}"
+    if fmt == "integer": return format_number(("integer", int(score)), locale)
+    return format_number(("number", float(score)), locale)
+
+def submit_record(board, entries, new):
+    """Plugin SDK §9.1: insere a marca, mantém as `keep` melhores; empate fica com a mais antiga.
+    Devolve (posição 1…keep ou 0, lista nova)."""
+    desc = board["order"] == "desc"
+    better = (lambda a, b: a > b) if desc else (lambda a, b: a < b)
+    pos = len(entries)
+    for i, e in enumerate(entries):
+        if better(new["score"], e["score"]): pos = i; break
+    out = entries[:pos] + [new] + entries[pos:]
+    out = out[:board["keep"]]
+    return (pos + 1 if pos < board["keep"] else 0), out
 
 def interpolate_value(v, locale):
     t, x = v
@@ -462,7 +489,17 @@ def run_case(c):
             _, changes = apply_effects(c["effects"], env); return {"changes": changes}
         except VNError as e:
             return {"error": e.code}
+    if k == "record":
+        OVERRIDES.clear()
+        rank, entries = submit_record(c["board"], c["entries"], c["submit"])
+        res = {"rank": rank, "entries": entries}
+        if "locale" in c: res["display"] = [format_record(e["score"], c["board"]["format"], c["locale"]) for e in entries]
+        return res
+    if k == "flow":
+        OVERRIDES.clear(); return {"trace": run_flow(c)}
     if k == "text":
+        OVERRIDES.clear(); OVERRIDES.update(c.get("number_formats", {}))
+        if c["mode"] == "record": return {"text": format_record(c["value"] if not isinstance(c["value"], dict) else c["value"]["value"], c["format"], c["locale"])}
         v = lit(c["value"]) if not (isinstance(c["value"], dict)) else (c["value"]["type"], c["value"]["value"])
         if v[0] == "number": v = ("number", float(v[1]))
         if c["mode"] == "concat": return {"text": to_text(v)}
@@ -489,6 +526,114 @@ def run_case(c):
         if "rng_state" in out: res["rng_state_after"] = out["rng_state"]
         return res
     raise ValueError(f"kind desconhecido {k}")
+
+
+# ---------------------------------------------------------------- fluxo de cena (spec 08, kind flow)
+
+INTERP_RE = __import__("re").compile(r"\{\{|\}\}|\{([^{}]*)\}")
+
+def interpolate(text, env, locale):
+    def sub(m):
+        if m.group(0) == "{{": return "{"
+        if m.group(0) == "}}": return "}"
+        return interpolate_value(env.read(m.group(1).strip()), locale)
+    return INTERP_RE.sub(sub, text)
+
+TYPE_DEFAULT = {"boolean": False, "integer": 0, "number": 0.0, "string": "", "enum": None}
+
+def resolve_result(effects, payload, env):
+    """on_result.effects: {result} vira literal; campo ausente ou de tipo errado → default do {result} ou do tipo (Runtime Spec §5.3 passo 6)."""
+    out = []
+    for e in effects:
+        e = dict(e); v = e.get("value")
+        if isinstance(v, dict) and "result" in v:
+            t = env.vars[e["variable"]]["type"]
+            cur = payload
+            for part in v["result"].split("."): cur = cur.get(part) if isinstance(cur, dict) else None
+            ok = cur is not None and {"boolean": isinstance(cur, bool), "integer": isinstance(cur, (int, float)) and not isinstance(cur, bool) and float(cur).is_integer(),
+                                      "number": isinstance(cur, (int, float)) and not isinstance(cur, bool), "string": isinstance(cur, str), "enum": isinstance(cur, str)}[t]
+            val = (int(cur) if t == "integer" else cur) if ok else v.get("default", TYPE_DEFAULT[t] if t != "enum" else env.vars[e["variable"]]["default"])
+            e["value"] = {"type": "number", "value": float(val)} if t == "number" and not isinstance(val, bool) else val
+            if isinstance(e["value"], dict): e["value"] = float(val)
+        out.append(e)
+    return out
+
+def run_flow(c):
+    """Executa uma cena nó a nó com as entradas do jogador e devolve o traço (Runtime Spec §5)."""
+    scene = c["scene"]; locale = c.get("locale", "en")
+    env = Env(typed_vars(c.get("variables")), None, events=[])
+    for d in scene.get("variables", []):
+        env.vars[f"scene.{d['key']}"] = {"type": d["type"], "value": float(d["default"]) if d["type"] == "number" else d["default"], "default": d["default"], **({"constraints": d["constraints"]} if "constraints" in d else {})}
+    nodes = scene["nodes"]; index = {n["id"]: i for i, n in enumerate(nodes)}
+    inputs = list(c.get("inputs", [])); trace = []; queue = []
+    def emit(name, payload=None): queue.append(name)
+    def drain():
+        while queue: trace.append({"event": queue.pop(0)})
+    def transaction(effects):
+        try:
+            work, changes = apply_effects(effects, env)
+        except VNError as e:
+            return e.code
+        env.vars = work
+        if changes: trace.append({"changes": changes})
+        return None
+    def nxt(i, n): return index[n["next"]] if n.get("next") else i + 1
+    i = index[scene.get("start") or nodes[0]["id"]]; guard = 0
+    trace.append({"event": "sys.scene_started"})
+    while True:
+        guard += 1
+        if guard > 10000: return trace + [{"error": "INFINITE_LOOP"}]
+        if i >= len(nodes):
+            trace.append({"event": "sys.scene_ended"}); trace.append({"end": "schedule"}); break
+        n = nodes[i]; t = n["type"]
+        trace.append({"node": n["id"]})
+        if t == "line":
+            trace.append({"text": interpolate(n["text"], env, locale)})
+            inp = inputs.pop(0) if inputs else None
+            if inp != "advance": return trace + [{"waiting": "line"}]
+            i = nxt(i, n)
+        elif t == "choice":
+            vis = [o for o in n["options"] if check_conditions(o.get("visible_if", []), env)]
+            if not vis: i = nxt(i, n); continue
+            trace.append({"options": [{"id": o["id"], "enabled": check_conditions(o.get("enabled_if", []), env)} for o in vis]})
+            inp = inputs.pop(0) if inputs else None
+            if not (isinstance(inp, dict) and "choose" in inp): return trace + [{"waiting": "choice"}]
+            o = next(o for o in vis if o["id"] == inp["choose"])
+            eff = list(o.get("effects", []))
+            if n.get("record"): eff.append({"op": "set", "variable": n["record"], "value": o.get("value", o["id"])})
+            transaction(eff)
+            emit("sys.choice_made"); drain()
+            i = index[o["goto"]] if o.get("goto") else nxt(i, n)
+        elif t == "effects":
+            code = transaction(n["effects"])
+            if code == "CONSTRAINT_VIOLATION" and n.get("on_fail"): i = index[n["on_fail"]]; continue
+            if code and code != "CONSTRAINT_VIOLATION": trace.append({"error": code})
+            i = nxt(i, n)
+        elif t == "branch":
+            goto = next((cs["goto"] for cs in n["cases"] if check_conditions(cs["conditions"], env)), n.get("else"))
+            i = index[goto] if goto else nxt(i, n)
+        elif t == "jump":
+            i = index[n["goto"]]
+        elif t == "emit":
+            emit(n["event"]); drain(); i = nxt(i, n)
+        elif t == "plugin":
+            inp = inputs.pop(0) if inputs else None
+            if not (isinstance(inp, dict) and "activity" in inp): return trace + [{"waiting": "plugin"}]
+            a = inp["activity"]
+            if a.get("failed"):
+                trace.append({"event": "sys.activity_failed"}); goto = n.get("on_error")
+                i = index[goto] if goto else nxt(i, n); continue
+            if not a.get("skipped"):
+                transaction(resolve_result(n.get("on_result", {}).get("effects", []), a.get("payload", {}), env))
+            emit("sys.activity_completed"); drain()
+            goto = n.get("on_result", {}).get("outcomes", {}).get(a["outcome"])
+            i = index[goto] if goto else nxt(i, n)
+        elif t == "end":
+            then = n.get("then", "schedule")
+            trace.append({"event": "sys.scene_ended"}); trace.append({"end": then}); break
+        else:   # background, show, hide, audio, wait, interact sem entrada: palco não entra no traço
+            i = nxt(i, n)
+    return trace
 
 
 def same(a, b):

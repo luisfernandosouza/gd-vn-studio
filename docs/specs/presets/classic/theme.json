@@ -1,0 +1,143 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/1/theme.schema.json",
+  "fonts": {
+    "dialogue": "preset/font_body",
+    "name": "preset/font_body",
+    "ui": "preset/font_body",
+    "dialogue_size": 30,
+    "title": "preset/font_body",
+    "fallbacks": {
+      "ja": [
+        "preset/font_ja"
+      ],
+      "zh-Hans": [
+        "preset/font_zh_hans"
+      ],
+      "zh-Hant": [
+        "preset/font_zh_hant"
+      ],
+      "ko": [
+        "preset/font_ko"
+      ]
+    }
+  },
+  "colors": {
+    "text": "#ffffff",
+    "accent": "#6aa9ff",
+    "panel": "#101826d9",
+    "disabled": "#ffffff66",
+    "focus": "#6aa9ff"
+  },
+  "textbox": {
+    "position": "bottom",
+    "height": 0.28,
+    "name_plate": {
+      "use_character_color": true
+    }
+  },
+  "choices": {
+    "layout": "center"
+  },
+  "styles": {
+    "button": {
+      "shape": "rounded",
+      "radius": 10,
+      "border_width": 2,
+      "font_size": 30,
+      "padding": [
+        24,
+        10,
+        24,
+        10
+      ],
+      "fill": {
+        "normal": "#101826cc",
+        "hover": "#22406acc",
+        "pressed": "#0a1220cc",
+        "disabled": "#10182666",
+        "focus": "#22406acc"
+      },
+      "border": {
+        "normal": "#ffffff33",
+        "focus": "#6aa9ff"
+      },
+      "text_color": {
+        "normal": "#ffffff",
+        "disabled": "#ffffff66"
+      },
+      "hover": {
+        "scale": 1.03,
+        "duration": 0.1
+      },
+      "press": {
+        "scale": 0.97
+      },
+      "auto_shrink": true
+    },
+    "choice": {
+      "extends": "button",
+      "font_size": 28,
+      "padding": [
+        32,
+        14,
+        32,
+        14
+      ]
+    },
+    "slot": {
+      "extends": "button",
+      "shape": "rect",
+      "radius": 6,
+      "font_size": 20
+    },
+    "slider": {
+      "extends": "button",
+      "font_size": 24
+    },
+    "toggle": {
+      "extends": "button",
+      "font_size": 24
+    },
+    "select": {
+      "extends": "button",
+      "font_size": 24
+    },
+    "hotspot": {
+      "border_width": 3,
+      "border": {
+        "hover": "#ffffffcc",
+        "focus": "#6aa9ff"
+      }
+    },
+    "label": {
+      "font_size": 28,
+      "text_color": {
+        "normal": "#ffffff"
+      },
+      "shadow": {
+        "color": "#00000099",
+        "offset": [
+          2,
+          2
+        ]
+      }
+    },
+    "title_label": {
+      "extends": "label",
+      "font_size": 84
+    },
+    "hud_button": {
+      "extends": "button",
+      "font_size": 20,
+      "padding": [
+        12,
+        6,
+        12,
+        6
+      ]
+    }
+  },
+  "dialog": {
+    "button_style": "button"
+  }
+}

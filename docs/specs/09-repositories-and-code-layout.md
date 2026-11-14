@@ -24,7 +24,8 @@ gd-vn-studio/
 │   │   ├── schemas/            # JSON Schemas: fonte única para Studio, runtime e CLI
 │   │   ├── conformance/        # vetores de conformidade (spec 08)
 │   │   ├── examples/           # dados de exemplo das specs: só JSON e código, sem arte (§1.1)
-│   │   └── tools/              # validador e conformidade de referência (Python)
+│   │   ├── presets/            # presets de interface (classic): tema, telas e textos (UI Spec §2.1)
+│   │   └── tools/              # validador, conformidade e compilador de bundle de referência (Python)
 │   └── reviews/                # relatórios de revisão
 ├── studio/                     # Studio: Tauri + React + TypeScript
 │   ├── src/                    # interface (React)
@@ -33,6 +34,7 @@ gd-vn-studio/
 ├── runtime/                    # Runtime: projeto Godot 4.7.2 + GDScript
 │   ├── project.godot
 │   ├── vn_runtime/             # Narrative Engine, Scheduler, State Manager, UI Manager…
+│   │   └── presets/            # cópia gerada de docs/specs/presets/ + fontes embutidas (presets/fonts/)
 │   └── tests/                  # testes e runner headless dos vetores (--vn-test)
 ├── sdk/
 │   ├── runtime/addons/vn_runtime_sdk/   # Runtime SDK (GDScript), copiado para os projetos de plugin
@@ -46,6 +48,8 @@ gd-vn-studio/
 ```
 
 - **Fonte única dos schemas.** `docs/specs/schemas/` é a única cópia. O Studio, a CLI e o runtime os leem dali no build. Nenhum componente mantém uma cópia editada à mão.
+- **Presets.** `docs/specs/presets/` é a fonte; o build do runtime copia para `runtime/vn_runtime/presets/` e acrescenta as fontes (`preset/font_*`). Como os schemas, nenhuma cópia é editada à mão.
+- **Desenvolvimento do runtime sem o Studio.** `docs/specs/tools/compile_bundle.py <projeto> --godot runtime <pastas-de-plugins…>` compila um projeto de jogo para `runtime/vn_content/` e copia os plugins para `runtime/vn_plugins/<namespace>/`; as duas pastas ficam fora do Git. Depois é só abrir `runtime/` no editor do Godot (RT §2.1). Para a demo, a pasta do plugin é `plugins/fishing/vn_plugins/fishing` ou, enquanto o código não existe, `docs/specs/examples/fishing-plugin`.
 - **Vetores de conformidade.** A CI roda `docs/specs/tools/conformance.py`, a suíte do interpretador do Studio e o runner do runtime sobre `docs/specs/conformance/` em todo pull request (spec 08 §4).
 - **Exemplos.** `docs/specs/examples/` guarda só os dados que as specs e o validador usam (§1.1). `docs/specs/examples/fishing-plugin/` é o exemplo de plugin das specs. Quando o código começar, o plugin oficial passa a viver em `plugins/fishing/`, e o exemplo vira uma cópia gerada a partir dele pela CI, para não divergirem.
 - **Versões e tags.** Cada componente tem SemVer próprio (ADD §10) e uma tag com prefixo:
@@ -123,11 +127,15 @@ meu-jogo/
 | Origem | `source` em `plugins.json` | O que vai para o Git | `plugin-lock.json` | Exportação |
 |---|---|---|---|---|
 | Catálogo | `catalog:official` | Só a referência | `resolved` (URL), `integrity`, `trust` | Pacote do cache, conferido pelo hash |
-| GitHub fora do catálogo | `github:owner/repo` | Só a referência | `resolved` (URL da Release), `integrity`, `trust: local` | Idem |
+| GitHub fora do catálogo | `github:owner/repo` (público ou privado) | Só a referência | `resolved` (URL da Release), `integrity`, `trust: local` | Idem |
 | Pacote guardado | `path:vendor/plugins/<arquivo>.vnplugin` | O arquivo `.vnplugin` | `resolved: path:…`, `integrity`, `trust: local` | Pacote do repositório, conferido pelo hash |
 | Embutido | `path:plugins/<pasta>` | O código-fonte do plugin | `resolved: path:…`, `embedded: true`, `trust: local`, sem `integrity` | Empacotado da pasta no build (§3.2) |
 
 Uma quinta forma, o **vínculo** de desenvolvimento (Plugin SDK §12.3), não vai para o Git: fica em `.vnstudio/plugin-lock.local.json` e aponta para a pasta de um plugin avulso em outro lugar da máquina. A exportação recusa vínculos (P013).
+
+**Plugins oficiais antes do catálogo.** Enquanto o catálogo não existe, o lock de um plugin oficial aponta para a Release do monorepo: `resolved: "https://github.com/luisfernandosouza/gd-vn-studio/releases/download/plugin-fishing-v1.0.0/vnstudio.fishing-1.0.0.vnplugin"`, com a tag do §1. O `integrity` é o hash do pacote publicado. Até a primeira Release, o `integrity` do lock da demo é provisório (o hash de um arquivo vazio) e o runtime de debug carrega o plugin copiado para `runtime/vn_plugins/`, sem conferir `integrity` (RT §2.1). O lock é corrigido quando o pacote existir.
+
+**Repositório privado.** `github:` aceita repositório privado, para um estúdio que reaproveita o mesmo minijogo em vários jogos sem publicá-lo: um repositório de plugin (§2), vários jogos apontando para ele. O token de leitura nunca fica no projeto: o Studio e a CLI o guardam no chaveiro do sistema (Keychain no macOS, Credential Manager no Windows, Secret Service no Linux), pedido na primeira instalação; na CI vem da variável de ambiente `VNSTUDIO_GITHUB_TOKEN`. O pacote baixado vai para o cache como qualquer outro, e a exportação não precisa do token se o cache já o tem. Sem token, a instalação para com uma mensagem que explica como criar um token só de leitura.
 
 Pacotes do catálogo e do GitHub nunca vão para o repositório do jogo. Ficam no cache `~/.vnstudio/cache/plugins/<id>/<versão>/` (Build System §10.2) e são baixados de novo numa máquina nova, conferidos pelo `integrity` do lock.
 
@@ -138,6 +146,8 @@ Pacotes do catálogo e do GitHub nunca vão para o repositório do jogo. Ficam n
 - **Criar.** No Plugin Manager, "Novo minijogo deste projeto", ou `vnplugin create --embedded <pasta-do-projeto>`. Cria `plugins/<nome>/` no formato do §2 e acrescenta a entrada em `plugins.json` com `source: "path:plugins/<nome>"`.
 - **Caminho.** `path:` aponta para a pasta do projeto de desenvolvimento. O Studio procura dentro dela o único `vn_plugins/<namespace>/plugin.json`. Uma pasta sem esse arquivo, ou com mais de um, é erro P021.
 - **Versão.** A versão vem do `plugin.json` e vai para o lock, como em qualquer plugin. Ela continua importando: o save guarda a versão de cada plugin, e as migrações (`save.data_version`, `profile.data_version`) dependem dela.
+- **Godot e runtime.** O embutido herda a versão do runtime e do Godot do projeto (Build System §2.1). A pasta `.vnplugin/` do projeto de desenvolvimento é opcional; se existir e fixar outra versão, vale a do projeto, e o Studio avisa. `vnplugin godot open` abre o editor nessa versão.
+- **`editor/dist`.** O Studio compila `editor/src` para `editor/dist` ao salvar, com o mesmo bundler de `vnplugin build`, e avisa quando `dist` está mais velho que `src`. `editor/dist` não vai para o Git (§3.4).
 - **Edição e Preview.** O Studio lê os arquivos direto da pasta, como num vínculo, e recarrega o plugin no Preview ao salvar (`preview.reload_plugins`). O dev abre `plugins/<nome>/` no Godot com `vnplugin godot open` e depura como no Plugin SDK §12.3.
 - **Lock.** Quando o `plugin.json` muda de versão, de permissões ou de dependências, o Studio atualiza a entrada do lock sozinho, porque o código é do próprio projeto. Mudança de permissões abre o diálogo de concessão (Plugin SDK §4.1).
 - **Confiança.** O plugin embutido é `trust: local`. Cada máquina confirma uma vez que o código do projeto pode rodar (Plugin SDK §4.3); a confirmação fica em `.vnstudio/`, fora do Git, para que um repositório clonado de terceiros nunca execute código sem o aviso.
@@ -160,6 +170,7 @@ plugins/*/.godot/
 plugins/*/addons/vn_runtime_sdk/
 plugins/*/.vnplugin/local.json
 plugins/*/vn_plugins/*/editor/node_modules/
+plugins/*/vn_plugins/*/editor/dist/
 build/
 ```
 

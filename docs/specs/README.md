@@ -12,18 +12,20 @@ Marco da seção 16 do ADD: definir e congelar as três especificações que ser
 | 5 | [Build System](05-build-system-specification.md) | Pipeline de build, Build Staging, bundle `.vnb`, assets, presets por plataforma, PCK, proteção do conteúdo, manifesto, CLI `vnstudio build` |
 | 6 | [Menus, botões e interação](06-ui-menus-and-interaction-specification.md) | Telas montadas pelo autor (título, pausa, configurações…), ações de botões, estilos, cenários com objetos clicáveis, nó `interact`, configurações do jogador (FPS da VN × minijogos), ideias de personalização |
 | 7 | [Protocolo do Preview](07-preview-protocol.md) | Conversa Studio ↔ Runtime no Preview: sessão e token, métodos, notificações, `GameState`, `SchedulerEvaluation`, erros |
-| 8 | [Vetores de conformidade](08-conformance-vectors.md) | Formato dos casos que o Runtime e o Preview do Studio DEVEM reproduzir, conjunto inicial de 105 casos e implementação de referência |
+| 8 | [Vetores de conformidade](08-conformance-vectors.md) | Formato dos casos que o Runtime e o Preview do Studio DEVEM reproduzir, conjunto de 128 casos (inclusive recordes e fluxo de cenas inteiras) e implementação de referência |
 | 9 | [Repositórios e organização do código](09-repositories-and-code-layout.md) | Onde cada coisa mora no Git: monorepo do produto, repositório de plugin avulso e repositório de um jogo (plugins do catálogo, guardados e embutidos), `.gitignore`, onde os dados dos minijogos ficam no computador do jogador |
 
 Artefatos:
 
-- `schemas/` — 17 JSON Schemas (draft 2020-12): `common`, `project`, `variables`, `character`, `chapter`, `scene`, `assets`, `locale`, `save`, `plugin`, `plugins`, `plugin-lock`, `theme`, `ui-screen`, `set`, `preview-protocol` e `conformance`. O domínio `schemas.vnstudio.dev` nos `$id` é provisório.
+- `schemas/` — 21 JSON Schemas (draft 2020-12): `common`, `project`, `variables`, `character`, `chapter`, `scene`, `assets`, `locale`, `save`, `plugin`, `plugins`, `plugin-lock`, `theme`, `ui-screen`, `set`, `preview-protocol`, `conformance`, `build-manifest` e os três do bundle compilado (`bundle`, `bundle-locale`, `bundle-plugins`). O domínio `schemas.vnstudio.dev` nos `$id` é provisório.
 - `examples/demo-project/` — dados de exemplo, só JSON e sem arte (o jogo jogável fica num repositório separado, spec 09 §1.1): projeto pequeno com 2 capítulos, 5 cenas, escolhas, branch, variável derivada, grupo de exclusividade, uso do Fishing Minigame, menu inicial com cenário clicável (`ui/title.json`, `sets/beach_title.json`), tela de configurações com FPS separado para VN e minijogos (`ui/settings.json`), créditos e um nó `interact`.
+- `presets/classic/` — preset de interface do v1: tema, as telas que o projeto não define (título, pausa, salvar, carregar, configurações, galeria, créditos, HUD, histórico e minijogos) e os textos traduzidos para os 9 idiomas do produto (UI Spec §2.1).
 - `examples/fishing-plugin/` — plugin de referência completo: manifesto, GDScript de runtime, cena, testes com `VNTestHarness`, mock de editor, README e CHANGELOG. Corresponde a `vn_plugins/fishing/` do projeto de desenvolvimento.
 - `examples/demo-save.json` — save válido, coerente com um caminho real do demo (chegada → praia → pescaria vencida) e assinado com uma chave de exemplo de 32 bytes zero.
 - `tools/validate.py` — validador de referência (schema + regras semânticas).
 - `tools/test_validate.py` — um projeto quebrado de propósito para cada código do validador.
 - `conformance/` e `tools/conformance.py` — vetores de conformidade e a implementação de referência que os confere.
+- `tools/compile_bundle.py` — compilador de referência do bundle narrativo (BS §5.1): transforma um projeto na forma que o runtime lê, sem precisar do Studio (RT §2.1).
 
 ```bash
 pip install jsonschema
@@ -33,7 +35,10 @@ python3 tools/validate.py examples/demo-project examples/fishing-plugin
 python3 tools/test_validate.py
 # um caso por código; todos devem passar
 python3 tools/conformance.py
-# 105/105 vetores conferem com a referência.
+# 128/128 vetores conferem com a referência.
+python3 tools/compile_bundle.py examples/demo-project /tmp/demo-bundle examples/fishing-plugin
+# grava bundle.json, locales/<lang>.json e plugins.json; --stage copia também assets e plugins;
+# --godot <projeto-godot> grava em vn_content/ e vn_plugins/ do projeto do runtime
 ```
 
 ## Decisões propostas para as pendências do ADD §13
@@ -231,6 +236,24 @@ Saíram de [`../reviews/revisao-specs-2026-11-14.md`](../reviews/revisao-specs-2
 
 **Ainda em aberto** (ver a seção "O que falta" do relatório): escopo da galeria (a spec 06 já prevê `gallery_grid` com finais, imagens e músicas; falta decidir se imagens e músicas entram no v1 e como o perfil registra o que foi visto), quem opera o catálogo, nome e domínio definitivos, e os documentos E1 e E4–E15 (E2 e E3 já estão nas specs 07 e 08).
 
+## Decisões de 2026-11-14: antes do runtime (3ª e 4ª revisões)
+
+| Decisão | Onde |
+|---|---|
+| **Idiomas: o jogo tem de 1 a n idiomas**, com qualquer tag BCP 47; o Studio, o preset e as mensagens do runtime têm uma lista fixa (en, pt-BR, es, fr, it, de, ja, zh-Hans, zh-Hant). Idioma do jogo fora da lista recebe os textos prontos em inglês até o autor traduzi-los (W021); `settings.number_formats` formata números de qualquer idioma | Req §9.1, DM §9, RT §12.1, UI §2.1 |
+| **Formato do bundle** com schema e **compilador de referência em Python**; o compilador grava o jogo e os plugins dentro do projeto do runtime (`--godot`) e o editor do Godot roda a demo sem o Studio nem o catálogo (D16, D17) | RT §2, §2.1, BS §5.1, `bundle*.schema.json`, `tools/compile_bundle.py` |
+| **Preset `classic` como arquivos**, inclusive as telas `backlog` e `minigames` (gerada a partir de `free_play`) | UI §2.1, `presets/classic/` |
+| **Padrões do `PlayerSettings`** e fim do campo `fullscreen` (só `display_mode`) | UI §8, `save.schema.json` |
+| **Boot, camadas de desenho, escala, digitação, miniatura, chave de desenvolvimento e ações de input** | RT §1.1, §2.1, §3.0, §5.2, §8.5, §10.1 |
+| **Galeria de imagens e músicas no v1** (D5): `gallery: true` em `assets.json` e `profile.seen_assets` | DM §10.2, UI §3.1, RT §5.2 |
+| **Modo livre só fora da partida** (D14), com `sys.ui.last_activity_outcome` e `sys.ui.last_record_rank` ao voltar | RT §5.3, UI §3.2, §4, SDK §6.1 |
+| **Repositório privado do GitHub** como origem de plugin, com token no chaveiro do sistema (D15) | spec 09 §3.1 |
+| Ação `reset_profile`, elemento `licenses_list`, mensagem G006, formato de exibição dos recordes, dados órfãos de plugin | UI §3.1, §4, BS §13.1, SDK §9.1 |
+| Vetores `record` e `flow`; códigos W021–W023 e U009–U011; 119 casos em `test_validate.py` | spec 08, DM §11, UI §11 |
+| `build-manifest.schema.json` | BS §9.2 |
+
+**Ainda em aberto:** quem opera o catálogo, nome e domínio definitivos (D11, D13) e os documentos E4–E7 e E9–E15.
+
 ## Desvios em relação ao ADD
 
 1. **Referências de variáveis sempre qualificadas** (`global.player_money`), inclusive nas permissões de plugins. O ADD usa às vezes o nome curto (`player_money`); o Studio pode exibi-lo assim, mas grava o ID completo.
@@ -239,3 +262,4 @@ Saíram de [`../reviews/revisao-specs-2026-11-14.md`](../reviews/revisao-specs-2
 4. **Inventário fora do modelo de variáveis**: listas/conjuntos ficam para v1.1 ou para o plugin de inventário.
 5. **Nada de GDExtension em plugins no v1**, para manter a distribuição revisável por código-fonte.
 6. **Web entra como plataforma do v1** (exportação sem threads). O ADD §7.5 cita só Windows, Linux, macOS e Android. **Android fica fora do v1** (decisão de 2026-11-14).
+7. **Monorepo em vez de cinco repositórios.** O ADD §12 lista `visual-novel-studio`, `visual-novel-runtime`, `visual-novel-sdk`, `visual-novel-cli` e `official-plugins`; a spec 09 §1 junta tudo em `gd-vn-studio`, com tags por componente.

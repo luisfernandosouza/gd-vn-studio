@@ -1,3 +1,6 @@
 __pycache__/
 *.pyc
 .vnstudio/
+# gerados por compile_bundle.py --godot (Runtime Spec §2.1)
+runtime/vn_content/
+runtime/vn_plugins/

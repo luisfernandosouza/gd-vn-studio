@@ -330,6 +330,8 @@ Fishing Minigame: manifesto, configuração visual no editor, schema de parâmet
 
 ## 12. Estrutura dos repositórios
 
+> **Nota (2026-11-14):** superada pela [spec 09](09-repositories-and-code-layout.md) §1, que adota um monorepo (`gd-vn-studio`). O texto abaixo fica como registro do ADD v0.1.
+
 ```text
 VisualNovelPlatform/
 ├── visual-novel-studio/
@@ -344,6 +346,8 @@ VisualNovelPlatform/
 ```
 
 ## 13. Pendências arquiteturais
+
+> **Nota (2026-11-14):** a maioria destas pendências já tem resposta nas specs 01 a 09; o [README](README.md) mostra onde cada uma foi tratada. A lista abaixo fica como registro do ADD v0.1.
 
 ### 13.1. Sistema narrativo
 Algoritmo definitivo de seleção de cenas; critérios de desempate; comportamento sem cena elegível; repetição de cenas; exclusividade entre cenas; ciclos de vida das variáveis; persistência por escopo; variáveis derivadas; alterações simultâneas.

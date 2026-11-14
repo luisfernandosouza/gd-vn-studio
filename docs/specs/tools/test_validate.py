@@ -123,7 +123,7 @@ CASES = [
     ("P018", "asset inexistente em campo vn-asset da config", lambda w: (w.edit("plugin.json", lambda d: d["config_schema"]["properties"].update(lake_bg={"type": "string", "format": "vn-asset", "title": "Fundo do lago"}), plugin=True), w.edit("plugins.json", lambda d: d["plugins"]["vnstudio.fishing"]["config"].update(lake_bg="bg/nao_existe"))), False),
     ("W001", "nó inalcançável", lambda w: w.edit(QUIET, lambda d: d["nodes"].extend([{"id": uid(7), "type": "end"}, {"id": uid(8), "type": "line", "text": "nunca"}])), False),
     ("W002", "outcome sem destino", lambda w: w.edit(BEACH, lambda d: nodes_of(d, "plugin")[0]["on_result"]["outcomes"].pop("lost")), False),
-    ("W003", "tradução órfã", lambda w: w.edit("locales/en/scene_beach.json", lambda d: d["strings"].update({f"019a7a00-1388-7f6b-b667-94bbd1305982/{uid(9)}": "orphan"})), False),
+    ("W003", "tradução órfã", lambda w: w.edit("locales/en/scenes/019a7a00-1388-7f6b-b667-94bbd1305982.json", lambda d: d["strings"].update({f"019a7a00-1388-7f6b-b667-94bbd1305982/{uid(9)}": "orphan"})), False),
     ("W004", "manifesto não fornecido", None, False),  # tratado em run_case
     ("W006", "todas as opções com visible_if", lambda w: w.edit(BEACH, lambda d: [o.update(visible_if=[]) for o in nodes_of(d, "choice")[0]["options"]]), False),
     ("W007", "parâmetro sem title", lambda w: w.edit("plugin.json", lambda d: d["activities"][0]["params_schema"]["properties"]["target_fish"].pop("title"), plugin=True), False),
@@ -171,6 +171,14 @@ CASES = [
     # spec 09: fontes path:
     ("P021", "plugin embutido sem pasta", lambda w: w.edit("plugins.json", lambda d: d["plugins"].update({"seaside_story.quiz": {"version": "^0.1.0", "source": "path:plugins/quiz"}})), False),
     ("P021", "pacote guardado inexistente", lambda w: w.edit("plugins.json", lambda d: d["plugins"]["vnstudio.fishing"].update(source="path:vendor/plugins/vnstudio.fishing-1.0.0.vnplugin")), False),
+    # revisão 4: idiomas do jogo, traduções, licenças, galeria e perfil
+    ("W021", "idioma do jogo fora dos idiomas do produto sem textos do runtime", lambda w: w.edit("project.json", lambda d: d["locales"].append("ko")), False),
+    ("W022", "recordes sem concessão de profile.data", lambda w: w.edit("plugins.json", lambda d: d["plugins"]["vnstudio.fishing"]["grants"]["capabilities"].remove("runtime:profile.data")), False),
+    ("W023", "tradução de cena fora do arquivo da cena", lambda w: w.edit("locales/en/outros.json", lambda d: d.update({"$schema": "https://schemas.vnstudio.dev/1/locale.schema.json", "locale": "en", "strings": {"019a7a00-1388-7f6b-b667-94bbd1305982/019a7a00-3a98-732b-89dd-170487226b34": "Hi!"}})), False),
+    ("U009", "créditos sem licenses_list", lambda w: w.edit("ui/credits.json", lambda d: d.update(elements=[e for e in d["elements"] if e["type"] != "licenses_list"])), False),
+    ("U010", "minijogo numa tela aberta pela pausa", lambda w: w.edit("ui/pause.json", lambda d: d.update({"id": "pause", "kind": "pause", "elements": [{"id": "btn_resume", "type": "button", "text": "Voltar", "actions": [{"do": "back"}], "position": [0.5, 0.4]}, {"id": "btn_extras", "type": "button", "text": "Extras", "actions": [{"do": "open_screen", "screen": "extras"}], "position": [0.5, 0.6]}]})), False),
+    ("U011", "galeria de imagens sem assets marcados", lambda w: (w.edit("assets.json", lambda d: [a.pop("gallery", None) for a in d["assets"].values()]), w.edit("ui/gallery.json", lambda d: d.update({"id": "gallery", "kind": "gallery", "elements": [{"id": "grid", "type": "gallery_grid", "source": "images", "columns": 3, "position": [0.5, 0.5]}, {"id": "btn_back", "type": "button", "text": "Voltar", "actions": [{"do": "back"}], "position": [0.5, 0.9]}]}))), False),
+    ("U004", "reset_profile na pausa", lambda w: w.edit("ui/pause.json", lambda d: d.update({"id": "pause", "kind": "pause", "elements": [{"id": "btn_resume", "type": "button", "text": "Voltar", "actions": [{"do": "back"}], "position": [0.5, 0.4]}, {"id": "btn_reset", "type": "button", "text": "Apagar", "actions": [{"do": "reset_profile"}], "position": [0.5, 0.6]}]})), False),
 ]
 
 
@@ -197,7 +205,7 @@ def main():
         print("FALHOU  demo sem alterações deveria passar limpo:", *(errs + warns), sep="\n  "); failures += 1
     for code, desc, mutate, export in CASES:
         errs, warns = run_case(code, mutate, export)
-        bucket = errs if (export or not (code.startswith("W") or code in ("U007", "U008"))) else warns
+        bucket = errs if (export or not (code.startswith("W") or code in ("U007", "U008", "U009", "U010", "U011"))) else warns
         hit = any(m.startswith(f"[{code}]") for m in bucket)
         print(f"{'ok     ' if hit else 'FALHOU '} {code} {desc}{' (--export)' if export else ''}")
         if not hit:
