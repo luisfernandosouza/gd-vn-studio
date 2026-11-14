@@ -70,7 +70,7 @@ O repositório do produto não contém um jogo de exemplo, nem arte, música ou 
 - **Dados de exemplo das specs.** `docs/specs/examples/demo-project/` e `demo-save.json` são o projeto mínimo que ilustra as specs e alimenta o validador, os testes (`tools/test_validate.py`) e a CI. São só JSON. `assets.json` cita caminhos (`backgrounds/beach_day.png`…), mas nenhum desses arquivos existe no repositório, e o validador de referência não exige que existam.
 - **Assets de teste.** Quando o runtime e o Studio precisarem de imagens e sons para testes, eles são gerados por script na CI (cores sólidas, formas, tons de áudio sintéticos) ou ficam em `runtime/tests/fixtures/` como placeholders feitos à mão, sem arte gerada por IA. A CI recusa arquivos de imagem, áudio ou vídeo fora dessas pastas.
 - **Plugins oficiais.** Os minijogos em `plugins/` seguem a mesma regra: os assets de cada plugin oficial são originais e têm a licença declarada no próprio plugin.
-- **Jogo de exemplo jogável.** Fica num repositório separado, com o próprio histórico e licença de assets. Ele é um repositório de jogo comum (§3) e usa os plugins oficiais pelo catálogo, como qualquer jogo. A CI do produto pode exportá-lo como teste de ponta a ponta, clonando-o numa versão fixa, sem trazer os assets para o repositório do produto.
+- **Jogo de exemplo jogável.** Fica num repositório separado, [`gd-vn-studio-demo`](https://github.com/luisfernandosouza/gd-vn-studio-demo), com o próprio histórico e licença de assets. Ele é um repositório de jogo comum (§3) e usa os plugins oficiais pelo catálogo, como qualquer jogo. A CI do produto pode exportá-lo como teste de ponta a ponta, clonando-o numa versão fixa, sem trazer os assets para o repositório do produto.
 
 ## 2. Repositório de um plugin avulso
 
