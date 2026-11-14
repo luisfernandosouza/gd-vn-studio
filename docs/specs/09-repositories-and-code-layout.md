@@ -23,7 +23,7 @@ gd-vn-studio/
 │   │   ├── 00-… a 09-….md
 │   │   ├── schemas/            # JSON Schemas: fonte única para Studio, runtime e CLI
 │   │   ├── conformance/        # vetores de conformidade (spec 08)
-│   │   ├── examples/           # projeto e plugin de exemplo das specs
+│   │   ├── examples/           # dados de exemplo das specs: só JSON e código, sem arte (§1.1)
 │   │   └── tools/              # validador e conformidade de referência (Python)
 │   └── reviews/                # relatórios de revisão
 ├── studio/                     # Studio: Tauri + React + TypeScript
@@ -47,7 +47,7 @@ gd-vn-studio/
 
 - **Fonte única dos schemas.** `docs/specs/schemas/` é a única cópia. O Studio, a CLI e o runtime os leem dali no build. Nenhum componente mantém uma cópia editada à mão.
 - **Vetores de conformidade.** A CI roda `docs/specs/tools/conformance.py`, a suíte do interpretador do Studio e o runner do runtime sobre `docs/specs/conformance/` em todo pull request (spec 08 §4).
-- **Exemplos.** `docs/specs/examples/fishing-plugin/` é o exemplo das specs. Quando o código começar, o plugin oficial passa a viver em `plugins/fishing/`, e o exemplo vira uma cópia gerada a partir dele pela CI, para não divergirem.
+- **Exemplos.** `docs/specs/examples/` guarda só os dados que as specs e o validador usam (§1.1). `docs/specs/examples/fishing-plugin/` é o exemplo de plugin das specs. Quando o código começar, o plugin oficial passa a viver em `plugins/fishing/`, e o exemplo vira uma cópia gerada a partir dele pela CI, para não divergirem.
 - **Versões e tags.** Cada componente tem SemVer próprio (ADD §10) e uma tag com prefixo:
 
   | Componente | Tag | Publicado em |
@@ -62,6 +62,15 @@ gd-vn-studio/
 
   `vnplugin publish` aceita `--tag-prefix plugin-<namespace>-` para o monorepo; fora dele, a tag continua `v<versão>` (Plugin SDK §13.5).
 - **Catálogo.** O catálogo de plugins é um repositório separado (Plugin SDK §13.2), porque recebe pull requests de terceiros e tem CI e permissões próprias. Quem o opera ainda está em aberto (decisão D11 da revisão de 2026-11-14).
+
+### 1.1. Sem jogo de exemplo nem arte no repositório do produto
+
+O repositório do produto não contém um jogo de exemplo, nem arte, música ou voz de jogo, inclusive arte gerada por IA. Ele guarda código, specs e dados de teste.
+
+- **Dados de exemplo das specs.** `docs/specs/examples/demo-project/` e `demo-save.json` são o projeto mínimo que ilustra as specs e alimenta o validador, os testes (`tools/test_validate.py`) e a CI. São só JSON. `assets.json` cita caminhos (`backgrounds/beach_day.png`…), mas nenhum desses arquivos existe no repositório, e o validador de referência não exige que existam.
+- **Assets de teste.** Quando o runtime e o Studio precisarem de imagens e sons para testes, eles são gerados por script na CI (cores sólidas, formas, tons de áudio sintéticos) ou ficam em `runtime/tests/fixtures/` como placeholders feitos à mão, sem arte gerada por IA. A CI recusa arquivos de imagem, áudio ou vídeo fora dessas pastas.
+- **Plugins oficiais.** Os minijogos em `plugins/` seguem a mesma regra: os assets de cada plugin oficial são originais e têm a licença declarada no próprio plugin.
+- **Jogo de exemplo jogável.** Fica num repositório separado, com o próprio histórico e licença de assets. Ele é um repositório de jogo comum (§3) e usa os plugins oficiais pelo catálogo, como qualquer jogo. A CI do produto pode exportá-lo como teste de ponta a ponta, clonando-o numa versão fixa, sem trazer os assets para o repositório do produto.
 
 ## 2. Repositório de um plugin avulso
 
