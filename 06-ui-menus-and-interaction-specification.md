@@ -328,7 +328,7 @@ O autor escolhe quais controles aparecem e onde; um controle omitido usa o valor
 
 1. **Parallax** com o mouse nas camadas do céu, mar e primeiro plano.
 2. **Objetos que respondem**: lâmpada que acende, gato que mia, onda que espirra ao clicar, só cosmético.
-3. **Ciclo dia/noite** no título conforme o progresso ou o horário real (estado escolhido em `on_open`).
+3. **Ciclo dia/noite** no título conforme o progresso (estado escolhido em `on_open`). Usar o horário real exigiria uma variável `sys.ui.hour`, fora do v1.
 4. **Investigação na cena** (nó `interact`): clicar em objetos para descobrir pistas, com hotspots `once` e um botão de saída.
 5. **Conversar clicando no personagem** (`area.character`) em vez de escolher num menu.
 6. **HUD temático**: um celular no canto que abre uma tela própria com "mensagens" (texto com interpolação de variáveis) e emite `story.read_messages` para a próxima cena reagir.

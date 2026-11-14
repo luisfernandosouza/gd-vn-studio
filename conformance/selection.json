@@ -1,0 +1,1332 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/1/conformance.schema.json",
+  "title": "Scene Scheduler: decisão num ponto de seleção",
+  "covers": [
+    "RT §4.2",
+    "RT §4.3",
+    "RT §4.4"
+  ],
+  "cases": [
+    {
+      "id": "priority",
+      "description": "a maior prioridade vence (padrão 100)",
+      "kind": "selection",
+      "chapter": {
+        "id": "019a7a00-0000-7000-8000-0000000000c1"
+      },
+      "scenes": [
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000a",
+          "title": "A",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {
+            "priority": 50
+          }
+        },
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000b",
+          "title": "B",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {
+            "priority": 120
+          }
+        },
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000c",
+          "title": "C",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {}
+        }
+      ],
+      "state": {},
+      "expect": {
+        "action": "start_scene",
+        "chosen": "019a7a00-0000-7000-8000-00000000000b",
+        "reason": "priority",
+        "candidates": [
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000a",
+            "eligible": true,
+            "blocked_by": "lower_priority"
+          },
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000b",
+            "eligible": true
+          },
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000c",
+            "eligible": true,
+            "blocked_by": "lower_priority"
+          }
+        ],
+        "selection_count_after": 1,
+        "fallback_streak_after": 0
+      }
+    },
+    {
+      "id": "max_plays",
+      "description": "max_plays atingido bloqueia",
+      "kind": "selection",
+      "chapter": {
+        "id": "019a7a00-0000-7000-8000-0000000000c1"
+      },
+      "scenes": [
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000a",
+          "title": "A",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {
+            "priority": 200
+          }
+        },
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000b",
+          "title": "B",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {}
+        }
+      ],
+      "state": {
+        "history": {
+          "selection_count": 4,
+          "scenes": {
+            "019a7a00-0000-7000-8000-00000000000a": {
+              "plays": 1,
+              "last_selection": 0
+            }
+          }
+        }
+      },
+      "expect": {
+        "action": "start_scene",
+        "chosen": "019a7a00-0000-7000-8000-00000000000b",
+        "reason": "priority",
+        "candidates": [
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000a",
+            "eligible": false,
+            "blocked_by": "max_plays"
+          },
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000b",
+            "eligible": true
+          }
+        ],
+        "selection_count_after": 5,
+        "fallback_streak_after": 0
+      }
+    },
+    {
+      "id": "unlimited_plays",
+      "description": "max_plays null nunca bloqueia",
+      "kind": "selection",
+      "chapter": {
+        "id": "019a7a00-0000-7000-8000-0000000000c1"
+      },
+      "scenes": [
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000a",
+          "title": "A",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {
+            "priority": 200,
+            "max_plays": null
+          }
+        },
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000b",
+          "title": "B",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {}
+        }
+      ],
+      "state": {
+        "history": {
+          "selection_count": 4,
+          "scenes": {
+            "019a7a00-0000-7000-8000-00000000000a": {
+              "plays": 5,
+              "last_selection": 3
+            }
+          }
+        }
+      },
+      "expect": {
+        "action": "start_scene",
+        "chosen": "019a7a00-0000-7000-8000-00000000000a",
+        "reason": "priority",
+        "candidates": [
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000a",
+            "eligible": true
+          },
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000b",
+            "eligible": true,
+            "blocked_by": "lower_priority"
+          }
+        ],
+        "selection_count_after": 5,
+        "fallback_streak_after": 0
+      }
+    },
+    {
+      "id": "conditions",
+      "description": "condição falsa bloqueia",
+      "kind": "selection",
+      "chapter": {
+        "id": "019a7a00-0000-7000-8000-0000000000c1"
+      },
+      "scenes": [
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000a",
+          "title": "A",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {
+            "priority": 200,
+            "conditions": [
+              {
+                "variable": "global.skill",
+                "operator": "greater_than_or_equal",
+                "value": 10
+              }
+            ]
+          }
+        },
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000b",
+          "title": "B",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {}
+        }
+      ],
+      "state": {
+        "variables": {
+          "global.skill": {
+            "type": "integer",
+            "value": 3
+          }
+        },
+        "history": {
+          "selection_count": 4
+        }
+      },
+      "expect": {
+        "action": "start_scene",
+        "chosen": "019a7a00-0000-7000-8000-00000000000b",
+        "reason": "priority",
+        "candidates": [
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000a",
+            "eligible": false,
+            "blocked_by": "conditions"
+          },
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000b",
+            "eligible": true
+          }
+        ],
+        "selection_count_after": 5,
+        "fallback_streak_after": 0
+      }
+    },
+    {
+      "id": "cooldown_blocks",
+      "description": "cooldown: 4 − 3 = 1 não passa de 2",
+      "kind": "selection",
+      "chapter": {
+        "id": "019a7a00-0000-7000-8000-0000000000c1"
+      },
+      "scenes": [
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000a",
+          "title": "A",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {
+            "priority": 200,
+            "max_plays": null,
+            "cooldown": 2
+          }
+        },
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000b",
+          "title": "B",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {}
+        }
+      ],
+      "state": {
+        "history": {
+          "selection_count": 4,
+          "scenes": {
+            "019a7a00-0000-7000-8000-00000000000a": {
+              "plays": 1,
+              "last_selection": 3
+            }
+          }
+        }
+      },
+      "expect": {
+        "action": "start_scene",
+        "chosen": "019a7a00-0000-7000-8000-00000000000b",
+        "reason": "priority",
+        "candidates": [
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000a",
+            "eligible": false,
+            "blocked_by": "cooldown"
+          },
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000b",
+            "eligible": true
+          }
+        ],
+        "selection_count_after": 5,
+        "fallback_streak_after": 0
+      }
+    },
+    {
+      "id": "cooldown_passes",
+      "description": "cooldown: 4 − 1 = 3 passa de 2",
+      "kind": "selection",
+      "chapter": {
+        "id": "019a7a00-0000-7000-8000-0000000000c1"
+      },
+      "scenes": [
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000a",
+          "title": "A",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {
+            "priority": 200,
+            "max_plays": null,
+            "cooldown": 2
+          }
+        },
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000b",
+          "title": "B",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {}
+        }
+      ],
+      "state": {
+        "history": {
+          "selection_count": 4,
+          "scenes": {
+            "019a7a00-0000-7000-8000-00000000000a": {
+              "plays": 1,
+              "last_selection": 1
+            }
+          }
+        }
+      },
+      "expect": {
+        "action": "start_scene",
+        "chosen": "019a7a00-0000-7000-8000-00000000000a",
+        "reason": "priority",
+        "candidates": [
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000a",
+            "eligible": true
+          },
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000b",
+            "eligible": true,
+            "blocked_by": "lower_priority"
+          }
+        ],
+        "selection_count_after": 5,
+        "fallback_streak_after": 0
+      }
+    },
+    {
+      "id": "exclusive_group",
+      "description": "grupo cheio bloqueia quem não está nele",
+      "kind": "selection",
+      "chapter": {
+        "id": "019a7a00-0000-7000-8000-0000000000c1",
+        "exclusive_groups": [
+          {
+            "id": "date"
+          }
+        ]
+      },
+      "scenes": [
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000a",
+          "title": "A",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {
+            "priority": 200,
+            "exclusive_groups": [
+              "date"
+            ]
+          }
+        },
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000b",
+          "title": "B",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {}
+        }
+      ],
+      "state": {
+        "history": {
+          "selection_count": 4,
+          "groups": {
+            "date": [
+              "019a7a00-0000-7000-8000-00000000000c"
+            ]
+          }
+        }
+      },
+      "expect": {
+        "action": "start_scene",
+        "chosen": "019a7a00-0000-7000-8000-00000000000b",
+        "reason": "priority",
+        "candidates": [
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000a",
+            "eligible": false,
+            "blocked_by": "exclusive_group"
+          },
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000b",
+            "eligible": true
+          }
+        ],
+        "selection_count_after": 5,
+        "fallback_streak_after": 0
+      }
+    },
+    {
+      "id": "manual_listed",
+      "description": "cena manual não é candidata",
+      "kind": "selection",
+      "chapter": {
+        "id": "019a7a00-0000-7000-8000-0000000000c1"
+      },
+      "scenes": [
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000a",
+          "title": "A",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {
+            "priority": 200,
+            "mode": "manual"
+          }
+        },
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000b",
+          "title": "B",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {}
+        }
+      ],
+      "state": {},
+      "expect": {
+        "action": "start_scene",
+        "chosen": "019a7a00-0000-7000-8000-00000000000b",
+        "reason": "priority",
+        "candidates": [
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000a",
+            "eligible": false,
+            "blocked_by": "mode_manual"
+          },
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000b",
+            "eligible": true
+          }
+        ],
+        "selection_count_after": 1,
+        "fallback_streak_after": 0
+      }
+    },
+    {
+      "id": "tie_plays",
+      "description": "empate: menos vista primeiro",
+      "kind": "selection",
+      "chapter": {
+        "id": "019a7a00-0000-7000-8000-0000000000c1"
+      },
+      "scenes": [
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000a",
+          "title": "A",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {
+            "max_plays": null
+          }
+        },
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000b",
+          "title": "B",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {
+            "max_plays": null
+          }
+        }
+      ],
+      "state": {
+        "history": {
+          "selection_count": 4,
+          "scenes": {
+            "019a7a00-0000-7000-8000-00000000000a": {
+              "plays": 2,
+              "last_selection": 0
+            },
+            "019a7a00-0000-7000-8000-00000000000b": {
+              "plays": 1,
+              "last_selection": 2
+            }
+          }
+        }
+      },
+      "expect": {
+        "action": "start_scene",
+        "chosen": "019a7a00-0000-7000-8000-00000000000b",
+        "reason": "tie_break",
+        "candidates": [
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000a",
+            "eligible": true,
+            "blocked_by": "tie_break"
+          },
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000b",
+            "eligible": true
+          }
+        ],
+        "selection_count_after": 5,
+        "fallback_streak_after": 0
+      }
+    },
+    {
+      "id": "tie_last_selection",
+      "description": "empate: vista há mais tempo (nunca vista = −1)",
+      "kind": "selection",
+      "chapter": {
+        "id": "019a7a00-0000-7000-8000-0000000000c1"
+      },
+      "scenes": [
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000a",
+          "title": "A",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {
+            "max_plays": null
+          }
+        },
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000b",
+          "title": "B",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {
+            "max_plays": null
+          }
+        }
+      ],
+      "state": {
+        "history": {
+          "selection_count": 4,
+          "scenes": {
+            "019a7a00-0000-7000-8000-00000000000a": {
+              "plays": 0,
+              "last_selection": 2
+            }
+          }
+        }
+      },
+      "expect": {
+        "action": "start_scene",
+        "chosen": "019a7a00-0000-7000-8000-00000000000b",
+        "reason": "tie_break",
+        "candidates": [
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000a",
+            "eligible": true,
+            "blocked_by": "tie_break"
+          },
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000b",
+            "eligible": true
+          }
+        ],
+        "selection_count_after": 5,
+        "fallback_streak_after": 0
+      }
+    },
+    {
+      "id": "tie_order",
+      "description": "empate: order antes de cenas sem order",
+      "kind": "selection",
+      "chapter": {
+        "id": "019a7a00-0000-7000-8000-0000000000c1"
+      },
+      "scenes": [
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000a",
+          "title": "A",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {}
+        },
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000b",
+          "title": "B",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {
+            "order": 2
+          }
+        },
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000c",
+          "title": "C",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {
+            "order": 1
+          }
+        }
+      ],
+      "state": {},
+      "expect": {
+        "action": "start_scene",
+        "chosen": "019a7a00-0000-7000-8000-00000000000c",
+        "reason": "tie_break",
+        "candidates": [
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000a",
+            "eligible": true,
+            "blocked_by": "tie_break"
+          },
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000b",
+            "eligible": true,
+            "blocked_by": "tie_break"
+          },
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000c",
+            "eligible": true
+          }
+        ],
+        "selection_count_after": 1,
+        "fallback_streak_after": 0
+      }
+    },
+    {
+      "id": "tie_id",
+      "description": "empate total: menor id",
+      "kind": "selection",
+      "chapter": {
+        "id": "019a7a00-0000-7000-8000-0000000000c1"
+      },
+      "scenes": [
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000b",
+          "title": "B",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {}
+        },
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000a",
+          "title": "A",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {}
+        }
+      ],
+      "state": {},
+      "expect": {
+        "action": "start_scene",
+        "chosen": "019a7a00-0000-7000-8000-00000000000a",
+        "reason": "tie_break",
+        "candidates": [
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000a",
+            "eligible": true
+          },
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000b",
+            "eligible": true,
+            "blocked_by": "tie_break"
+          }
+        ],
+        "selection_count_after": 1,
+        "fallback_streak_after": 0
+      }
+    },
+    {
+      "id": "global_included",
+      "description": "cena global entra por padrão",
+      "kind": "selection",
+      "chapter": {
+        "id": "019a7a00-0000-7000-8000-0000000000c1"
+      },
+      "scenes": [
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000a",
+          "title": "A",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {}
+        },
+        {
+          "id": "019a7a00-0000-7000-8000-0000000000ee",
+          "title": "Global",
+          "chapter": null,
+          "scheduling": {
+            "priority": 300
+          }
+        }
+      ],
+      "state": {},
+      "expect": {
+        "action": "start_scene",
+        "chosen": "019a7a00-0000-7000-8000-0000000000ee",
+        "reason": "priority",
+        "candidates": [
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000a",
+            "eligible": true,
+            "blocked_by": "lower_priority"
+          },
+          {
+            "scene": "019a7a00-0000-7000-8000-0000000000ee",
+            "eligible": true
+          }
+        ],
+        "selection_count_after": 1,
+        "fallback_streak_after": 0
+      }
+    },
+    {
+      "id": "global_excluded",
+      "description": "include_global_scenes: false",
+      "kind": "selection",
+      "chapter": {
+        "id": "019a7a00-0000-7000-8000-0000000000c1",
+        "include_global_scenes": false
+      },
+      "scenes": [
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000a",
+          "title": "A",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {}
+        },
+        {
+          "id": "019a7a00-0000-7000-8000-0000000000ee",
+          "title": "Global",
+          "chapter": null,
+          "scheduling": {
+            "priority": 300
+          }
+        }
+      ],
+      "state": {},
+      "expect": {
+        "action": "start_scene",
+        "chosen": "019a7a00-0000-7000-8000-00000000000a",
+        "reason": "priority",
+        "candidates": [
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000a",
+            "eligible": true
+          }
+        ],
+        "selection_count_after": 1,
+        "fallback_streak_after": 0
+      }
+    },
+    {
+      "id": "content_request_manual",
+      "description": "pedido do conteúdo aceita cena manual sem checar condições",
+      "kind": "selection",
+      "chapter": {
+        "id": "019a7a00-0000-7000-8000-0000000000c1"
+      },
+      "scenes": [
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000a",
+          "title": "A",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {
+            "priority": 200
+          }
+        },
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000d",
+          "title": "D",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {
+            "mode": "manual",
+            "conditions": [
+              {
+                "variable": "global.skill",
+                "operator": "greater_than",
+                "value": 99
+              }
+            ]
+          }
+        }
+      ],
+      "state": {
+        "variables": {
+          "global.skill": {
+            "type": "integer",
+            "value": 3
+          }
+        },
+        "history": {
+          "selection_count": 4
+        }
+      },
+      "content_request": "019a7a00-0000-7000-8000-00000000000d",
+      "expect": {
+        "action": "start_scene",
+        "chosen": "019a7a00-0000-7000-8000-00000000000d",
+        "reason": "request",
+        "candidates": [],
+        "selection_count_after": 5,
+        "fallback_streak_after": 0
+      }
+    },
+    {
+      "id": "content_request_refused",
+      "description": "pedido de cena esgotada é recusado e cai na seleção normal",
+      "kind": "selection",
+      "chapter": {
+        "id": "019a7a00-0000-7000-8000-0000000000c1"
+      },
+      "scenes": [
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000a",
+          "title": "A",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {}
+        },
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000b",
+          "title": "B",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {
+            "priority": 200
+          }
+        }
+      ],
+      "state": {
+        "history": {
+          "selection_count": 4,
+          "scenes": {
+            "019a7a00-0000-7000-8000-00000000000b": {
+              "plays": 1,
+              "last_selection": 0
+            }
+          }
+        }
+      },
+      "content_request": "019a7a00-0000-7000-8000-00000000000b",
+      "expect": {
+        "action": "start_scene",
+        "chosen": "019a7a00-0000-7000-8000-00000000000a",
+        "reason": "priority",
+        "candidates": [
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000a",
+            "eligible": true
+          },
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000b",
+            "eligible": false,
+            "blocked_by": "max_plays"
+          }
+        ],
+        "selection_count_after": 5,
+        "fallback_streak_after": 0,
+        "request_refused": {
+          "scene": "019a7a00-0000-7000-8000-00000000000b",
+          "by": "content"
+        }
+      }
+    },
+    {
+      "id": "content_before_completion",
+      "description": "pedido do conteúdo vem antes do fim de capítulo",
+      "kind": "selection",
+      "chapter": {
+        "id": "019a7a00-0000-7000-8000-0000000000c1",
+        "completion": {
+          "conditions": []
+        }
+      },
+      "scenes": [
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000a",
+          "title": "A",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {}
+        },
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000d",
+          "title": "D",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {
+            "mode": "manual"
+          }
+        }
+      ],
+      "state": {},
+      "content_request": "019a7a00-0000-7000-8000-00000000000d",
+      "expect": {
+        "action": "start_scene",
+        "chosen": "019a7a00-0000-7000-8000-00000000000d",
+        "reason": "request",
+        "candidates": [],
+        "selection_count_after": 1,
+        "fallback_streak_after": 0
+      }
+    },
+    {
+      "id": "completion_before_plugin",
+      "description": "fim de capítulo vem antes do pedido de plugin",
+      "kind": "selection",
+      "chapter": {
+        "id": "019a7a00-0000-7000-8000-0000000000c1",
+        "completion": {
+          "conditions": []
+        }
+      },
+      "scenes": [
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000a",
+          "title": "A",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {}
+        },
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000d",
+          "title": "D",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {
+            "mode": "manual"
+          }
+        }
+      ],
+      "state": {
+        "history": {
+          "selection_count": 4,
+          "pending_request": "019a7a00-0000-7000-8000-00000000000d"
+        }
+      },
+      "expect": {
+        "action": "exit_chapter",
+        "chosen": null,
+        "reason": "completion",
+        "candidates": [],
+        "selection_count_after": 4,
+        "fallback_streak_after": 0
+      }
+    },
+    {
+      "id": "plugin_request",
+      "description": "pedido de plugin aceito",
+      "kind": "selection",
+      "chapter": {
+        "id": "019a7a00-0000-7000-8000-0000000000c1"
+      },
+      "scenes": [
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000a",
+          "title": "A",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {
+            "priority": 200
+          }
+        },
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000d",
+          "title": "D",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {
+            "mode": "manual"
+          }
+        }
+      ],
+      "state": {
+        "history": {
+          "selection_count": 4,
+          "pending_request": "019a7a00-0000-7000-8000-00000000000d"
+        }
+      },
+      "expect": {
+        "action": "start_scene",
+        "chosen": "019a7a00-0000-7000-8000-00000000000d",
+        "reason": "plugin_request",
+        "candidates": [],
+        "selection_count_after": 5,
+        "fallback_streak_after": 0
+      }
+    },
+    {
+      "id": "exhausted_advance",
+      "description": "nenhuma elegível: advance (padrão)",
+      "kind": "selection",
+      "chapter": {
+        "id": "019a7a00-0000-7000-8000-0000000000c1"
+      },
+      "scenes": [
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000a",
+          "title": "A",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {}
+        }
+      ],
+      "state": {
+        "history": {
+          "selection_count": 4,
+          "scenes": {
+            "019a7a00-0000-7000-8000-00000000000a": {
+              "plays": 1,
+              "last_selection": 0
+            }
+          }
+        }
+      },
+      "expect": {
+        "action": "exit_chapter",
+        "chosen": null,
+        "reason": "exhausted",
+        "candidates": [
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000a",
+            "eligible": false,
+            "blocked_by": "max_plays"
+          }
+        ],
+        "selection_count_after": 4,
+        "fallback_streak_after": 0
+      }
+    },
+    {
+      "id": "exhausted_end_game",
+      "description": "nenhuma elegível: end_game",
+      "kind": "selection",
+      "chapter": {
+        "id": "019a7a00-0000-7000-8000-0000000000c1",
+        "completion": {
+          "on_exhausted": "end_game"
+        }
+      },
+      "scenes": [
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000a",
+          "title": "A",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {}
+        }
+      ],
+      "state": {
+        "history": {
+          "selection_count": 4,
+          "scenes": {
+            "019a7a00-0000-7000-8000-00000000000a": {
+              "plays": 1,
+              "last_selection": 0
+            }
+          }
+        }
+      },
+      "expect": {
+        "action": "end_game",
+        "chosen": null,
+        "reason": "exhausted",
+        "candidates": [
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000a",
+            "eligible": false,
+            "blocked_by": "max_plays"
+          }
+        ],
+        "selection_count_after": 4,
+        "fallback_streak_after": 0
+      }
+    },
+    {
+      "id": "fallback",
+      "description": "nenhuma elegível: fallback mesmo manual e esgotada",
+      "kind": "selection",
+      "chapter": {
+        "id": "019a7a00-0000-7000-8000-0000000000c1",
+        "completion": {
+          "on_exhausted": "scene",
+          "fallback_scene": "019a7a00-0000-7000-8000-00000000000d"
+        }
+      },
+      "scenes": [
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000a",
+          "title": "A",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {}
+        },
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000d",
+          "title": "D",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {
+            "mode": "manual"
+          }
+        }
+      ],
+      "state": {
+        "history": {
+          "selection_count": 4,
+          "scenes": {
+            "019a7a00-0000-7000-8000-00000000000a": {
+              "plays": 1,
+              "last_selection": 0
+            },
+            "019a7a00-0000-7000-8000-00000000000d": {
+              "plays": 3,
+              "last_selection": 3
+            }
+          },
+          "fallback_streak": 3
+        }
+      },
+      "expect": {
+        "action": "start_scene",
+        "chosen": "019a7a00-0000-7000-8000-00000000000d",
+        "reason": "fallback",
+        "candidates": [
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000a",
+            "eligible": false,
+            "blocked_by": "max_plays"
+          },
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000d",
+            "eligible": false,
+            "blocked_by": "mode_manual"
+          }
+        ],
+        "selection_count_after": 5,
+        "fallback_streak_after": 4
+      }
+    },
+    {
+      "id": "fallback_limit",
+      "description": "fallback 100 vezes seguidas: trata como advance",
+      "kind": "selection",
+      "chapter": {
+        "id": "019a7a00-0000-7000-8000-0000000000c1",
+        "completion": {
+          "on_exhausted": "scene",
+          "fallback_scene": "019a7a00-0000-7000-8000-00000000000d"
+        }
+      },
+      "scenes": [
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000a",
+          "title": "A",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {}
+        },
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000d",
+          "title": "D",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {
+            "mode": "manual"
+          }
+        }
+      ],
+      "state": {
+        "history": {
+          "selection_count": 4,
+          "scenes": {
+            "019a7a00-0000-7000-8000-00000000000a": {
+              "plays": 1,
+              "last_selection": 0
+            }
+          },
+          "fallback_streak": 100
+        }
+      },
+      "expect": {
+        "action": "exit_chapter",
+        "chosen": null,
+        "reason": "exhausted",
+        "candidates": [
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000a",
+            "eligible": false,
+            "blocked_by": "max_plays"
+          },
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000d",
+            "eligible": false,
+            "blocked_by": "mode_manual"
+          }
+        ],
+        "selection_count_after": 4,
+        "fallback_streak_after": 100
+      }
+    },
+    {
+      "id": "streak_resets",
+      "description": "outra cena escolhida zera fallback_streak",
+      "kind": "selection",
+      "chapter": {
+        "id": "019a7a00-0000-7000-8000-0000000000c1"
+      },
+      "scenes": [
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000a",
+          "title": "A",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {}
+        }
+      ],
+      "state": {
+        "history": {
+          "selection_count": 4,
+          "fallback_streak": 7
+        }
+      },
+      "expect": {
+        "action": "start_scene",
+        "chosen": "019a7a00-0000-7000-8000-00000000000a",
+        "reason": "priority",
+        "candidates": [
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000a",
+            "eligible": true
+          }
+        ],
+        "selection_count_after": 5,
+        "fallback_streak_after": 0
+      }
+    },
+    {
+      "id": "event_condition",
+      "description": "condição de evento desde a última seleção",
+      "kind": "selection",
+      "chapter": {
+        "id": "019a7a00-0000-7000-8000-0000000000c1"
+      },
+      "scenes": [
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000a",
+          "title": "A",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {
+            "priority": 200,
+            "conditions": {
+              "event_since_last_selection": "story.met_master"
+            }
+          }
+        },
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000b",
+          "title": "B",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {}
+        }
+      ],
+      "state": {
+        "history": {
+          "selection_count": 4,
+          "events_since_selection": [
+            "story.met_master"
+          ]
+        }
+      },
+      "expect": {
+        "action": "start_scene",
+        "chosen": "019a7a00-0000-7000-8000-00000000000a",
+        "reason": "priority",
+        "candidates": [
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000a",
+            "eligible": true
+          },
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000b",
+            "eligible": true,
+            "blocked_by": "lower_priority"
+          }
+        ],
+        "selection_count_after": 5,
+        "fallback_streak_after": 0
+      }
+    },
+    {
+      "id": "weighted",
+      "description": "weighted_random com estado de RNG dado",
+      "kind": "selection",
+      "chapter": {
+        "id": "019a7a00-0000-7000-8000-0000000000c1",
+        "scheduler": {
+          "tie_breaker": "weighted_random"
+        }
+      },
+      "scenes": [
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000a",
+          "title": "A",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {
+            "weight": 1
+          }
+        },
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000b",
+          "title": "B",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {
+            "weight": 3
+          }
+        },
+        {
+          "id": "019a7a00-0000-7000-8000-00000000000c",
+          "title": "C",
+          "chapter": "019a7a00-0000-7000-8000-0000000000c1",
+          "scheduling": {
+            "weight": 0.5
+          }
+        }
+      ],
+      "state": {
+        "rng_state": "853c49e6748fea9b",
+        "history": {
+          "selection_count": 4
+        }
+      },
+      "expect": {
+        "action": "start_scene",
+        "chosen": "019a7a00-0000-7000-8000-00000000000a",
+        "reason": "tie_break",
+        "candidates": [
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000a",
+            "eligible": true
+          },
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000b",
+            "eligible": true,
+            "blocked_by": "tie_break"
+          },
+          {
+            "scene": "019a7a00-0000-7000-8000-00000000000c",
+            "eligible": true,
+            "blocked_by": "tie_break"
+          }
+        ],
+        "selection_count_after": 5,
+        "fallback_streak_after": 0,
+        "rng_state_after": "01f7577d6a4da38e"
+      }
+    }
+  ]
+}

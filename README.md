@@ -11,15 +11,18 @@ Marco da seção 16 do ADD: definir e congelar as três especificações que ser
 | 4 | [Requisitos de autoria do Studio](04-studio-authoring-requirements.md) | O que o Studio oferece a quem não programa: condições em frases, "por que a cena não apareceu", erros legíveis, exportação, histórico, tradução, importação de roteiro, tema |
 | 5 | [Build System](05-build-system-specification.md) | Pipeline de build, Build Staging, bundle `.vnb`, assets, presets por plataforma, PCK, proteção do conteúdo, manifesto, CLI `vnstudio build` |
 | 6 | [Menus, botões e interação](06-ui-menus-and-interaction-specification.md) | Telas montadas pelo autor (título, pausa, configurações…), ações de botões, estilos, cenários com objetos clicáveis, nó `interact`, configurações do jogador (FPS da VN × minijogos), ideias de personalização |
+| 7 | [Protocolo do Preview](07-preview-protocol.md) | Conversa Studio ↔ Runtime no Preview: sessão e token, métodos, notificações, `GameState`, `SchedulerEvaluation`, erros |
+| 8 | [Vetores de conformidade](08-conformance-vectors.md) | Formato dos casos que o Runtime e o Preview do Studio DEVEM reproduzir, conjunto inicial de 105 casos e implementação de referência |
 
 Artefatos:
 
-- `schemas/` — 15 JSON Schemas (draft 2020-12): `common`, `project`, `variables`, `character`, `chapter`, `scene`, `assets`, `locale`, `save`, `plugin`, `plugins`, `plugin-lock`, `theme`, `ui-screen`, `set`. O domínio `schemas.vnstudio.dev` nos `$id` é provisório.
+- `schemas/` — 17 JSON Schemas (draft 2020-12): `common`, `project`, `variables`, `character`, `chapter`, `scene`, `assets`, `locale`, `save`, `plugin`, `plugins`, `plugin-lock`, `theme`, `ui-screen`, `set`, `preview-protocol` e `conformance`. O domínio `schemas.vnstudio.dev` nos `$id` é provisório.
 - `examples/demo-project/` — projeto pequeno com 2 capítulos, 5 cenas, escolhas, branch, variável derivada, grupo de exclusividade, uso do Fishing Minigame, menu inicial com cenário clicável (`ui/title.json`, `sets/beach_title.json`), tela de configurações com FPS separado para VN e minijogos (`ui/settings.json`), créditos e um nó `interact`.
 - `examples/fishing-plugin/` — plugin de referência completo: manifesto, GDScript de runtime, cena, testes com `VNTestHarness`, mock de editor, README e CHANGELOG. Corresponde a `vn_plugins/fishing/` do projeto de desenvolvimento.
 - `examples/demo-save.json` — save válido, coerente com um caminho real do demo (chegada → praia → pescaria vencida) e assinado com uma chave de exemplo de 32 bytes zero.
 - `tools/validate.py` — validador de referência (schema + regras semânticas).
 - `tools/test_validate.py` — um projeto quebrado de propósito para cada código do validador.
+- `conformance/` e `tools/conformance.py` — vetores de conformidade e a implementação de referência que os confere.
 
 ```bash
 pip install jsonschema
@@ -28,6 +31,8 @@ python3 tools/validate.py examples/demo-project examples/fishing-plugin
 # --export aplica também as regras de exportação (P013, W013 vira erro)
 python3 tools/test_validate.py
 # um caso por código; todos devem passar
+python3 tools/conformance.py
+# 105/105 vetores conferem com a referência.
 ```
 
 ## Decisões propostas para as pendências do ADD §13
@@ -211,8 +216,9 @@ Saíram de [`reviews/revisao-specs-2026-11-14.md`](reviews/revisao-specs-2026-11
 | Configurações do jogador: volume por canal, modo de tela, resolução, VSync, **FPS da VN e FPS dos minijogos separados**, `min_fps` por atividade | UI §8, RT §5.3, `PlayerSettings`, `project.settings.display`, SDK `activities[].min_fps` |
 | **Inglês como idioma principal** do Studio, do runtime e dos plugins oficiais; pt-BR, es, fr, it, de, ja, zh-Hans e zh-Hant secundários; outros por arquivo de tradução; RTL fora do v1 | Req §9.1, RT §12.1 |
 | Novos códigos U001–U008 e W020; 104 casos em `test_validate.py` | UI §11 |
+| **Protocolo do Preview** completo (E2) e **vetores de conformidade** com implementação de referência (E3); regras fixadas: divisão por zero é `OUT_OF_RANGE`, arredondamento sobre a representação decimal mais curta, semeadura do PCG32, `random_int` por rejeição, `weighted_pick` em ponto flutuante | spec 07, spec 08, RT §4.3, §12.1, §12.2 |
 
-**Ainda em aberto** (ver a seção "O que falta" do relatório): escopo da galeria (só finais ou também imagens), quem opera o catálogo, nome e domínio definitivos, e os documentos E1–E15.
+**Ainda em aberto** (ver a seção "O que falta" do relatório): escopo da galeria (a spec 06 já prevê `gallery_grid` com finais, imagens e músicas; falta decidir se imagens e músicas entram no v1 e como o perfil registra o que foi visto), quem opera o catálogo, nome e domínio definitivos, e os documentos E1 e E4–E15 (E2 e E3 já estão nas specs 07 e 08).
 
 ## Desvios em relação ao ADD
 

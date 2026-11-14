@@ -225,8 +225,8 @@ Cada linha traz minha recomendação; nenhuma bloqueia as outras.
 | # | Documento | Hoje | Conteúdo mínimo |
 |---|---|---|---|
 | E1 | `build-manifest.schema.json` | Pendência do BS §15 | Schema do exemplo do BS §9.2 |
-| E2 | **Protocolo do Preview** (JSON-RPC) | RT §11 só lista nomes | Parâmetros, resultados, erros e payload de cada método e notificação, com schema |
-| E3 | **Vetores de conformidade** | Citados no RT §12, não existem | Formato do caso (`bundle`, estado, entradas, seed → traço) e um conjunto inicial cobrindo DM §6.1.1, RT §4, §12.1 e, com RNG ligado, §12.2 |
+| E2 | **Protocolo do Preview** (JSON-RPC) | RT §11 só lista nomes | Parâmetros, resultados, erros e payload de cada método e notificação, com schema. **Feito:** spec 07 e `preview-protocol.schema.json` |
+| E3 | **Vetores de conformidade** | Citados no RT §12, não existem | Formato do caso (`bundle`, estado, entradas, seed → traço) e um conjunto inicial cobrindo DM §6.1.1, RT §4, §12.1 e, com RNG ligado, §12.2. **Feito** (sem os casos `flow`, reservados para a segunda leva): spec 08, `conformance/`, `tools/conformance.py` |
 | E4 | **Tipos do Editor SDK** (`.d.ts`) | SDK §10.3 cita tipos não definidos | `ProjectEdit`, `Scene`, `SceneSummary`, `VariableInfo`, `AssetInfo`, `NodeInspector`, `ValidationIssue`, payload de cada `StudioEventName`, códigos de `VNError` |
 | E5 | **Referência do Runtime SDK** | SDK §5 em trechos | Todas as classes `VN*`, lista fechada de códigos de erro (`StringName`), `VNPluginTest`, `VNSandbox` |
 | E6 | **Catálogo de mensagens** | Req §6 tem 17 exemplos | Todas as mensagens R/T/P/W/B em pt-BR e en, mais as mensagens que o jogador vê (B10) |

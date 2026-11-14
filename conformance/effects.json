@@ -1,0 +1,808 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/1/conformance.schema.json",
+  "title": "Efeitos e transações",
+  "covers": [
+    "DM §6.2",
+    "RT §6.2"
+  ],
+  "cases": [
+    {
+      "id": "sequence_sees_previous",
+      "description": "cada efeito enxerga o anterior",
+      "kind": "effects",
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0,
+          "constraints": {
+            "min": 0,
+            "max": 100,
+            "on_overflow": "reject"
+          }
+        },
+        "global.energy": {
+          "type": "integer",
+          "value": 8,
+          "default": 10,
+          "constraints": {
+            "min": 0,
+            "max": 10
+          }
+        },
+        "global.speed": {
+          "type": "number",
+          "value": 1.5,
+          "default": 1.0
+        },
+        "global.flag": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "happy",
+          "default": "happy",
+          "constraints": {
+            "values": [
+              "happy",
+              "sad"
+            ]
+          }
+        },
+        "global.nick": {
+          "type": "string",
+          "value": "Al",
+          "default": "",
+          "constraints": {
+            "max_length": 5
+          }
+        }
+      },
+      "effects": [
+        {
+          "op": "add",
+          "variable": "global.money",
+          "value": 10
+        },
+        {
+          "op": "set",
+          "variable": "global.energy",
+          "value": {
+            "fn": "div",
+            "args": [
+              {
+                "var": "global.money"
+              },
+              10
+            ]
+          }
+        }
+      ],
+      "expect": {
+        "changes": [
+          {
+            "variable": "global.money",
+            "old": 30,
+            "new": 40
+          },
+          {
+            "variable": "global.energy",
+            "old": 8,
+            "new": 4
+          }
+        ]
+      }
+    },
+    {
+      "id": "reject_rolls_back",
+      "description": "reject desfaz a transação inteira",
+      "kind": "effects",
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0,
+          "constraints": {
+            "min": 0,
+            "max": 100,
+            "on_overflow": "reject"
+          }
+        },
+        "global.energy": {
+          "type": "integer",
+          "value": 8,
+          "default": 10,
+          "constraints": {
+            "min": 0,
+            "max": 10
+          }
+        },
+        "global.speed": {
+          "type": "number",
+          "value": 1.5,
+          "default": 1.0
+        },
+        "global.flag": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "happy",
+          "default": "happy",
+          "constraints": {
+            "values": [
+              "happy",
+              "sad"
+            ]
+          }
+        },
+        "global.nick": {
+          "type": "string",
+          "value": "Al",
+          "default": "",
+          "constraints": {
+            "max_length": 5
+          }
+        }
+      },
+      "effects": [
+        {
+          "op": "add",
+          "variable": "global.energy",
+          "value": -1
+        },
+        {
+          "op": "add",
+          "variable": "global.money",
+          "value": 100
+        }
+      ],
+      "expect": {
+        "error": "CONSTRAINT_VIOLATION"
+      }
+    },
+    {
+      "id": "clamp_default",
+      "description": "on_overflow ausente = clamp",
+      "kind": "effects",
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0,
+          "constraints": {
+            "min": 0,
+            "max": 100,
+            "on_overflow": "reject"
+          }
+        },
+        "global.energy": {
+          "type": "integer",
+          "value": 8,
+          "default": 10,
+          "constraints": {
+            "min": 0,
+            "max": 10
+          }
+        },
+        "global.speed": {
+          "type": "number",
+          "value": 1.5,
+          "default": 1.0
+        },
+        "global.flag": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "happy",
+          "default": "happy",
+          "constraints": {
+            "values": [
+              "happy",
+              "sad"
+            ]
+          }
+        },
+        "global.nick": {
+          "type": "string",
+          "value": "Al",
+          "default": "",
+          "constraints": {
+            "max_length": 5
+          }
+        }
+      },
+      "effects": [
+        {
+          "op": "add",
+          "variable": "global.energy",
+          "value": 5
+        }
+      ],
+      "expect": {
+        "changes": [
+          {
+            "variable": "global.energy",
+            "old": 8,
+            "new": 10
+          }
+        ]
+      }
+    },
+    {
+      "id": "truncate_number",
+      "description": "number gravado em integer é truncado em direção a zero",
+      "kind": "effects",
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0,
+          "constraints": {
+            "min": 0,
+            "max": 100,
+            "on_overflow": "reject"
+          }
+        },
+        "global.energy": {
+          "type": "integer",
+          "value": 8,
+          "default": 10,
+          "constraints": {
+            "min": 0,
+            "max": 10
+          }
+        },
+        "global.speed": {
+          "type": "number",
+          "value": 1.5,
+          "default": 1.0
+        },
+        "global.flag": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "happy",
+          "default": "happy",
+          "constraints": {
+            "values": [
+              "happy",
+              "sad"
+            ]
+          }
+        },
+        "global.nick": {
+          "type": "string",
+          "value": "Al",
+          "default": "",
+          "constraints": {
+            "max_length": 5
+          }
+        }
+      },
+      "effects": [
+        {
+          "op": "set",
+          "variable": "global.energy",
+          "value": -2.7
+        },
+        {
+          "op": "set",
+          "variable": "global.money",
+          "value": {
+            "fn": "div",
+            "args": [
+              7,
+              2
+            ]
+          }
+        }
+      ],
+      "expect": {
+        "changes": [
+          {
+            "variable": "global.energy",
+            "old": 8,
+            "new": 0
+          },
+          {
+            "variable": "global.money",
+            "old": 30,
+            "new": 3
+          }
+        ]
+      }
+    },
+    {
+      "id": "number_from_int",
+      "description": "integer gravado em number vira number",
+      "kind": "effects",
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0,
+          "constraints": {
+            "min": 0,
+            "max": 100,
+            "on_overflow": "reject"
+          }
+        },
+        "global.energy": {
+          "type": "integer",
+          "value": 8,
+          "default": 10,
+          "constraints": {
+            "min": 0,
+            "max": 10
+          }
+        },
+        "global.speed": {
+          "type": "number",
+          "value": 1.5,
+          "default": 1.0
+        },
+        "global.flag": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "happy",
+          "default": "happy",
+          "constraints": {
+            "values": [
+              "happy",
+              "sad"
+            ]
+          }
+        },
+        "global.nick": {
+          "type": "string",
+          "value": "Al",
+          "default": "",
+          "constraints": {
+            "max_length": 5
+          }
+        }
+      },
+      "effects": [
+        {
+          "op": "set",
+          "variable": "global.speed",
+          "value": 2
+        }
+      ],
+      "expect": {
+        "changes": [
+          {
+            "variable": "global.speed",
+            "old": 1.5,
+            "new": 2.0
+          }
+        ]
+      }
+    },
+    {
+      "id": "toggle_reset",
+      "description": "toggle e reset",
+      "kind": "effects",
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0,
+          "constraints": {
+            "min": 0,
+            "max": 100,
+            "on_overflow": "reject"
+          }
+        },
+        "global.energy": {
+          "type": "integer",
+          "value": 8,
+          "default": 10,
+          "constraints": {
+            "min": 0,
+            "max": 10
+          }
+        },
+        "global.speed": {
+          "type": "number",
+          "value": 1.5,
+          "default": 1.0
+        },
+        "global.flag": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "happy",
+          "default": "happy",
+          "constraints": {
+            "values": [
+              "happy",
+              "sad"
+            ]
+          }
+        },
+        "global.nick": {
+          "type": "string",
+          "value": "Al",
+          "default": "",
+          "constraints": {
+            "max_length": 5
+          }
+        }
+      },
+      "effects": [
+        {
+          "op": "toggle",
+          "variable": "global.flag"
+        },
+        {
+          "op": "reset",
+          "variable": "global.energy"
+        }
+      ],
+      "expect": {
+        "changes": [
+          {
+            "variable": "global.flag",
+            "old": false,
+            "new": true
+          },
+          {
+            "variable": "global.energy",
+            "old": 8,
+            "new": 10
+          }
+        ]
+      }
+    },
+    {
+      "id": "enum_violation",
+      "description": "valor fora do enum é violação de restrição",
+      "kind": "effects",
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0,
+          "constraints": {
+            "min": 0,
+            "max": 100,
+            "on_overflow": "reject"
+          }
+        },
+        "global.energy": {
+          "type": "integer",
+          "value": 8,
+          "default": 10,
+          "constraints": {
+            "min": 0,
+            "max": 10
+          }
+        },
+        "global.speed": {
+          "type": "number",
+          "value": 1.5,
+          "default": 1.0
+        },
+        "global.flag": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "happy",
+          "default": "happy",
+          "constraints": {
+            "values": [
+              "happy",
+              "sad"
+            ]
+          }
+        },
+        "global.nick": {
+          "type": "string",
+          "value": "Al",
+          "default": "",
+          "constraints": {
+            "max_length": 5
+          }
+        }
+      },
+      "effects": [
+        {
+          "op": "set",
+          "variable": "global.mood",
+          "value": "angry"
+        }
+      ],
+      "expect": {
+        "error": "CONSTRAINT_VIOLATION"
+      }
+    },
+    {
+      "id": "max_length_clamp",
+      "description": "max_length com clamp corta a string",
+      "kind": "effects",
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0,
+          "constraints": {
+            "min": 0,
+            "max": 100,
+            "on_overflow": "reject"
+          }
+        },
+        "global.energy": {
+          "type": "integer",
+          "value": 8,
+          "default": 10,
+          "constraints": {
+            "min": 0,
+            "max": 10
+          }
+        },
+        "global.speed": {
+          "type": "number",
+          "value": 1.5,
+          "default": 1.0
+        },
+        "global.flag": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "happy",
+          "default": "happy",
+          "constraints": {
+            "values": [
+              "happy",
+              "sad"
+            ]
+          }
+        },
+        "global.nick": {
+          "type": "string",
+          "value": "Al",
+          "default": "",
+          "constraints": {
+            "max_length": 5
+          }
+        }
+      },
+      "effects": [
+        {
+          "op": "set",
+          "variable": "global.nick",
+          "value": "Alexandra"
+        }
+      ],
+      "expect": {
+        "changes": [
+          {
+            "variable": "global.nick",
+            "old": "Al",
+            "new": "Alexa"
+          }
+        ]
+      }
+    },
+    {
+      "id": "out_of_range",
+      "description": "resultado fora do intervalo de inteiros aborta antes das restrições",
+      "kind": "effects",
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0,
+          "constraints": {
+            "min": 0,
+            "max": 100,
+            "on_overflow": "reject"
+          }
+        },
+        "global.energy": {
+          "type": "integer",
+          "value": 8,
+          "default": 10,
+          "constraints": {
+            "min": 0,
+            "max": 10
+          }
+        },
+        "global.speed": {
+          "type": "number",
+          "value": 1.5,
+          "default": 1.0
+        },
+        "global.flag": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "happy",
+          "default": "happy",
+          "constraints": {
+            "values": [
+              "happy",
+              "sad"
+            ]
+          }
+        },
+        "global.nick": {
+          "type": "string",
+          "value": "Al",
+          "default": "",
+          "constraints": {
+            "max_length": 5
+          }
+        }
+      },
+      "effects": [
+        {
+          "op": "multiply",
+          "variable": "global.money",
+          "value": 9007199254740991
+        }
+      ],
+      "expect": {
+        "error": "OUT_OF_RANGE"
+      }
+    },
+    {
+      "id": "type_mismatch",
+      "description": "add em booleana é erro de tipo",
+      "kind": "effects",
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0,
+          "constraints": {
+            "min": 0,
+            "max": 100,
+            "on_overflow": "reject"
+          }
+        },
+        "global.energy": {
+          "type": "integer",
+          "value": 8,
+          "default": 10,
+          "constraints": {
+            "min": 0,
+            "max": 10
+          }
+        },
+        "global.speed": {
+          "type": "number",
+          "value": 1.5,
+          "default": 1.0
+        },
+        "global.flag": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "happy",
+          "default": "happy",
+          "constraints": {
+            "values": [
+              "happy",
+              "sad"
+            ]
+          }
+        },
+        "global.nick": {
+          "type": "string",
+          "value": "Al",
+          "default": "",
+          "constraints": {
+            "max_length": 5
+          }
+        }
+      },
+      "effects": [
+        {
+          "op": "add",
+          "variable": "global.flag",
+          "value": 1
+        }
+      ],
+      "expect": {
+        "error": "TYPE_MISMATCH"
+      }
+    },
+    {
+      "id": "no_change",
+      "description": "set para o mesmo valor não gera mudança",
+      "kind": "effects",
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0,
+          "constraints": {
+            "min": 0,
+            "max": 100,
+            "on_overflow": "reject"
+          }
+        },
+        "global.energy": {
+          "type": "integer",
+          "value": 8,
+          "default": 10,
+          "constraints": {
+            "min": 0,
+            "max": 10
+          }
+        },
+        "global.speed": {
+          "type": "number",
+          "value": 1.5,
+          "default": 1.0
+        },
+        "global.flag": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "happy",
+          "default": "happy",
+          "constraints": {
+            "values": [
+              "happy",
+              "sad"
+            ]
+          }
+        },
+        "global.nick": {
+          "type": "string",
+          "value": "Al",
+          "default": "",
+          "constraints": {
+            "max_length": 5
+          }
+        }
+      },
+      "effects": [
+        {
+          "op": "set",
+          "variable": "global.money",
+          "value": 30
+        }
+      ],
+      "expect": {
+        "changes": []
+      }
+    }
+  ]
+}

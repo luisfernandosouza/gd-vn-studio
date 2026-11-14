@@ -1,0 +1,226 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/1/conformance.schema.json",
+  "title": "Conversão e formatação de números",
+  "covers": [
+    "DM §6.1.1 (concat)",
+    "DM §9",
+    "RT §12.1"
+  ],
+  "cases": [
+    {
+      "id": "concat_int_big",
+      "description": "concat de inteiro grande sem separador",
+      "kind": "text",
+      "mode": "concat",
+      "value": 1234567,
+      "expect": {
+        "text": "1234567"
+      }
+    },
+    {
+      "id": "concat_number_whole",
+      "description": "concat de number com parte fracionária zero",
+      "kind": "text",
+      "mode": "concat",
+      "value": {
+        "type": "number",
+        "value": 1234567.0
+      },
+      "expect": {
+        "text": "1234567"
+      }
+    },
+    {
+      "id": "interp_en",
+      "description": "inglês: vírgula no milhar, ponto decimal",
+      "kind": "text",
+      "mode": "interpolation",
+      "value": {
+        "type": "number",
+        "value": 1234567.5
+      },
+      "locale": "en",
+      "expect": {
+        "text": "1,234,567.5"
+      }
+    },
+    {
+      "id": "interp_pt",
+      "description": "pt-BR: ponto no milhar, vírgula decimal",
+      "kind": "text",
+      "mode": "interpolation",
+      "value": {
+        "type": "number",
+        "value": 1234567.5
+      },
+      "locale": "pt-BR",
+      "expect": {
+        "text": "1.234.567,5"
+      }
+    },
+    {
+      "id": "interp_de_int",
+      "description": "alemão: inteiro de 4 dígitos agrupado",
+      "kind": "text",
+      "mode": "interpolation",
+      "value": 1234,
+      "locale": "de",
+      "expect": {
+        "text": "1.234"
+      }
+    },
+    {
+      "id": "interp_es_4",
+      "description": "espanhol: 4 dígitos sem separador",
+      "kind": "text",
+      "mode": "interpolation",
+      "value": 1234,
+      "locale": "es",
+      "expect": {
+        "text": "1234"
+      }
+    },
+    {
+      "id": "interp_es_5",
+      "description": "espanhol: 5 dígitos com separador",
+      "kind": "text",
+      "mode": "interpolation",
+      "value": 12345,
+      "locale": "es",
+      "expect": {
+        "text": "12.345"
+      }
+    },
+    {
+      "id": "interp_fr",
+      "description": "francês: espaço fino inseparável no milhar",
+      "kind": "text",
+      "mode": "interpolation",
+      "value": {
+        "type": "number",
+        "value": 1234567.5
+      },
+      "locale": "fr",
+      "expect": {
+        "text": "1 234 567,5"
+      }
+    },
+    {
+      "id": "interp_ja",
+      "description": "japonês usa a tabela do inglês",
+      "kind": "text",
+      "mode": "interpolation",
+      "value": {
+        "type": "number",
+        "value": 9876.25
+      },
+      "locale": "ja",
+      "expect": {
+        "text": "9,876.25"
+      }
+    },
+    {
+      "id": "interp_zh_hant",
+      "description": "chinês tradicional usa a tabela do inglês",
+      "kind": "text",
+      "mode": "interpolation",
+      "value": 1000000,
+      "locale": "zh-Hant",
+      "expect": {
+        "text": "1,000,000"
+      }
+    },
+    {
+      "id": "interp_fallback",
+      "description": "idioma fora da tabela (pt-PT) usa o inglês",
+      "kind": "text",
+      "mode": "interpolation",
+      "value": {
+        "type": "number",
+        "value": 1234.5
+      },
+      "locale": "pt-PT",
+      "expect": {
+        "text": "1,234.5"
+      }
+    },
+    {
+      "id": "interp_round_decimal",
+      "description": "arredonda sobre a representação decimal mais curta (1.005 → 1.01)",
+      "kind": "text",
+      "mode": "interpolation",
+      "value": {
+        "type": "number",
+        "value": 1.005
+      },
+      "locale": "en",
+      "expect": {
+        "text": "1.01"
+      }
+    },
+    {
+      "id": "interp_round_2675",
+      "description": "2.675 → 2.68",
+      "kind": "text",
+      "mode": "interpolation",
+      "value": {
+        "type": "number",
+        "value": 2.675
+      },
+      "locale": "en",
+      "expect": {
+        "text": "2.68"
+      }
+    },
+    {
+      "id": "interp_strip_zeros",
+      "description": "sem zeros à direita (2.50 → 2.5)",
+      "kind": "text",
+      "mode": "interpolation",
+      "value": {
+        "type": "number",
+        "value": 2.5
+      },
+      "locale": "it",
+      "expect": {
+        "text": "2,5"
+      }
+    },
+    {
+      "id": "interp_negative",
+      "description": "negativo com milhar",
+      "kind": "text",
+      "mode": "interpolation",
+      "value": -1234567,
+      "locale": "pt-BR",
+      "expect": {
+        "text": "-1.234.567"
+      }
+    },
+    {
+      "id": "interp_neg_zero",
+      "description": "negativo que arredonda para zero sai sem sinal",
+      "kind": "text",
+      "mode": "interpolation",
+      "value": {
+        "type": "number",
+        "value": -0.004
+      },
+      "locale": "en",
+      "expect": {
+        "text": "0"
+      }
+    },
+    {
+      "id": "interp_bool",
+      "description": "booleano sai como true/false em qualquer idioma",
+      "kind": "text",
+      "mode": "interpolation",
+      "value": true,
+      "locale": "pt-BR",
+      "expect": {
+        "text": "true"
+      }
+    }
+  ]
+}

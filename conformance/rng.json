@@ -1,0 +1,149 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/1/conformance.schema.json",
+  "title": "RNG reproduzível (só com settings.reproducible_rng)",
+  "covers": [
+    "RT §12.2",
+    "DM §6.1.1 (random_int)"
+  ],
+  "cases": [
+    {
+      "id": "seq_42",
+      "description": "PCG32 semeado com 42: 8 primeiras saídas e estado final",
+      "kind": "rng",
+      "op": "sequence",
+      "seed": "000000000000002a",
+      "count": 8,
+      "expect": {
+        "values": [
+          3270867926,
+          1795671209,
+          1924641435,
+          1143034755,
+          4121910957,
+          1757328946,
+          3418829100,
+          3589261271
+        ],
+        "state_after": "70100cf1d84a47bc"
+      }
+    },
+    {
+      "id": "seq_max",
+      "description": "semente 2^64 − 1",
+      "kind": "rng",
+      "op": "sequence",
+      "seed": "ffffffffffffffff",
+      "count": 4,
+      "expect": {
+        "values": [
+          3643879478,
+          3444271506,
+          2072954526,
+          2577256464
+        ],
+        "state_after": "2627555c7a761e09"
+      }
+    },
+    {
+      "id": "dice",
+      "description": "random_int(1, 6), 12 vezes",
+      "kind": "rng",
+      "op": "random_int",
+      "seed": "000000000000002a",
+      "min": 1,
+      "max": 6,
+      "count": 12,
+      "expect": {
+        "values": [
+          3,
+          6,
+          4,
+          4,
+          4,
+          5,
+          1,
+          6,
+          3,
+          4,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "id": "big_range",
+      "description": "random_int com intervalo maior que 2^32 usa 64 bits",
+      "kind": "rng",
+      "op": "random_int",
+      "seed": "00000000deadbeef",
+      "min": 0,
+      "max": 1099511627776,
+      "count": 4,
+      "expect": {
+        "values": [
+          875754464411,
+          389070853100,
+          1078425219582,
+          529629102242
+        ]
+      }
+    },
+    {
+      "id": "negative_range",
+      "description": "random_int com limites negativos",
+      "kind": "rng",
+      "op": "random_int",
+      "seed": "0123456789abcdef",
+      "min": -10,
+      "max": -5,
+      "count": 6,
+      "expect": {
+        "values": [
+          -8,
+          -10,
+          -10,
+          -8,
+          -5,
+          -6
+        ]
+      }
+    },
+    {
+      "id": "activity_seed",
+      "description": "semente do fluxo de uma atividade",
+      "kind": "rng",
+      "op": "activity_seed",
+      "seed": "000000000000002a",
+      "selection_count": 3,
+      "node": "019a7a00-6590-7a1b-8c2d-3e4f5a6b7c8d",
+      "activity_index": 0,
+      "expect": {
+        "seed": "9d742bde16f4ac91"
+      }
+    },
+    {
+      "id": "activity_seed_second_pass",
+      "description": "segunda passagem pelo mesmo nó muda a semente",
+      "kind": "rng",
+      "op": "activity_seed",
+      "seed": "000000000000002a",
+      "selection_count": 3,
+      "node": "019a7a00-6590-7a1b-8c2d-3e4f5a6b7c8d",
+      "activity_index": 1,
+      "expect": {
+        "seed": "ebbc5cbcf2d97032"
+      }
+    },
+    {
+      "id": "plugin_seed",
+      "description": "semente do fluxo ctx.rng do plugin fishing",
+      "kind": "rng",
+      "op": "plugin_seed",
+      "seed": "000000000000002a",
+      "namespace": "fishing",
+      "expect": {
+        "seed": "fc0a20ad838a3b28"
+      }
+    }
+  ]
+}

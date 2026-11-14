@@ -1,0 +1,511 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/1/conformance.schema.json",
+  "title": "Condições",
+  "covers": [
+    "DM §5",
+    "DM §5.1",
+    "DM §5.2"
+  ],
+  "cases": [
+    {
+      "id": "empty_list",
+      "description": "lista vazia é verdadeira",
+      "kind": "condition",
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "happy",
+          "default": "happy"
+        },
+        "global.name": {
+          "type": "string",
+          "value": "Alice Souza",
+          "default": ""
+        },
+        "global.ratio": {
+          "type": "number",
+          "value": 1.0,
+          "default": 0.5
+        },
+        "global.flag": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        }
+      },
+      "conditions": [],
+      "expect": {
+        "value": true
+      }
+    },
+    {
+      "id": "list_is_all",
+      "description": "lista equivale a all",
+      "kind": "condition",
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "happy",
+          "default": "happy"
+        },
+        "global.name": {
+          "type": "string",
+          "value": "Alice Souza",
+          "default": ""
+        },
+        "global.ratio": {
+          "type": "number",
+          "value": 1.0,
+          "default": 0.5
+        },
+        "global.flag": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        }
+      },
+      "conditions": [
+        {
+          "variable": "global.money",
+          "operator": "greater_than",
+          "value": 10
+        },
+        {
+          "variable": "global.flag",
+          "operator": "equals",
+          "value": true
+        }
+      ],
+      "expect": {
+        "value": false
+      }
+    },
+    {
+      "id": "any_not",
+      "description": "any e not",
+      "kind": "condition",
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "happy",
+          "default": "happy"
+        },
+        "global.name": {
+          "type": "string",
+          "value": "Alice Souza",
+          "default": ""
+        },
+        "global.ratio": {
+          "type": "number",
+          "value": 1.0,
+          "default": 0.5
+        },
+        "global.flag": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        }
+      },
+      "conditions": {
+        "any": [
+          {
+            "variable": "global.flag",
+            "operator": "equals",
+            "value": true
+          },
+          {
+            "not": {
+              "variable": "global.money",
+              "operator": "less_than",
+              "value": 5
+            }
+          }
+        ]
+      },
+      "expect": {
+        "value": true
+      }
+    },
+    {
+      "id": "int_equals_number",
+      "description": "integer e number comparam pelo valor (1.0 = 1)",
+      "kind": "condition",
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "happy",
+          "default": "happy"
+        },
+        "global.name": {
+          "type": "string",
+          "value": "Alice Souza",
+          "default": ""
+        },
+        "global.ratio": {
+          "type": "number",
+          "value": 1.0,
+          "default": 0.5
+        },
+        "global.flag": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        }
+      },
+      "conditions": {
+        "variable": "global.ratio",
+        "operator": "equals",
+        "value": 1
+      },
+      "expect": {
+        "value": true
+      }
+    },
+    {
+      "id": "in_enum",
+      "description": "in com enum",
+      "kind": "condition",
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "happy",
+          "default": "happy"
+        },
+        "global.name": {
+          "type": "string",
+          "value": "Alice Souza",
+          "default": ""
+        },
+        "global.ratio": {
+          "type": "number",
+          "value": 1.0,
+          "default": 0.5
+        },
+        "global.flag": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        }
+      },
+      "conditions": {
+        "variable": "global.mood",
+        "operator": "in",
+        "value": [
+          "sad",
+          "happy"
+        ]
+      },
+      "expect": {
+        "value": true
+      }
+    },
+    {
+      "id": "not_in_int",
+      "description": "not_in com inteiro",
+      "kind": "condition",
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "happy",
+          "default": "happy"
+        },
+        "global.name": {
+          "type": "string",
+          "value": "Alice Souza",
+          "default": ""
+        },
+        "global.ratio": {
+          "type": "number",
+          "value": 1.0,
+          "default": 0.5
+        },
+        "global.flag": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        }
+      },
+      "conditions": {
+        "variable": "global.money",
+        "operator": "not_in",
+        "value": [
+          10,
+          20
+        ]
+      },
+      "expect": {
+        "value": true
+      }
+    },
+    {
+      "id": "contains",
+      "description": "contains é substring, sensível a maiúsculas",
+      "kind": "condition",
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "happy",
+          "default": "happy"
+        },
+        "global.name": {
+          "type": "string",
+          "value": "Alice Souza",
+          "default": ""
+        },
+        "global.ratio": {
+          "type": "number",
+          "value": 1.0,
+          "default": 0.5
+        },
+        "global.flag": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        }
+      },
+      "conditions": {
+        "variable": "global.name",
+        "operator": "contains",
+        "value": "souza"
+      },
+      "expect": {
+        "value": false
+      }
+    },
+    {
+      "id": "is_default_true",
+      "description": "is_default com valor igual ao padrão",
+      "kind": "condition",
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "happy",
+          "default": "happy"
+        },
+        "global.name": {
+          "type": "string",
+          "value": "Alice Souza",
+          "default": ""
+        },
+        "global.ratio": {
+          "type": "number",
+          "value": 1.0,
+          "default": 0.5
+        },
+        "global.flag": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        }
+      },
+      "conditions": {
+        "variable": "global.mood",
+        "operator": "is_default"
+      },
+      "expect": {
+        "value": true
+      }
+    },
+    {
+      "id": "is_default_false",
+      "description": "is_default com valor diferente do padrão",
+      "kind": "condition",
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "happy",
+          "default": "happy"
+        },
+        "global.name": {
+          "type": "string",
+          "value": "Alice Souza",
+          "default": ""
+        },
+        "global.ratio": {
+          "type": "number",
+          "value": 1.0,
+          "default": 0.5
+        },
+        "global.flag": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        }
+      },
+      "conditions": {
+        "variable": "global.money",
+        "operator": "is_default"
+      },
+      "expect": {
+        "value": false
+      }
+    },
+    {
+      "id": "var_vs_var",
+      "description": "comparação entre duas variáveis numéricas",
+      "kind": "condition",
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "happy",
+          "default": "happy"
+        },
+        "global.name": {
+          "type": "string",
+          "value": "Alice Souza",
+          "default": ""
+        },
+        "global.ratio": {
+          "type": "number",
+          "value": 1.0,
+          "default": 0.5
+        },
+        "global.flag": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        }
+      },
+      "conditions": {
+        "variable": "global.money",
+        "operator": "greater_than_or_equal",
+        "value": {
+          "var": "global.ratio"
+        }
+      },
+      "expect": {
+        "value": true
+      }
+    },
+    {
+      "id": "event_true",
+      "description": "evento emitido desde a última seleção",
+      "kind": "condition",
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "happy",
+          "default": "happy"
+        },
+        "global.name": {
+          "type": "string",
+          "value": "Alice Souza",
+          "default": ""
+        },
+        "global.ratio": {
+          "type": "number",
+          "value": 1.0,
+          "default": 0.5
+        },
+        "global.flag": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        }
+      },
+      "conditions": {
+        "event_since_last_selection": "story.met_master"
+      },
+      "events": [
+        "story.met_master"
+      ],
+      "expect": {
+        "value": true
+      }
+    },
+    {
+      "id": "event_false",
+      "description": "evento não emitido",
+      "kind": "condition",
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "happy",
+          "default": "happy"
+        },
+        "global.name": {
+          "type": "string",
+          "value": "Alice Souza",
+          "default": ""
+        },
+        "global.ratio": {
+          "type": "number",
+          "value": 1.0,
+          "default": 0.5
+        },
+        "global.flag": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        }
+      },
+      "conditions": {
+        "event_since_last_selection": "story.met_master"
+      },
+      "events": [],
+      "expect": {
+        "value": false
+      }
+    }
+  ]
+}
