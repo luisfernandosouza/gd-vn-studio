@@ -122,7 +122,9 @@
         },
         "text_speed": {
           "type": "number",
-          "minimum": 0
+          "minimum": 0,
+          "default": 40,
+          "description": "Padrão do jogo para PlayerSettings.text_speed (caracteres por segundo)."
         },
         "autosave": {
           "enum": [
@@ -185,6 +187,46 @@
               "default": 0
             }
           }
+        },
+        "number_formats": {
+          "description": "Formato de números por idioma do jogo, com precedência sobre a tabela do runtime (Runtime Spec §12.1). Útil para idiomas fora da tabela.",
+          "type": "object",
+          "propertyNames": {
+            "$ref": "common.schema.json#/$defs/Locale"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "decimal",
+              "group"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "decimal": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2
+              },
+              "group": {
+                "type": "string",
+                "maxLength": 2,
+                "description": "Separador de milhar; vazio = sem separador."
+              },
+              "min_grouping": {
+                "type": "integer",
+                "minimum": 4,
+                "maximum": 9,
+                "default": 4,
+                "description": "Número mínimo de dígitos da parte inteira para usar o separador de milhar."
+              }
+            }
+          }
+        },
+        "auto_delay": {
+          "description": "Padrão do jogo para PlayerSettings.auto_delay (segundos).",
+          "type": "number",
+          "minimum": 0,
+          "default": 1.5
         }
       }
     },

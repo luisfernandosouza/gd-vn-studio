@@ -16,4 +16,7 @@ cd docs/specs
 python3 tools/validate.py examples/demo-project examples/fishing-plugin   # validador
 python3 tools/test_validate.py                     # casos do validador
 python3 tools/conformance.py                       # vetores de conformidade
+python3 tools/compile_bundle.py examples/demo-project /tmp/bundle examples/fishing-plugin   # bundle que o runtime lê
 ```
+
+O jogo de exemplo jogável fica em [`gd-vn-studio-demo`](https://github.com/luisfernandosouza/gd-vn-studio-demo). Para rodá-lo no editor do Godot quando o runtime existir, veja a [Runtime Spec §2.1](docs/specs/02-narrative-runtime-specification.md).

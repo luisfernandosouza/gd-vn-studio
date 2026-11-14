@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.vnstudio.dev/1/bundle.schema.json",
+  "title": "narrative/bundle.json",
+  "description": "Bundle narrativo que o runtime lê (Runtime Spec §2, Build System §5.1). Gerado pelo compilador a partir do projeto já validado, com defaults resolvidos e o preset do tema aplicado. Todo mapa é ordenado por chave. content_hash = SHA-256 do JCS do bundle sem o campo content_hash.",
+  "type": "object",
+  "required": [
+    "bundle_version",
+    "format_version",
+    "content_hash",
+    "project",
+    "variables",
+    "aliases",
+    "characters",
+    "chapters",
+    "scenes",
+    "theme",
+    "ui",
+    "sets",
+    "assets"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "bundle_version": {
+      "const": 1
+    },
+    "format_version": {
+      "$ref": "common.schema.json#/$defs/SemVer",
+      "description": "format_version do projeto (Data Model). O runtime recusa MAJOR que não suporta."
+    },
+    "content_hash": {
+      "$ref": "common.schema.json#/$defs/Hash"
+    },
+    "project": {
+      "description": "project.json sem $schema, theme e build, com settings resolvido (todos os padrões preenchidos), scheduler resolvido e exclusive_groups com max_plays.",
+      "type": "object",
+      "required": [
+        "id",
+        "title",
+        "default_locale",
+        "locales",
+        "start_chapter",
+        "chapters",
+        "settings",
+        "scheduler",
+        "exclusive_groups",
+        "endings",
+        "events"
+      ]
+    },
+    "variables": {
+      "description": "Variáveis de escopo de jogo, por id qualificado (global.*, character.<key>.*, plugin.<ns>.*), com default e persistence resolvidos. As de personagem já vêm instanciadas, com initial_values como default. chapter.* e scene.* ficam no capítulo e na cena.",
+      "type": "object",
+      "propertyNames": {
+        "$ref": "common.schema.json#/$defs/VariableRef"
+      },
+      "additionalProperties": {
+        "$ref": "common.schema.json#/$defs/VariableDefinition"
+      }
+    },
+    "aliases": {
+      "description": "renamed_from reunidos: id antigo → id atual, para variáveis (qualificadas), cenas, capítulos, nós e assets.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "characters": {
+      "type": "object",
+      "description": "Personagens por UUID, como em characters/*.json, sem $schema.",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "chapters": {
+      "type": "object",
+      "description": "Capítulos por UUID, sem $schema, com scheduler (do capítulo sobre o do projeto), completion.on_exhausted, exclusive_groups[].max_plays e next[].priority resolvidos.",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "id",
+          "scheduler",
+          "completion",
+          "exclusive_groups",
+          "next",
+          "variables"
+        ]
+      }
+    },
+    "scenes": {
+      "type": "object",
+      "description": "Cenas por UUID, sem $schema, com chapter (null para globais), scheduling (mode, priority, max_plays, cooldown, exclusive_groups, weight, order) e start resolvidos.",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "id",
+          "chapter",
+          "scheduling",
+          "start",
+          "variables",
+          "nodes"
+        ]
+      }
+    },
+    "theme": {
+      "type": "object",
+      "description": "Tema do projeto aplicado sobre o tema do preset (fusão profunda; listas substituem)."
+    },
+    "ui": {
+      "type": "object",
+      "description": "Telas por id: as do preset, substituídas inteiras pelas do projeto com o mesmo id, mais a tela minigames gerada (UI Spec §6.1).",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "sets": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "assets": {
+      "type": "object",
+      "description": "Assets por id, com path reescrito para res://vn_content/assets/<path>.",
+      "propertyNames": {
+        "$ref": "common.schema.json#/$defs/AssetRef"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "path",
+          "type"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "pattern": "^res://"
+          }
+        }
+      }
+    }
+  }
+}

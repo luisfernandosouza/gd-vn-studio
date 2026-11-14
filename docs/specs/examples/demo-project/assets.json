@@ -3,11 +3,13 @@
   "assets": {
     "bg/beach_day": {
       "path": "backgrounds/beach_day.png",
-      "type": "background"
+      "type": "background",
+      "gallery": true
     },
     "bg/pier_sunset": {
       "path": "backgrounds/pier_sunset.png",
-      "type": "background"
+      "type": "background",
+      "gallery": true
     },
     "char/alice/neutral": {
       "path": "characters/alice/neutral.png",
@@ -35,7 +37,8 @@
     },
     "music/waves": {
       "path": "audio/music/waves.ogg",
-      "type": "audio_music"
+      "type": "audio_music",
+      "gallery": true
     },
     "ui/icon": {
       "path": "ui/icon.png",

@@ -94,6 +94,15 @@
               "$ref": "common.schema.json#/$defs/AssetRef"
             },
             "uniqueItems": true
+          },
+          "gallery": {
+            "description": "Entra na galeria (UI Spec §3.1, gallery_grid). Vale para image, background (fonte images) e audio_music (fonte music). O runtime marca o asset como visto em profile.seen_assets na primeira vez que ele aparece em cena.",
+            "type": "boolean",
+            "default": false
+          },
+          "gallery_order": {
+            "description": "Ordem na galeria; ausente = depois dos ordenados, pelo id.",
+            "type": "integer"
           }
         }
       }

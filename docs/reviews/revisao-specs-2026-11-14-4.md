@@ -1,5 +1,6 @@
 # Revisão das especificações antes do runtime — 2026-11-14 (4ª rodada)
 
+- **Situação (2026-11-14):** aplicada. D16 e D17 decididas: o compilador em Python grava o jogo e os plugins dentro do projeto do runtime (`--godot`), porque o Godot só resolve `res://` dentro do projeto aberto; por isso `--vn-plugins` deu lugar à cópia para `runtime/vn_plugins/` e `--vn-bundle` aceita só pastas `res://`. Idiomas: o jogo tem de 1 a n idiomas; o Studio e o preset têm uma lista fixa.
 - **Escopo:**
   - `gd-vn-studio`: specs 00 a 09, os 17 schemas, os exemplos, os vetores e as ferramentas.
   - `gd-vn-studio-demo`: projeto, assets e plugin usado.

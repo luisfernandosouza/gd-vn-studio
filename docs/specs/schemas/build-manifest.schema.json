@@ -1,0 +1,191 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.vnstudio.dev/1/build-manifest.schema.json",
+  "title": "build-manifest.json",
+  "description": "Manifesto gravado na pasta de saída de cada build (Build System §9.2). O Build Reporter e a CI o leem.",
+  "type": "object",
+  "required": [
+    "manifest_version",
+    "build_id",
+    "project",
+    "created_at",
+    "type",
+    "tools",
+    "plugins",
+    "locales",
+    "outputs"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "manifest_version": {
+      "const": 1
+    },
+    "build_id": {
+      "type": "string",
+      "pattern": "^[0-9]{8}-[0-9]{6}-[0-9a-f]{8}$",
+      "description": "<AAAAMMDD-HHMMSS>-<8 hex do content_hash> (Build System §4.1)."
+    },
+    "project": {
+      "type": "object",
+      "required": [
+        "id",
+        "version",
+        "content_hash"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/Id"
+        },
+        "version": {
+          "$ref": "common.schema.json#/$defs/SemVer"
+        },
+        "content_hash": {
+          "$ref": "common.schema.json#/$defs/Hash"
+        }
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "type": {
+      "enum": [
+        "release",
+        "debug"
+      ]
+    },
+    "tools": {
+      "type": "object",
+      "required": [
+        "studio",
+        "runtime",
+        "runtime_sdk",
+        "godot"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "studio": {
+          "$ref": "common.schema.json#/$defs/SemVer"
+        },
+        "runtime": {
+          "$ref": "common.schema.json#/$defs/SemVer"
+        },
+        "runtime_sdk": {
+          "$ref": "common.schema.json#/$defs/SemVer"
+        },
+        "godot": {
+          "type": "string"
+        },
+        "godot_label": {
+          "type": "string"
+        },
+        "compiler": {
+          "description": "Compilador de bundle usado, quando não é o do Studio (ex.: tools/compile_bundle.py).",
+          "type": "string"
+        }
+      }
+    },
+    "plugins": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "version",
+          "integrity"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "$ref": "common.schema.json#/$defs/SemVer"
+          },
+          "integrity": {
+            "$ref": "common.schema.json#/$defs/Hash"
+          },
+          "embedded": {
+            "type": "boolean",
+            "default": false,
+            "description": "Plugin embutido, empacotado da pasta do projeto neste build (spec 09 §3.2)."
+          }
+        }
+      }
+    },
+    "locales": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/Locale"
+      }
+    },
+    "protection": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "encrypt_pck": {
+          "type": "boolean"
+        },
+        "save_tamper": {
+          "enum": [
+            "ignore",
+            "flag",
+            "reject"
+          ]
+        },
+        "save_key_id": {
+          "type": "string"
+        }
+      }
+    },
+    "outputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "platform",
+          "file",
+          "bytes",
+          "sha256"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "platform": {
+            "enum": [
+              "windows",
+              "macos",
+              "linux",
+              "web"
+            ]
+          },
+          "file": {
+            "type": "string"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "signed": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

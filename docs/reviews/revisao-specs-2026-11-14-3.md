@@ -1,5 +1,6 @@
 # Revisão das especificações — 2026-11-14 (3ª rodada)
 
+- **Situação (2026-11-14):** aplicada junto com a 4ª rodada. D5, D14 e D15 decididas como recomendado. G3 (plugin embutido na demo), M6 (U007 em outras proporções, conferido pelo Studio) e os documentos E4–E15 continuam pendentes.
 - **Escopo:** specs 00 a 09, README, os 17 schemas, `examples/` (demo-project, fishing-plugin, demo-save), `conformance/` e `tools/`.
 - **Contexto:** esta rodada vem depois de três acréscimos: os minijogos no nível de repositório (spec 09), os dados de perfil e recordes dos minijogos (Plugin SDK §9.1) e o modo livre (Plugin SDK §6.1).
 - **Estado das ferramentas:**

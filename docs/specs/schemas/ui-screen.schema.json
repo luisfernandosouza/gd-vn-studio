@@ -727,6 +727,29 @@
               "description": "Sobrepõe free_play.params do manifesto; validado contra params_schema."
             }
           }
+        },
+        {
+          "type": "object",
+          "required": [
+            "do"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "do": {
+              "const": "reset_profile"
+            },
+            "if": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "else": {
+              "$ref": "#/$defs/ActionList"
+            },
+            "text": {
+              "description": "Texto da confirmação; ausente = texto do preset. A confirmação é sempre mostrada.",
+              "$ref": "common.schema.json#/$defs/LocalizedText"
+            }
+          },
+          "description": "Só no título: apaga profile.json (variáveis profile, finais, textos lidos, galeria, dados e recordes dos plugins). Não apaga saves nem settings.json."
         }
       ]
     },
@@ -849,6 +872,9 @@
         },
         {
           "$ref": "#/$defs/RecordsList"
+        },
+        {
+          "$ref": "#/$defs/LicensesList"
         }
       ]
     },
@@ -1258,6 +1284,31 @@
         }
       },
       "unevaluatedProperties": false
+    },
+    "LicensesList": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ElementBase"
+        }
+      ],
+      "properties": {
+        "type": {
+          "const": "licenses_list"
+        },
+        "include": {
+          "description": "O que listar: plugins (licenças de vn_content/licenses.txt), fonts (licenças das fontes do tema) ou os dois (padrão).",
+          "type": "array",
+          "items": {
+            "enum": [
+              "plugins",
+              "fonts"
+            ]
+          },
+          "uniqueItems": true
+        }
+      },
+      "unevaluatedProperties": false,
+      "description": "Lista rolável com as licenças dos plugins e das fontes do jogo (Build System §4.5)."
     }
   }
 }

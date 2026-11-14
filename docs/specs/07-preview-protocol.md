@@ -72,7 +72,7 @@ Toda notificação tem `seq` (inteiro crescente na sessão, a partir de 1) e `ph
 |---|---|---|
 | `session.closing` | O runtime vai fechar | `reason`: `window_closed`, `stop`, `error` |
 | `chapter.started` / `chapter.ended` | RT §3.2, §3.3 | `chapter` |
-| `scene.started` | Uma cena começa | `scene`, `chapter`, `selection_count`, `reason` (o `reason` da seleção, ou `entry`, `start`) |
+| `scene.started` | Uma cena começa | `scene`, `chapter`, `selection_count`, `reason`: o `reason` da seleção (§4.3); `entry` quando é a `entry_scene` do capítulo (RT §3.2, sem passar pelo Scheduler); `start` quando o Preview forçou a cena com `preview.start({scene})` |
 | `scene.ended` | Fim de cena (RT §5.4) | `scene`, `then` |
 | `node.entered` | Antes de executar cada nó | `scene`, `node`, `type` |
 | `state.changed` | Cada transação aplicada | `changes` (`{variable, old, new}`), `source`: `scene`, `choice`, `plugin:<id>`, `ui`, `preview`, `system` |
@@ -90,7 +90,7 @@ Toda notificação tem `seq` (inteiro crescente na sessão, a partir de 1) e `ph
 
 ### 4.2. Ordem
 
-Para um mesmo nó: `node.entered` → `state.changed` (efeitos do nó) → `event.emitted` (eventos que o nó enfileirou, depois de entregues). No ponto de seleção: `scene.ended` → `scheduler.evaluated` → `scene.started`. Os vetores de conformidade `flow` (spec 08 §4) vão usar essa mesma ordem como traço.
+Para um mesmo nó: `node.entered` → `state.changed` (efeitos do nó) → `event.emitted` (eventos que o nó enfileirou, depois de entregues). No ponto de seleção: `scene.ended` → `scheduler.evaluated` → `scene.started`. Os vetores de conformidade `flow` (spec 08 §4) usam essa mesma ordem como traço.
 
 ### 4.3. `SchedulerEvaluation`
 

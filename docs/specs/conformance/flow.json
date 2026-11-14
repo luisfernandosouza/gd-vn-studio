@@ -1,0 +1,1104 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/1/conformance.schema.json",
+  "title": "Fluxo de cena",
+  "covers": [
+    "Runtime Spec §5.1–§5.4",
+    "Runtime Spec §7.2",
+    "Data Model §8"
+  ],
+  "cases": [
+    {
+      "id": "linhas_interpolacao_e_fim",
+      "description": "fala com interpolação formatada pelo idioma, efeito e fim",
+      "kind": "flow",
+      "scene": {
+        "id": "019a7b00-0001-7000-8000-000000000000",
+        "nodes": [
+          {
+            "id": "019a7b00-000a-7000-8000-000000000000",
+            "type": "line",
+            "text": "You have {global.money} coins."
+          },
+          {
+            "id": "019a7b00-000b-7000-8000-000000000000",
+            "type": "effects",
+            "effects": [
+              {
+                "op": "add",
+                "variable": "global.money",
+                "value": 20
+              }
+            ]
+          },
+          {
+            "id": "019a7b00-000c-7000-8000-000000000000",
+            "type": "line",
+            "text": "Now {global.money}. {{literal}}"
+          },
+          {
+            "id": "019a7b00-000d-7000-8000-000000000000",
+            "type": "end",
+            "then": "schedule"
+          }
+        ]
+      },
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0,
+          "constraints": {
+            "min": 0,
+            "max": 100,
+            "on_overflow": "reject"
+          }
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "calm",
+          "default": "calm",
+          "constraints": {
+            "values": [
+              "calm",
+              "happy",
+              "sad"
+            ]
+          }
+        },
+        "global.won": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        },
+        "global.score": {
+          "type": "integer",
+          "value": 0,
+          "default": 0
+        }
+      },
+      "inputs": [
+        "advance",
+        "advance"
+      ],
+      "locale": "en",
+      "expect": {
+        "trace": [
+          {
+            "event": "sys.scene_started"
+          },
+          {
+            "node": "019a7b00-000a-7000-8000-000000000000"
+          },
+          {
+            "text": "You have 30 coins."
+          },
+          {
+            "node": "019a7b00-000b-7000-8000-000000000000"
+          },
+          {
+            "changes": [
+              {
+                "variable": "global.money",
+                "old": 30,
+                "new": 50
+              }
+            ]
+          },
+          {
+            "node": "019a7b00-000c-7000-8000-000000000000"
+          },
+          {
+            "text": "Now 50. {literal}"
+          },
+          {
+            "node": "019a7b00-000d-7000-8000-000000000000"
+          },
+          {
+            "event": "sys.scene_ended"
+          },
+          {
+            "end": "schedule"
+          }
+        ]
+      }
+    },
+    {
+      "id": "escolha_visivel_habilitada_record",
+      "description": "escolha: opção escondida, opção desabilitada, record e goto",
+      "kind": "flow",
+      "scene": {
+        "id": "019a7b00-0001-7000-8000-000000000000",
+        "nodes": [
+          {
+            "id": "019a7b00-0014-7000-8000-000000000000",
+            "type": "choice",
+            "record": "global.mood",
+            "options": [
+              {
+                "id": "019a7b00-0015-7000-8000-000000000000",
+                "text": "Rich",
+                "visible_if": [
+                  {
+                    "variable": "global.money",
+                    "operator": "greater_than",
+                    "value": 50
+                  }
+                ]
+              },
+              {
+                "id": "019a7b00-0016-7000-8000-000000000000",
+                "text": "Happy",
+                "value": "happy",
+                "effects": [
+                  {
+                    "op": "set",
+                    "variable": "global.won",
+                    "value": true
+                  }
+                ],
+                "goto": "019a7b00-0019-7000-8000-000000000000"
+              },
+              {
+                "id": "019a7b00-0017-7000-8000-000000000000",
+                "text": "Locked",
+                "enabled_if": [
+                  {
+                    "variable": "global.won",
+                    "operator": "equals",
+                    "value": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "019a7b00-0018-7000-8000-000000000000",
+            "type": "line",
+            "text": "skipped"
+          },
+          {
+            "id": "019a7b00-0019-7000-8000-000000000000",
+            "type": "end",
+            "then": "end_chapter"
+          }
+        ]
+      },
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0,
+          "constraints": {
+            "min": 0,
+            "max": 100,
+            "on_overflow": "reject"
+          }
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "calm",
+          "default": "calm",
+          "constraints": {
+            "values": [
+              "calm",
+              "happy",
+              "sad"
+            ]
+          }
+        },
+        "global.won": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        },
+        "global.score": {
+          "type": "integer",
+          "value": 0,
+          "default": 0
+        }
+      },
+      "inputs": [
+        {
+          "choose": "019a7b00-0016-7000-8000-000000000000"
+        }
+      ],
+      "locale": "en",
+      "expect": {
+        "trace": [
+          {
+            "event": "sys.scene_started"
+          },
+          {
+            "node": "019a7b00-0014-7000-8000-000000000000"
+          },
+          {
+            "options": [
+              {
+                "id": "019a7b00-0016-7000-8000-000000000000",
+                "enabled": true
+              },
+              {
+                "id": "019a7b00-0017-7000-8000-000000000000",
+                "enabled": false
+              }
+            ]
+          },
+          {
+            "changes": [
+              {
+                "variable": "global.won",
+                "old": false,
+                "new": true
+              },
+              {
+                "variable": "global.mood",
+                "old": "calm",
+                "new": "happy"
+              }
+            ]
+          },
+          {
+            "event": "sys.choice_made"
+          },
+          {
+            "node": "019a7b00-0019-7000-8000-000000000000"
+          },
+          {
+            "event": "sys.scene_ended"
+          },
+          {
+            "end": "end_chapter"
+          }
+        ]
+      }
+    },
+    {
+      "id": "efeito_rejeitado_vai_para_on_fail",
+      "description": "restrição reject: a transação é desfeita e segue on_fail",
+      "kind": "flow",
+      "scene": {
+        "id": "019a7b00-0001-7000-8000-000000000000",
+        "nodes": [
+          {
+            "id": "019a7b00-001e-7000-8000-000000000000",
+            "type": "effects",
+            "effects": [
+              {
+                "op": "set",
+                "variable": "global.won",
+                "value": true
+              },
+              {
+                "op": "add",
+                "variable": "global.money",
+                "value": 500
+              }
+            ],
+            "on_fail": "019a7b00-0020-7000-8000-000000000000"
+          },
+          {
+            "id": "019a7b00-001f-7000-8000-000000000000",
+            "type": "line",
+            "text": "ok"
+          },
+          {
+            "id": "019a7b00-0020-7000-8000-000000000000",
+            "type": "line",
+            "text": "Too much: {global.money}, won={global.won}"
+          },
+          {
+            "id": "019a7b00-0021-7000-8000-000000000000",
+            "type": "end"
+          }
+        ]
+      },
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0,
+          "constraints": {
+            "min": 0,
+            "max": 100,
+            "on_overflow": "reject"
+          }
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "calm",
+          "default": "calm",
+          "constraints": {
+            "values": [
+              "calm",
+              "happy",
+              "sad"
+            ]
+          }
+        },
+        "global.won": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        },
+        "global.score": {
+          "type": "integer",
+          "value": 0,
+          "default": 0
+        }
+      },
+      "inputs": [
+        "advance"
+      ],
+      "locale": "en",
+      "expect": {
+        "trace": [
+          {
+            "event": "sys.scene_started"
+          },
+          {
+            "node": "019a7b00-001e-7000-8000-000000000000"
+          },
+          {
+            "node": "019a7b00-0020-7000-8000-000000000000"
+          },
+          {
+            "text": "Too much: 30, won=false"
+          },
+          {
+            "node": "019a7b00-0021-7000-8000-000000000000"
+          },
+          {
+            "event": "sys.scene_ended"
+          },
+          {
+            "end": "schedule"
+          }
+        ]
+      }
+    },
+    {
+      "id": "branch_e_jump",
+      "description": "branch escolhe o primeiro case verdadeiro; jump volta",
+      "kind": "flow",
+      "scene": {
+        "id": "019a7b00-0001-7000-8000-000000000000",
+        "nodes": [
+          {
+            "id": "019a7b00-0028-7000-8000-000000000000",
+            "type": "branch",
+            "cases": [
+              {
+                "conditions": [
+                  {
+                    "variable": "global.score",
+                    "operator": "greater_than_or_equal",
+                    "value": 2
+                  }
+                ],
+                "goto": "019a7b00-002c-7000-8000-000000000000"
+              }
+            ]
+          },
+          {
+            "id": "019a7b00-0029-7000-8000-000000000000",
+            "type": "effects",
+            "effects": [
+              {
+                "op": "add",
+                "variable": "global.score",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "id": "019a7b00-002a-7000-8000-000000000000",
+            "type": "jump",
+            "goto": "019a7b00-0028-7000-8000-000000000000"
+          },
+          {
+            "id": "019a7b00-002b-7000-8000-000000000000",
+            "type": "line",
+            "text": "never"
+          },
+          {
+            "id": "019a7b00-002c-7000-8000-000000000000",
+            "type": "end"
+          }
+        ]
+      },
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0,
+          "constraints": {
+            "min": 0,
+            "max": 100,
+            "on_overflow": "reject"
+          }
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "calm",
+          "default": "calm",
+          "constraints": {
+            "values": [
+              "calm",
+              "happy",
+              "sad"
+            ]
+          }
+        },
+        "global.won": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        },
+        "global.score": {
+          "type": "integer",
+          "value": 0,
+          "default": 0
+        }
+      },
+      "inputs": [],
+      "locale": "en",
+      "expect": {
+        "trace": [
+          {
+            "event": "sys.scene_started"
+          },
+          {
+            "node": "019a7b00-0028-7000-8000-000000000000"
+          },
+          {
+            "node": "019a7b00-0029-7000-8000-000000000000"
+          },
+          {
+            "changes": [
+              {
+                "variable": "global.score",
+                "old": 0,
+                "new": 1
+              }
+            ]
+          },
+          {
+            "node": "019a7b00-002a-7000-8000-000000000000"
+          },
+          {
+            "node": "019a7b00-0028-7000-8000-000000000000"
+          },
+          {
+            "node": "019a7b00-0029-7000-8000-000000000000"
+          },
+          {
+            "changes": [
+              {
+                "variable": "global.score",
+                "old": 1,
+                "new": 2
+              }
+            ]
+          },
+          {
+            "node": "019a7b00-002a-7000-8000-000000000000"
+          },
+          {
+            "node": "019a7b00-0028-7000-8000-000000000000"
+          },
+          {
+            "node": "019a7b00-002c-7000-8000-000000000000"
+          },
+          {
+            "event": "sys.scene_ended"
+          },
+          {
+            "end": "schedule"
+          }
+        ]
+      }
+    },
+    {
+      "id": "emit_ordem_dos_eventos",
+      "description": "emit enfileira e drena no fim do nó; sys.choice_made depois da transação",
+      "kind": "flow",
+      "scene": {
+        "id": "019a7b00-0001-7000-8000-000000000000",
+        "nodes": [
+          {
+            "id": "019a7b00-0032-7000-8000-000000000000",
+            "type": "emit",
+            "event": "story.arrived"
+          },
+          {
+            "id": "019a7b00-0033-7000-8000-000000000000",
+            "type": "choice",
+            "options": [
+              {
+                "id": "019a7b00-0034-7000-8000-000000000000",
+                "text": "Go",
+                "effects": [
+                  {
+                    "op": "add",
+                    "variable": "global.score",
+                    "value": 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "019a7b00-0035-7000-8000-000000000000",
+            "type": "emit",
+            "event": "story.left"
+          },
+          {
+            "id": "019a7b00-0036-7000-8000-000000000000",
+            "type": "end"
+          }
+        ]
+      },
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0,
+          "constraints": {
+            "min": 0,
+            "max": 100,
+            "on_overflow": "reject"
+          }
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "calm",
+          "default": "calm",
+          "constraints": {
+            "values": [
+              "calm",
+              "happy",
+              "sad"
+            ]
+          }
+        },
+        "global.won": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        },
+        "global.score": {
+          "type": "integer",
+          "value": 0,
+          "default": 0
+        }
+      },
+      "inputs": [
+        {
+          "choose": "019a7b00-0034-7000-8000-000000000000"
+        }
+      ],
+      "locale": "en",
+      "expect": {
+        "trace": [
+          {
+            "event": "sys.scene_started"
+          },
+          {
+            "node": "019a7b00-0032-7000-8000-000000000000"
+          },
+          {
+            "event": "story.arrived"
+          },
+          {
+            "node": "019a7b00-0033-7000-8000-000000000000"
+          },
+          {
+            "options": [
+              {
+                "id": "019a7b00-0034-7000-8000-000000000000",
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "changes": [
+              {
+                "variable": "global.score",
+                "old": 0,
+                "new": 1
+              }
+            ]
+          },
+          {
+            "event": "sys.choice_made"
+          },
+          {
+            "node": "019a7b00-0035-7000-8000-000000000000"
+          },
+          {
+            "event": "story.left"
+          },
+          {
+            "node": "019a7b00-0036-7000-8000-000000000000"
+          },
+          {
+            "event": "sys.scene_ended"
+          },
+          {
+            "end": "schedule"
+          }
+        ]
+      }
+    },
+    {
+      "id": "plugin_resultado_e_outcome",
+      "description": "on_result: campo com tipo errado conta como ausente e usa o default; outcome desvia",
+      "kind": "flow",
+      "scene": {
+        "id": "019a7b00-0001-7000-8000-000000000000",
+        "nodes": [
+          {
+            "id": "019a7b00-003c-7000-8000-000000000000",
+            "type": "plugin",
+            "activity": "fishing.fishing_game",
+            "params": {
+              "difficulty": "easy"
+            },
+            "on_result": {
+              "effects": [
+                {
+                  "op": "set",
+                  "variable": "global.won",
+                  "value": {
+                    "result": "won"
+                  }
+                },
+                {
+                  "op": "add",
+                  "variable": "global.money",
+                  "value": {
+                    "result": "coins",
+                    "default": 5
+                  }
+                },
+                {
+                  "op": "set",
+                  "variable": "global.score",
+                  "value": {
+                    "result": "stats.score"
+                  }
+                }
+              ],
+              "outcomes": {
+                "won": "019a7b00-003e-7000-8000-000000000000"
+              }
+            }
+          },
+          {
+            "id": "019a7b00-003d-7000-8000-000000000000",
+            "type": "line",
+            "text": "lost"
+          },
+          {
+            "id": "019a7b00-003e-7000-8000-000000000000",
+            "type": "line",
+            "text": "won {global.money} {global.score}"
+          },
+          {
+            "id": "019a7b00-003f-7000-8000-000000000000",
+            "type": "end"
+          }
+        ]
+      },
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0,
+          "constraints": {
+            "min": 0,
+            "max": 100,
+            "on_overflow": "reject"
+          }
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "calm",
+          "default": "calm",
+          "constraints": {
+            "values": [
+              "calm",
+              "happy",
+              "sad"
+            ]
+          }
+        },
+        "global.won": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        },
+        "global.score": {
+          "type": "integer",
+          "value": 0,
+          "default": 0
+        }
+      },
+      "inputs": [
+        {
+          "activity": {
+            "outcome": "won",
+            "payload": {
+              "won": true,
+              "coins": "many",
+              "stats": {
+                "score": 7.0
+              }
+            }
+          }
+        },
+        "advance"
+      ],
+      "locale": "en",
+      "expect": {
+        "trace": [
+          {
+            "event": "sys.scene_started"
+          },
+          {
+            "node": "019a7b00-003c-7000-8000-000000000000"
+          },
+          {
+            "changes": [
+              {
+                "variable": "global.won",
+                "old": false,
+                "new": true
+              },
+              {
+                "variable": "global.money",
+                "old": 30,
+                "new": 35
+              },
+              {
+                "variable": "global.score",
+                "old": 0,
+                "new": 7
+              }
+            ]
+          },
+          {
+            "event": "sys.activity_completed"
+          },
+          {
+            "node": "019a7b00-003e-7000-8000-000000000000"
+          },
+          {
+            "text": "won 35 7"
+          },
+          {
+            "node": "019a7b00-003f-7000-8000-000000000000"
+          },
+          {
+            "event": "sys.scene_ended"
+          },
+          {
+            "end": "schedule"
+          }
+        ]
+      }
+    },
+    {
+      "id": "plugin_pulado_sem_efeitos",
+      "description": "atividade pulada: on_result.effects não é aplicado, só o desvio",
+      "kind": "flow",
+      "scene": {
+        "id": "019a7b00-0001-7000-8000-000000000000",
+        "nodes": [
+          {
+            "id": "019a7b00-0046-7000-8000-000000000000",
+            "type": "plugin",
+            "activity": "fishing.fishing_game",
+            "on_result": {
+              "effects": [
+                {
+                  "op": "set",
+                  "variable": "global.won",
+                  "value": {
+                    "result": "won"
+                  }
+                }
+              ],
+              "outcomes": {
+                "lost": "019a7b00-0048-7000-8000-000000000000"
+              }
+            }
+          },
+          {
+            "id": "019a7b00-0047-7000-8000-000000000000",
+            "type": "line",
+            "text": "won"
+          },
+          {
+            "id": "019a7b00-0048-7000-8000-000000000000",
+            "type": "line",
+            "text": "skipped, won={global.won}"
+          },
+          {
+            "id": "019a7b00-0049-7000-8000-000000000000",
+            "type": "end"
+          }
+        ]
+      },
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0,
+          "constraints": {
+            "min": 0,
+            "max": 100,
+            "on_overflow": "reject"
+          }
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "calm",
+          "default": "calm",
+          "constraints": {
+            "values": [
+              "calm",
+              "happy",
+              "sad"
+            ]
+          }
+        },
+        "global.won": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        },
+        "global.score": {
+          "type": "integer",
+          "value": 0,
+          "default": 0
+        }
+      },
+      "inputs": [
+        {
+          "activity": {
+            "outcome": "lost",
+            "skipped": true
+          }
+        },
+        "advance"
+      ],
+      "locale": "en",
+      "expect": {
+        "trace": [
+          {
+            "event": "sys.scene_started"
+          },
+          {
+            "node": "019a7b00-0046-7000-8000-000000000000"
+          },
+          {
+            "event": "sys.activity_completed"
+          },
+          {
+            "node": "019a7b00-0048-7000-8000-000000000000"
+          },
+          {
+            "text": "skipped, won=false"
+          },
+          {
+            "node": "019a7b00-0049-7000-8000-000000000000"
+          },
+          {
+            "event": "sys.scene_ended"
+          },
+          {
+            "end": "schedule"
+          }
+        ]
+      }
+    },
+    {
+      "id": "escolha_sem_opcao_visivel",
+      "description": "sem opção visível, segue next",
+      "kind": "flow",
+      "scene": {
+        "id": "019a7b00-0001-7000-8000-000000000000",
+        "nodes": [
+          {
+            "id": "019a7b00-0050-7000-8000-000000000000",
+            "type": "choice",
+            "next": "019a7b00-0053-7000-8000-000000000000",
+            "options": [
+              {
+                "id": "019a7b00-0051-7000-8000-000000000000",
+                "text": "x",
+                "visible_if": [
+                  {
+                    "variable": "global.won",
+                    "operator": "equals",
+                    "value": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "019a7b00-0052-7000-8000-000000000000",
+            "type": "line",
+            "text": "never"
+          },
+          {
+            "id": "019a7b00-0053-7000-8000-000000000000",
+            "type": "line",
+            "text": "Mood: {global.mood}"
+          },
+          {
+            "id": "019a7b00-0054-7000-8000-000000000000",
+            "type": "end"
+          }
+        ]
+      },
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0,
+          "constraints": {
+            "min": 0,
+            "max": 100,
+            "on_overflow": "reject"
+          }
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "calm",
+          "default": "calm",
+          "constraints": {
+            "values": [
+              "calm",
+              "happy",
+              "sad"
+            ]
+          }
+        },
+        "global.won": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        },
+        "global.score": {
+          "type": "integer",
+          "value": 0,
+          "default": 0
+        }
+      },
+      "inputs": [
+        "advance"
+      ],
+      "locale": "pt-BR",
+      "expect": {
+        "trace": [
+          {
+            "event": "sys.scene_started"
+          },
+          {
+            "node": "019a7b00-0050-7000-8000-000000000000"
+          },
+          {
+            "node": "019a7b00-0053-7000-8000-000000000000"
+          },
+          {
+            "text": "Mood: calm"
+          },
+          {
+            "node": "019a7b00-0054-7000-8000-000000000000"
+          },
+          {
+            "event": "sys.scene_ended"
+          },
+          {
+            "end": "schedule"
+          }
+        ]
+      }
+    },
+    {
+      "id": "fim_do_grafo_sem_end",
+      "description": "cena que acaba sem nó end: conclui com then schedule",
+      "kind": "flow",
+      "scene": {
+        "id": "019a7b00-0001-7000-8000-000000000000",
+        "nodes": [
+          {
+            "id": "019a7b00-005a-7000-8000-000000000000",
+            "type": "line",
+            "text": "{global.money}"
+          }
+        ]
+      },
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0,
+          "constraints": {
+            "min": 0,
+            "max": 100,
+            "on_overflow": "reject"
+          }
+        },
+        "global.mood": {
+          "type": "enum",
+          "value": "calm",
+          "default": "calm",
+          "constraints": {
+            "values": [
+              "calm",
+              "happy",
+              "sad"
+            ]
+          }
+        },
+        "global.won": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        },
+        "global.score": {
+          "type": "integer",
+          "value": 0,
+          "default": 0
+        }
+      },
+      "inputs": [
+        "advance"
+      ],
+      "locale": "de",
+      "expect": {
+        "trace": [
+          {
+            "event": "sys.scene_started"
+          },
+          {
+            "node": "019a7b00-005a-7000-8000-000000000000"
+          },
+          {
+            "text": "30"
+          },
+          {
+            "event": "sys.scene_ended"
+          },
+          {
+            "end": "schedule"
+          }
+        ]
+      }
+    }
+  ]
+}

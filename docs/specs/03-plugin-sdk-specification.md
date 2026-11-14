@@ -172,7 +172,7 @@ Ao salvar a configuração, o Studio mostra o diálogo de permissão (§4.1) par
 | `format` | O Studio mostra | O validador confere | Build |
 |---|---|---|---|
 | `vn-variable` (+ `vn-variable-type`) | Seletor de variáveis | Existência (R005) e concessão (P007) | — |
-| `vn-asset` (+ `vn-asset-type`) | Seletor de assets do tipo | Existência (P018) e tipo (W014) | Inclui o asset sem `always_include` |
+| `vn-asset` (+ `vn-asset-type`) | Seletor de assets do tipo | Existência (P018) e tipo (W014) | Inclui o asset sem `always_include`. O plugin pode carregar e tocar esse asset sem `assets.read`, porque foi o autor que o escolheu |
 | `vn-scene` | Seletor de cenas pelo título | Existência (P018) | — |
 | `vn-character` | Seletor de personagens pelo nome | Existência (P018) | — |
 
@@ -356,7 +356,7 @@ func color(role: StringName) -> Color                     # &"text", &"accent", 
 
 - **Textos ao jogador.** Os `args` usam a mesma sintaxe e a mesma formatação da interpolação do projeto (números pela tabela do idioma, `{{` e `}}` para chaves literais; Runtime Spec §12.1); a marcação de texto do Data Model §9.1 também vale. `i18n.text("runtime/hud/fish_count", "Fish: {count}", {"count": 3})` procura, nesta ordem: tradução do projeto (`plugin/<namespace>/runtime/...` nos arquivos de `locales/`), `plugin_locales[locale]` do manifesto, `plugin_locales[default_locale]` e por fim o `fallback` do código. O texto-fonte que vai para a planilha de tradução é o de `plugin_locales[default_locale]`, porque o Studio não lê o código GDScript; por isso toda chave `runtime/` usada no código DEVE estar lá (W016, conferido por `vnplugin validate`). A planilha de tradução do Studio (Req §9) inclui esses textos, então o autor traduz o minijogo para um idioma que o plugin não traz. O nome é `text`, e não `tr`, para não colidir com `Object.tr` do Godot.
 - **Aparência.** Overlays são criados numa `CanvasLayer` cujo `Control` raiz cobre a resolução base do projeto, com o mesmo modo de escala do jogo. O minijogo DEVERIA ser desenhado para essa resolução com âncoras, e usar `ctx.theme` para fontes e cores, para não destoar da VN.
-- **Input.** O runtime define ações padrão, mapeadas para teclado, mouse, gamepad e toque: `vn_confirm` (Enter, Espaço, clique, toque), `vn_cancel` (Esc, botão B, voltar), `vn_up`, `vn_down`, `vn_left`, `vn_right`. Com `input.capture`, o plugin recebe o input durante a atividade. Ações próprias são criadas em `_vn_init` com `InputMap.add_action("<namespace>_...")`.
+- **Input.** O runtime define as ações `vn_*` da tabela fechada do Runtime Spec §10.1 (`vn_confirm`, `vn_cancel`, direções, `vn_advance`, `vn_skip`, `vn_auto`, `vn_hide`, `vn_backlog`, `vn_menu`, `vn_quick_save`, `vn_quick_load`), com teclas, mouse e gamepad padrão. Um minijogo normalmente usa só `vn_confirm`, `vn_cancel` e as direções. Com `input.capture`, o plugin recebe o input durante a atividade. Ações próprias são criadas em `_vn_init` com `InputMap.add_action("<namespace>_...")`.
 - **Tempo.** Gameplay DEVE medir tempo pelo `delta` de `_process`/`_physics_process` ou por nós `Timer`, nunca pelo relógio do sistema (`Time.get_ticks_msec`). Assim a pausa do jogo funciona e o `VNTestHarness` pode acelerar o tempo.
 - **Plataformas.** Threads próprias (§10 da Runtime Spec) têm restrições no export Web; um plugin que as usa DEVERIA omitir `web` de `compatibility.platforms`.
 
@@ -403,7 +403,8 @@ Uma atividade com `free_play` no manifesto pode ser jogada **fora da história**
 
 - O runtime chama `_vn_start_activity` com `handle.mode == &"free_play"` e os `params` de `free_play.params`, sobrepostos pelos da ação. Não há cena, nó, `on_result` nem autosave.
 - **A história não muda.** Leituras da NarrativeAPI devolvem os valores padrão das variáveis (e os de perfil); escritas, `emit` e `scenes.request` devolvem `INVALID_STATE` (`emit` só registra no log). As variáveis do próprio plugin com `persistence: profile` são a exceção: podem ser lidas e gravadas, e vão para o perfil.
-- O que o modo livre guarda vai para o perfil: recordes e dados de perfil (§9.1). `complete` e `fail` encerram a atividade e voltam à tela que a abriu; o `payload` é ignorado.
+- O que o modo livre guarda vai para o perfil: recordes e dados de perfil (§9.1). `complete` e `fail` encerram a atividade e voltam à tela que a abriu; o `payload` é ignorado, mas o `outcome` vai para `sys.ui.last_activity_outcome` e a posição do último `submit_record` para `sys.ui.last_record_rank`, para a tela mostrar "Novo recorde!" com `visible_if` (UI Spec §3.2).
+- Só fora de uma partida: durante o jogo, o botão fica oculto e a ação é recusada (Runtime Spec §5.3). Rodar o modo livre suspendendo a história fica para depois do v1.
 - `handle.rng` usa o RNG comum do motor (o modo livre nunca é reproduzível). O limite de FPS é o de minijogos (UI Spec §8).
 - O validador confere `free_play.params` contra `params_schema` (P004). Uma ação `play_activity` para atividade sem `free_play` é erro P020.
 
@@ -445,7 +446,10 @@ func get_records(board: StringName) -> Array[Dictionary]    # [{ score, at, meta
 - **Recordes.** Cada quadro é declarado no manifesto (`records`: `id`, `name`, `order` `desc`/`asc`, `keep`, `format` `integer`/`number`/`time_ms`). `submit_record` insere a marca com a data (`at`, UTC) e mantém só as `keep` melhores; empate fica com a mais antiga. `meta` (até 1 KB) guarda detalhes curtos, como a dificuldade. A tela de menu mostra um quadro com o elemento `records_list` (UI Spec §3.1).
 - **Variáveis de perfil × dados de perfil.** Um número que o autor da VN deve poder usar em condições ("já pescou 100 peixes no total?") é uma variável do plugin com `persistence: profile`, visível no Studio. `data` é para o resto, que só o plugin entende.
 - **Migração.** Ao mudar o formato, o plugin incrementa `profile.data_version` no manifesto e implementa `_vn_migrate_profile_data(data, from_version)`; o runtime chama a migração em cadeia antes do primeiro `get_data()`. Recordes não migram: um quadro removido do manifesto é descartado; um `order` novo reordena as marcas.
-- Valem em qualquer modo (história e livre). "Apagar dados do jogo" nas configurações apaga o perfil inteiro, inclusive recordes.
+- **Exibição.** `records_list` e `ctx.i18n` mostram a marca pelo `format` do quadro: `integer` e `number` como na interpolação (Runtime Spec §12.1; `number` com até 2 casas), e `time_ms` como `m:ss.cc` (`h:mm:ss.cc` a partir de uma hora), com centésimos truncados e o separador decimal do idioma (`1:02.34` em inglês, `1:02,34` em português). Os vetores `records` (spec 08) fixam o formato.
+- **Plugin removido.** Se o plugin sai do projeto, `profile.plugins.<namespace>` fica no perfil como dado órfão, porque o jogador pode reinstalar o jogo numa versão que o traga de volta. Se o mesmo namespace passa a ser de um plugin com outro `id`, o runtime descarta os dados antigos ao carregar o perfil e registra no log.
+- **Limitação.** A data `at` vem do relógio do sistema e o perfil fica no computador do jogador, então recordes locais não são competitivos: servem para o jogador bater as próprias marcas. Placares online ficam fora do v1.
+- Valem em qualquer modo (história e livre). A ação de tela `reset_profile` (UI Spec §4) apaga o perfil inteiro, inclusive recordes; saves e `settings.json` ficam.
 
 ## 10. Editor SDK (TypeScript)
 

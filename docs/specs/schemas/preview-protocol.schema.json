@@ -1809,6 +1809,7 @@
           "type": "integer"
         },
         "reason": {
+          "description": "Motivo da seleção (SchedulerEvaluation.reason); entry = entry_scene do capítulo (RT §3.2); start = cena forçada por preview.start.",
           "enum": [
             "request",
             "plugin_request",

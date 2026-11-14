@@ -33,6 +33,24 @@ Narrative Engine (efeitos de nós) ────────────┘
                       Condition Evaluator ◄── Scene Scheduler
 ```
 
+### 1.1. Camadas de desenho e escala
+
+O Stage e o UI Manager desenham em `CanvasLayer`s fixos, de baixo para cima. Um nó de uma camada nunca aparece acima de outra camada superior.
+
+| Camada | `layer` | Conteúdo |
+|---|---|---|
+| Cenário | 0 | `background` (imagem ou set, com hotspots cosméticos) |
+| Personagens | 10 | Sprites de `show`, na ordem de `z` e depois de entrada |
+| Hotspots | 15 | Áreas clicáveis de `interact` |
+| Overlays de plugin | 20 | `ui.overlay` (Plugin SDK §5.6) |
+| Caixa de texto | 30 | Caixa de fala, plaquinha de nome, escolhas |
+| HUD | 40 | Tela `hud` (UI Spec §2) |
+| Telas | 50 | Pilha de telas do UI Manager (pausa, salvar, carregar, configurações…) |
+| Atividade | 60 | Cena do minijogo, quando a atividade cobre a tela |
+| Sistema | 100 | Diálogos de confirmação, mensagens `runtime/message/*`, overlay de erro de debug |
+
+**Escala.** O projeto usa `stretch_mode = canvas_items` e `stretch_aspect = expand` sobre a resolução base (`project.json → settings.resolution`). Toda posição, tamanho e `scale` do conteúdo está em pixels da resolução base (Data Model §10.2): `scale: 1.0` desenha a imagem no tamanho original nessa resolução. Numa janela com outra proporção, a área base fica centrada e a sobra mostra o cenário estendido; elementos de UI com `anchor` de borda (UI Spec §3.1) acompanham a borda da janela, não a da área base.
+
 ## 2. Conteúdo carregado pelo runtime
 
 O runtime não lê a pasta do projeto do Studio (ADD §15, princípio 2). O Build System compila o projeto em um **bundle narrativo**:
@@ -44,6 +62,8 @@ narrative/
 └── plugins.json         # plugins habilitados, concessões efetivas e config (a partir do lock)
 ```
 
+Os três arquivos têm schema: [`bundle.schema.json`](schemas/bundle.schema.json), [`bundle-locale.schema.json`](schemas/bundle-locale.schema.json) e [`bundle-plugins.schema.json`](schemas/bundle-plugins.schema.json). Todos os mapas são objetos indexados por id e com as chaves em ordem lexicográfica (§12.1). O preset escolhido em `project.json → ui.preset` já vem aplicado: o tema é a fusão do tema do preset com o do projeto, as telas do projeto substituem as do preset com o mesmo id, as traduções do preset entram nos `locales` e a tela `minigames` é gerada a partir das atividades com `free_play` (UI Spec §2).
+
 O bundle já vem validado (zero erros), com defaults resolvidos (`priority`, `max_plays`, `start` etc.), variáveis de personagem instanciadas, aliases de `renamed_from` reunidos e `content_hash` calculado (SHA-256 do `bundle.json` canônico). O conteúdo continua referenciando assets **por ID**; `bundle.json → assets` é o mapa `{id → res://…}` que o runtime usa para resolver IDs vindos de cenas, do tema, de plugins (`load_asset`, `audio.play`) e do palco salvo. O runtime DEVE recusar bundle com `format_version` MAJOR que não suporta.
 
 Essa é a forma canônica, usada pelo Preview e pelos builds de debug. Nos builds de release cada arquivo vai como `.vnb` (comprimido, cifrado e com `content_hash` no cabeçalho) em `res://vn_content/`; o runtime decodifica para o mesmo JSON antes de usar. Ver [Build System](05-build-system-specification.md) §5 e §8.
@@ -53,6 +73,28 @@ Essa é a forma canônica, usada pelo Preview e pelos builds de debug. Nos build
 | `narrative/bundle.json` | `narrative.vnb` |
 | `narrative/locales/<lang>.json` | `locales/<lang>.vnb` |
 | `narrative/plugins.json` | `plugins.vnb` |
+
+A pasta `narrative/` só existe no Preview e no desenvolvimento. O jogo exportado, de debug ou de release, sempre lê de `res://vn_content/`, com os nomes da coluna da direita (no debug, `.vnb` sem cifra; Build System §11.1). Fora do `.vnb`, a forma canônica só é lida pelo Preview e, no editor e em debug, pelo modo de desenvolvimento do §2.1.
+
+### 2.1. Desenvolvimento sem o Studio
+
+Para rodar um projeto no editor do Godot antes de o Studio existir, ou para depurar o runtime, há um compilador de referência em Python, [`tools/compile_bundle.py`](tools/compile_bundle.py). Ele lê a pasta do projeto, aplica o preset e grava a forma canônica, com o mesmo `content_hash` que o Build System gera.
+
+```bash
+python3 docs/specs/tools/compile_bundle.py ../gd-vn-studio-demo --godot runtime plugins/fishing/vn_plugins/fishing
+```
+
+Cada pasta de plugin passada é a que contém o `plugin.json` (enquanto `plugins/fishing/` não existe, `docs/specs/examples/fishing-plugin`). Depois disso, basta abrir `runtime/` no editor e rodar (F5).
+
+Com `--godot <projeto-godot>`, ele grava o bundle e os assets em `<projeto-godot>/vn_content/` e cada plugin em `<projeto-godot>/vn_plugins/<namespace>/` (só `plugin.json`, `LICENSE` e `runtime/`, como no staging do Build System §4.5), apagando antes o que havia nessas duas pastas. São os mesmos caminhos `res://` do jogo exportado, porque o Godot só resolve `res://` dentro do projeto aberto e só carrega imagens, sons e fontes que o editor importou. No repositório do runtime, `vn_content/` e `vn_plugins/` ficam no `.gitignore`. Assim o plugin de pesca roda em desenvolvimento sem o catálogo: vem da pasta local, não do `plugin-lock.json`.
+
+Regras do runtime nesse modo, **só em builds de debug e no editor** (num build de release elas não existem):
+
+- Em `res://vn_content/`, se houver `bundle.json`, o runtime lê a forma canônica em JSON em vez dos `.vnb`.
+- `--vn-bundle <res://pasta>` lê o bundle de outra pasta dentro do projeto, para alternar entre jogos compilados lado a lado. O padrão é `res://vn_content/`.
+- Plugins de `res://vn_plugins/` sem pacote conferido são carregados com confiança `local`, sem conferir `integrity`, como um vínculo (Plugin SDK §12.3). As concessões continuam vindo de `plugins.json`.
+
+**Chave de desenvolvimento.** Sem `SAVE_KEY` (editor, `--vn-bundle` ou build de debug), saves e perfil são assinados com a chave fixa de debug, 32 bytes zero, a mesma do build de debug (Build System §11.1) e do [`examples/demo-save.json`](examples/demo-save.json). Um build de release trata essas assinaturas como inválidas e aplica a política de `save_tamper` (Build System §8.3).
 
 ## 3. Ciclo de vida do jogo
 
@@ -72,6 +114,21 @@ BOOT ─► TITLE ─┬─► NEW_GAME ─► CHAPTER_ENTER ─► (entry_scene
                                  (CHAPTER_ENTER)                  ▼
                                                               GAME_END ─► TITLE
 ```
+
+### 3.0. Boot
+
+Na ordem; cada passo só começa depois do anterior.
+
+| # | Passo | Se falhar |
+|---|---|---|
+| 1 | Lê `user://settings.json` e aplica idioma, modo de tela, resolução, VSync, FPS e volumes. Campos ausentes vêm de `project.json → settings` e dos padrões do `PlayerSettings` (UI Spec §8) | Arquivo ilegível ou inválido: renomeia para `settings.json.bad`, usa os padrões e segue |
+| 2 | Lê o bundle (`res://vn_content/` ou a pasta de `--vn-bundle`, §2.1), confere o `format_version` e recalcula o `content_hash` | Bundle ausente, `format_version` MAJOR não suportado ou hash diferente: erro fatal com a mensagem `runtime/message/g001` e o jogo fecha |
+| 3 | Carrega o idioma: `settings.locale`, senão o idioma do sistema se o projeto o tiver, senão `project.default_locale` | Idioma sem arquivo: usa `default_locale` |
+| 4 | Lê `user://profile.json` e confere a assinatura | Assinatura inválida: aplica a política de `flag`/`reject` (Build System §8.3); com `reject`, guarda o arquivo como `profile.rejected.json`, começa um perfil vazio e mostra `runtime/message/g006` no título. Arquivo ilegível: o mesmo, sem a mensagem |
+| 5 | Plugin Host: lê `plugins.json`, confere `integrity` e carrega cada plugin na ordem das chaves, chamando `_vn_init(ctx)` em todos e depois `_vn_ready()` em todos | Falha de um plugin: segue sem ele (§9) |
+| 6 | Calcula `sys.ui.*`, e abre a tela `title` | — |
+
+Nada de narrativa roda antes do passo 6; plugins não recebem eventos `sys.*` antes de `_vn_ready`.
 
 ### 3.1. Novo jogo
 
@@ -223,7 +280,7 @@ O Narrative Engine executa um nó de cada vez. Cada nó é **instantâneo** (ava
 
 | Nó | Tipo | Comportamento |
 |---|---|---|
-| `line` | bloqueante | Mostra o texto interpolado; espera o jogador avançar (ou auto/skip, §8.5). Adiciona ao backlog e ao `seen_text` do perfil |
+| `line` | bloqueante | Mostra o texto interpolado; espera o jogador avançar (ou auto/skip, §8.5). Adiciona ao backlog e ao `seen_text` do perfil. Digitação abaixo |
 | `interact` | bloqueante | Como `choice`, com hotspots no lugar de opções (UI Spec §6): avalia `visible_if`/`enabled_if` uma vez ao entrar e esconde os hotspots `once` já usados (`scene.used_hotspots`). Sem hotspot visível e sem `exit`, segue `next`. Ao clicar: marca o `once`, aplica `effects` + `record` numa transação, emite `sys.choice_made { scene, node, option: <hotspot>, value }` e vai para `goto` (ausente: `next`). `exit` vai para seu `goto` (ausente: `next`) sem efeitos |
 | `choice` | bloqueante | Avalia `visible_if`/`enabled_if` **uma vez** ao entrar. Sem opção visível, segue `next` (ou o nó seguinte). Ao escolher: aplica `effects` e `record` (`value` da opção ou o id) numa **única** transação; se ela falhar por restrição, tudo é desfeito e a cena segue mesmo assim. Emite `sys.choice_made { scene, node, option, value }` e vai para `goto` (ausente: `next`) |
 | `effects` | instantâneo | Aplica a lista como transação. Falha por restrição (`CONSTRAINT_VIOLATION`) não é erro: vai para `on_fail`, se houver, ou segue. Outras falhas são erro de conteúdo (§9) e seguem o fluxo normal |
@@ -234,6 +291,10 @@ O Narrative Engine executa um nó de cada vez. Cada nó é **instantâneo** (ava
 | `emit` | instantâneo | Avalia o payload e enfileira o evento |
 | `plugin` | bloqueante | Entra em `ACTIVITY` (§5.3) |
 | `end` | — | Conclui a cena (§5.4) |
+
+**Digitação.** O texto aparece a `text_speed` caracteres por segundo (`PlayerSettings`, padrão 40; `0` mostra a fala inteira de uma vez). Só contam os caracteres visíveis: a marcação de estilo (`[b]`, `[color]` etc.) aparece junto com o primeiro caractere que ela envolve. Não há pausa extra em pontuação no v1. O primeiro `vn_advance` durante a digitação completa a fala; o segundo avança. O modo automático conta `auto_delay` a partir do fim da digitação (mais o fim da voz, se houver).
+
+**Galeria.** Ao exibir um asset marcado com `gallery: true` em `assets.json` (cenário por `background`, música por `audio`), o runtime o acrescenta a `profile.seen_assets`, que alimenta a tela `gallery` (UI Spec §3.1).
 
 Guarda contra laço infinito: mais de 10 000 nós instantâneos seguidos sem um bloqueante é erro de conteúdo (provável `jump` circular).
 
@@ -250,7 +311,7 @@ Guarda contra laço infinito: mais de 10 000 nós instantâneos seguidos sem um 
 
 Durante uma atividade a cena está suspensa: nenhum nó avança e o Scheduler não roda.
 
-**Modo livre.** A ação de menu `play_activity` (UI Spec §4) roda uma atividade fora da história (Plugin SDK §6.1): só os passos 1, 2, 4 e 5 acima, com `handle.mode = free_play`, sem cena, sem autosave e sem `on_result`; escritas narrativas são recusadas com `INVALID_STATE`, exceto as variáveis `profile` do próprio plugin. Ao terminar, volta à tela que a abriu.
+**Modo livre.** A ação de menu `play_activity` (UI Spec §4) roda uma atividade fora da história (Plugin SDK §6.1): só os passos 1, 2, 4 e 5 acima, com `handle.mode = free_play`, sem cena, sem autosave e sem `on_result`; escritas narrativas são recusadas com `INVALID_STATE`, exceto as variáveis `profile` do próprio plugin. Ao terminar, volta à tela que a abriu, com `sys.ui.last_activity_outcome` igual ao `outcome` (ou `cancelled`/`failed`) e, se a atividade enviou recorde, `sys.ui.last_record_rank` com a posição (0 se não entrou no quadro). O modo livre só existe fora de uma partida: com `sys.ui.in_game` verdadeiro (pausa, HUD ou telas abertas a partir delas), botões com `play_activity` ficam ocultos e a ação é recusada (o validador avisa com U010).
 
 **Taxa de quadros.** Fora de atividades vale `PlayerSettings.fps_limit_vn` (padrão do projeto: `settings.display.fps_limit_vn`, 60). No passo 4, antes de chamar o plugin, o runtime troca para `fps_limit_activity` (padrão 0, sem limite), elevado ao `min_fps` da atividade quando o limite vem do padrão do projeto; ao terminar, cancelar ou falhar, volta ao limite da VN. `0` = sem limite; com `vsync`, o monitor limita. No Web, o navegador decide (UI Spec §8).
 
@@ -337,6 +398,7 @@ Após cada operação ou transação aplicada, o State Manager emite **um** sina
 | `sys.game_saved` | Depois de gravar um save | `{ slot, autosave: bool }` |
 | `sys.game_loaded` | §8.3 passo 6, logo depois de `sys.game_started` | `{ slot }` |
 | `sys.game_ended` | §3.4 | `{ ending }` (`null` sem final) |
+| `sys.profile_reset` | Ação `reset_profile` concluída (§8.5) | `{}` |
 
 ### 7.2. Entrega
 
@@ -404,6 +466,9 @@ Todos os arquivos ficam em `user://` (no Web, IndexedDB).
 | `profile.json` | Perfil (`save.schema.json → $defs/Profile`): variáveis `profile`, finais vistos, textos lidos e, por plugin, dados de perfil e recordes (Plugin SDK §9.1) |
 | `settings.json` | Preferências do jogador (`$defs/PlayerSettings`): idioma, velocidade do texto, espera do modo automático, pular só texto lido, modo de tela, resolução, VSync, limites de FPS da VN e dos minijogos, volumes por canal e acessibilidade. Sem assinatura. Só os campos que o jogador mudou são gravados; os demais vêm de `project.json → settings.display` e dos padrões do runtime (UI Spec §8) |
 
+- **Miniatura.** É o quadro do jogo sem nenhuma UI (só as camadas 0 a 20 do §1.1), capturado no momento em que o jogador abre o menu, antes de a tela aparecer. O salvamento rápido e o autosave capturam o quadro atual, também sem UI.
+- **Perfil recusado.** Ver §3.0, passo 4: o jogador vê `runtime/message/g006` e o arquivo antigo fica guardado como `profile.rejected.json`.
+- **Apagar o perfil.** A ação de tela `reset_profile` (UI Spec §4) pede confirmação, apaga `profile.json`, recria o perfil vazio, recalcula `sys.ui.*` e emite `sys.profile_reset`. Os saves não são apagados. Ela só é aceita fora de uma partida (U004).
 - **Continuar** abre o save mais recente entre todos os slots, rápido e autosaves.
 - O jogador só salva pelo menu em nós `line`, `choice` e `interact` (§8.1); um ponto de seleção é instantâneo, então só autosaves o capturam.
 - O perfil é gravado com *debounce*: em cada ponto de seleção, ao fim do jogo e ao sair. Não a cada fala. `seen_text` guarda o hash curto de cada caminho de texto (16 hex), para não crescer com o tamanho do texto.
@@ -429,6 +494,26 @@ GDScript não tem exceções: o SDK expõe resultados explícitos (`VNResult`) e
 - Fora de atividades, plugins só rodam em: ouvintes de eventos, sinal `state_changed`, e overlays de UI (`ui.overlay`). Nada disso pode avançar nós.
 - Ordem garantida: efeitos de um nó → drenagem de eventos → próximo nó.
 
+### 10.1. Ações de entrada
+
+O runtime registra estas ações no `InputMap` ao iniciar, se o projeto Godot ainda não as tiver. Plugins e telas usam só esses nomes (Plugin SDK §5.7, UI Spec §3.1 `shortcut`). A lista é fechada no v1; remapear pela tela de configurações fica para depois.
+
+| Ação | Teclado | Mouse | Gamepad |
+|---|---|---|---|
+| `vn_confirm` | Enter, Espaço | — | A / Cruz |
+| `vn_cancel` | Esc, Backspace | Botão direito | B / Círculo |
+| `vn_up` / `vn_down` / `vn_left` / `vn_right` | Setas, W/S/A/D | — | Direcional e analógico esquerdo |
+| `vn_advance` | Enter, Espaço | Botão esquerdo, roda para baixo | A / Cruz |
+| `vn_skip` (segurar) | Ctrl | — | Gatilho direito (RT/R2) |
+| `vn_auto` | A | — | Y / Triângulo |
+| `vn_hide` | H | Botão do meio | X / Quadrado |
+| `vn_backlog` | L, Page Up | Roda para cima | LB / L1 |
+| `vn_menu` | Esc | Botão direito | Start / Options |
+| `vn_quick_save` | F5 | — | — |
+| `vn_quick_load` | F9 | — | — |
+
+`vn_confirm` e `vn_advance` compartilham teclas: com uma tela ou escolha em foco vale `vn_confirm`, na caixa de texto vale `vn_advance`. Do mesmo modo, `vn_cancel` fecha a tela do topo da pilha e `vn_menu` só abre a pausa quando nenhuma tela está aberta. Durante uma atividade com `input.capture`, nenhuma dessas ações chega ao Narrative Engine (Plugin SDK §4.2).
+
 ## 11. Comunicação com o Studio (Preview no Runtime)
 
 Proposta para a pendência do ADD §3.3. O protocolo completo, com parâmetros, resultados, erros e schema, está em [07-preview-protocol.md](07-preview-protocol.md); esta seção é o resumo.
@@ -441,16 +526,17 @@ Proposta para a pendência do ADD §3.3. O protocolo completo, com parâmetros, 
 - **Explicação da seleção:** em cada ponto de seleção, o runtime em modo preview emite `scheduler.evaluated` com cada cena candidata e o motivo da decisão (formato completo em Preview Protocol §4.3). É o que o Studio usa para responder "por que esta cena não apareceu?":
 
   ```json
-  { "selection_count": 4, "chapter": "ch01", "chosen": "scene_quiet_day", "reason": "fallback",
+  { "selection_count": 4, "chapter": "019a7a00-0001-7000-8000-000000000001", "action": "start_scene",
+    "chosen": "019a7a00-0003-7000-8000-000000000003", "reason": "fallback",
     "candidates": [
-      { "scene": "scene_beach", "eligible": false, "blocked_by": "max_plays", "detail": { "plays": 1, "max_plays": 1 } },
-      { "scene": "scene_fishing_master", "eligible": false, "blocked_by": "conditions",
+      { "scene": "019a7a00-1388-7f6b-b667-94bbd1305982", "eligible": false, "blocked_by": "max_plays", "detail": { "plays": 1, "max_plays": 1 } },
+      { "scene": "019a7a00-0004-7000-8000-000000000004", "eligible": false, "blocked_by": "conditions",
         "failed": [{ "path": "conditions[1]", "variable": "global.fishing_skill", "operator": "greater_than_or_equal",
                      "expected": 10, "actual": 3 }] }
     ] }
   ```
 
-  `blocked_by` ∈ `conditions`, `max_plays`, `cooldown`, `exclusive_group`, `mode_manual`, `lower_priority`, `tie_break`. `reason` ∈ `request`, `plugin_request`, `priority`, `tie_break`, `fallback`, `completion`, `exhausted`. Um pedido recusado aparece em `request_refused: { scene, by }`. O interpretador do Preview no Studio produz o mesmo formato, e os vetores de conformidade (§12) incluem esse traço.
+  Cenas e capítulos aparecem sempre pelo UUID; o Studio mostra o título. `blocked_by` ∈ `conditions`, `max_plays`, `cooldown`, `exclusive_group`, `mode_manual`, `lower_priority`, `tie_break`. `reason` ∈ `request`, `plugin_request`, `priority`, `tie_break`, `fallback`, `completion`, `exhausted`. Um pedido recusado aparece em `request_refused: { scene, by }`. O interpretador do Preview no Studio produz o mesmo formato, e os vetores de conformidade (§12) incluem esse traço.
 - **Hot reload:** em `preview.reload`, o runtime recarrega o bundle e tenta permanecer na mesma cena e nó; se o nó sumiu, reinicia a cena.
 - **Plugins em desenvolvimento** (Plugin SDK §12.3): `preview.reload_plugins(ids)` recarrega os scripts e cenas dos plugins vinculados (`_vn_shutdown` → recarga → `_vn_init`/`_vn_ready`) e reinicia a atividade em curso com os mesmos `params`. No modo desenvolvedor, o Studio passa `--remote-debug tcp://127.0.0.1:<porta>` para o depurador do Godot do dev, e o runtime envia as notificações `plugin.log`, `plugin.permission_denied { plugin, capability, call }` e `plugin.faulted`.
 - **Caminho dos plugins:** no bundle e no jogo exportado, cada plugin fica em `res://vn_plugins/<namespace>/` (Plugin SDK §2.4).
@@ -460,6 +546,7 @@ Motivo: funciona igual em Windows, macOS e Linux, permite inspeção ao vivo e �
 ## 12. Conformidade e testes
 
 - **Vetores de conformidade:** um conjunto compartilhado de casos `entradas → resultado esperado`, definido em [08-conformance-vectors.md](08-conformance-vectors.md), com os casos em `conformance/` e a implementação de referência em `tools/conformance.py`. O Runtime Godot e o interpretador do Preview no Studio DEVEM passar no mesmo conjunto.
+- **Tipos de vetor:** expressões, condições, efeitos, texto, RNG, seleção, recordes (`record`) e fluxo (`flow`, a execução de uma cena inteira com o traço de notificações da spec 07 §4.2). Os casos `flow` são o primeiro alvo do runtime, porque cobrem o caminho que a demo percorre.
 - **Runner headless:** `godot --headless -- --vn-test <casos>` executa os vetores sem renderizar.
 - **Determinismo:** com as mesmas entradas, o traço é idêntico nos dois interpretadores. Sorteios só entram nessa garantia com `settings.reproducible_rng` (§12.2); sem ela, os vetores de conformidade não podem depender de sorteios.
 
@@ -478,7 +565,7 @@ Para que os dois interpretadores produzam o mesmo traço, estas regras são norm
   | `es` | `,` | `.` (só a partir de 5 dígitos: 1234 fica sem separador) | 1.234.567,5 |
   | `fr` | `,` | espaço fino inseparável (U+202F) | 1 234 567,5 |
 
-  A tabela casa pela tag completa e depois pelo idioma (`pt-PT` → `pt`, que fica fora da tabela e usa o inglês até ser acrescentado).
+  A tabela casa pela tag completa e depois pelo idioma (`pt-PT` → `pt`, que fica fora da tabela e usa o inglês até ser acrescentado). Um projeto PODE declarar o formato de qualquer idioma em `project.json → settings.number_formats.<lang>` (`decimal`, `group`, `min_grouping`, padrão 4), que tem precedência sobre a tabela; assim um jogo em coreano, russo ou polonês formata números certo sem mudar o runtime.
 - **JSON canônico.** Os dois implementam o JCS (Build System §5.1) para `content_hash` e assinaturas.
 - **Ordem.** Toda iteração sobre mapas (variáveis, cenas candidatas, plugins) segue a ordem lexicográfica das chaves.
 

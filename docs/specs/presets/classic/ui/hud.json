@@ -1,0 +1,83 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/1/ui-screen.schema.json",
+  "id": "hud",
+  "kind": "hud",
+  "modal": false,
+  "elements": [
+    {
+      "id": "bar",
+      "type": "container",
+      "layout": "row",
+      "spacing": 8,
+      "position": [
+        0.98,
+        0.03
+      ],
+      "pivot": [
+        1,
+        0
+      ],
+      "anchor": "edge",
+      "children": [
+        {
+          "id": "btn_auto",
+          "type": "button",
+          "text": "Auto",
+          "actions": [
+            {
+              "do": "toggle_auto"
+            }
+          ],
+          "style": "hud_button"
+        },
+        {
+          "id": "btn_skip",
+          "type": "button",
+          "text": "Skip",
+          "actions": [
+            {
+              "do": "toggle_skip"
+            }
+          ],
+          "style": "hud_button"
+        },
+        {
+          "id": "btn_log",
+          "type": "button",
+          "text": "Log",
+          "actions": [
+            {
+              "do": "open_backlog"
+            }
+          ],
+          "style": "hud_button"
+        },
+        {
+          "id": "btn_save",
+          "type": "button",
+          "text": "Save",
+          "actions": [
+            {
+              "do": "quick_save"
+            }
+          ],
+          "style": "hud_button",
+          "shortcut": "vn_quick_save"
+        },
+        {
+          "id": "btn_menu",
+          "type": "button",
+          "text": "Menu",
+          "actions": [
+            {
+              "do": "open_screen",
+              "screen": "pause"
+            }
+          ],
+          "style": "hud_button",
+          "shortcut": "vn_menu"
+        }
+      ]
+    }
+  ]
+}

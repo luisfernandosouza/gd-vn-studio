@@ -1,0 +1,277 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/1/ui-screen.schema.json",
+  "id": "settings",
+  "kind": "settings",
+  "focus_start": "sl_master",
+  "elements": [
+    {
+      "id": "lbl_title",
+      "type": "label",
+      "text": "Settings",
+      "position": [
+        0.5,
+        0.08
+      ],
+      "align": "center"
+    },
+    {
+      "id": "col_audio",
+      "type": "container",
+      "position": [
+        0.25,
+        0.48
+      ],
+      "layout": "column",
+      "spacing": 14,
+      "children": [
+        {
+          "id": "lbl_audio",
+          "type": "label",
+          "text": "Audio"
+        },
+        {
+          "id": "sl_master",
+          "type": "slider",
+          "bind": "volume.master",
+          "label": "Master volume",
+          "min": 0,
+          "max": 1,
+          "step": 0.05
+        },
+        {
+          "id": "sl_music",
+          "type": "slider",
+          "bind": "volume.music",
+          "label": "Music",
+          "min": 0,
+          "max": 1,
+          "step": 0.05
+        },
+        {
+          "id": "sl_ambient",
+          "type": "slider",
+          "bind": "volume.ambient",
+          "label": "Ambience",
+          "min": 0,
+          "max": 1,
+          "step": 0.05
+        },
+        {
+          "id": "sl_sfx",
+          "type": "slider",
+          "bind": "volume.sfx",
+          "label": "Sound effects",
+          "min": 0,
+          "max": 1,
+          "step": 0.05
+        },
+        {
+          "id": "sl_voice",
+          "type": "slider",
+          "bind": "volume.voice",
+          "label": "Voices",
+          "min": 0,
+          "max": 1,
+          "step": 0.05
+        }
+      ]
+    },
+    {
+      "id": "col_text",
+      "type": "container",
+      "position": [
+        0.5,
+        0.48
+      ],
+      "layout": "column",
+      "spacing": 14,
+      "children": [
+        {
+          "id": "lbl_text",
+          "type": "label",
+          "text": "Text"
+        },
+        {
+          "id": "sl_text_speed",
+          "type": "slider",
+          "bind": "text_speed",
+          "label": "Text speed",
+          "min": 0,
+          "max": 120,
+          "step": 5
+        },
+        {
+          "id": "sl_auto_delay",
+          "type": "slider",
+          "bind": "auto_delay",
+          "label": "Auto mode delay",
+          "min": 0.5,
+          "max": 5,
+          "step": 0.25
+        },
+        {
+          "id": "tg_skip_unread",
+          "type": "toggle",
+          "bind": "skip_unread",
+          "label": "Skip unread text"
+        },
+        {
+          "id": "sel_locale",
+          "type": "select",
+          "bind": "locale",
+          "label": "Language"
+        },
+        {
+          "id": "sl_text_scale",
+          "type": "slider",
+          "bind": "text_scale",
+          "label": "Text size",
+          "min": 0.8,
+          "max": 2,
+          "step": 0.1
+        },
+        {
+          "id": "tg_subtitles",
+          "type": "toggle",
+          "bind": "subtitles",
+          "label": "Sound captions"
+        }
+      ]
+    },
+    {
+      "id": "col_video",
+      "type": "container",
+      "position": [
+        0.75,
+        0.48
+      ],
+      "layout": "column",
+      "spacing": 14,
+      "children": [
+        {
+          "id": "lbl_video",
+          "type": "label",
+          "text": "Display"
+        },
+        {
+          "id": "sel_mode",
+          "type": "select",
+          "bind": "display_mode",
+          "label": "Display mode",
+          "visible_if": [
+            {
+              "variable": "sys.ui.platform",
+              "operator": "not_equals",
+              "value": "web"
+            }
+          ]
+        },
+        {
+          "id": "sel_resolution",
+          "type": "select",
+          "bind": "resolution",
+          "label": "Resolution",
+          "visible_if": [
+            {
+              "variable": "sys.ui.platform",
+              "operator": "not_equals",
+              "value": "web"
+            }
+          ]
+        },
+        {
+          "id": "tg_vsync",
+          "type": "toggle",
+          "bind": "vsync",
+          "label": "VSync",
+          "visible_if": [
+            {
+              "variable": "sys.ui.platform",
+              "operator": "not_equals",
+              "value": "web"
+            }
+          ]
+        },
+        {
+          "id": "sel_fps_vn",
+          "type": "select",
+          "bind": "fps_limit_vn",
+          "label": "Frame rate (story)",
+          "visible_if": [
+            {
+              "variable": "sys.ui.platform",
+              "operator": "not_equals",
+              "value": "web"
+            }
+          ]
+        },
+        {
+          "id": "sel_fps_act",
+          "type": "select",
+          "bind": "fps_limit_activity",
+          "label": "Frame rate (minigames)",
+          "visible_if": [
+            {
+              "variable": "sys.ui.platform",
+              "operator": "not_equals",
+              "value": "web"
+            }
+          ]
+        },
+        {
+          "id": "tg_reduce_motion",
+          "type": "toggle",
+          "bind": "reduce_motion",
+          "label": "Reduce motion"
+        },
+        {
+          "id": "tg_high_contrast",
+          "type": "toggle",
+          "bind": "high_contrast",
+          "label": "High contrast"
+        },
+        {
+          "id": "tg_hotspots",
+          "type": "toggle",
+          "bind": "show_hotspots",
+          "label": "Highlight clickable objects"
+        }
+      ]
+    },
+    {
+      "id": "btn_reset",
+      "type": "button",
+      "text": "Delete game data",
+      "actions": [
+        {
+          "do": "reset_profile"
+        }
+      ],
+      "position": [
+        0.2,
+        0.92
+      ],
+      "visible_if": [
+        {
+          "variable": "sys.ui.in_game",
+          "operator": "equals",
+          "value": false
+        }
+      ]
+    },
+    {
+      "id": "btn_back",
+      "type": "button",
+      "text": "Back",
+      "actions": [
+        {
+          "do": "back"
+        }
+      ],
+      "position": [
+        0.5,
+        0.92
+      ]
+    }
+  ]
+}

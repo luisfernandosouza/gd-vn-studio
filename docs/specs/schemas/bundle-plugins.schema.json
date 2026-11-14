@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.vnstudio.dev/1/bundle-plugins.schema.json",
+  "title": "narrative/plugins.json",
+  "description": "Plugins habilitados no bundle, com a permissão efetiva (pedido ∩ concessão ∩ aceite, Plugin SDK §4.1) e a configuração com os defaults do config_schema.",
+  "type": "object",
+  "required": [
+    "plugins"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "plugins": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "id",
+          "namespace",
+          "version",
+          "path",
+          "capabilities",
+          "variables",
+          "scenes",
+          "config"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "namespace": {
+            "$ref": "common.schema.json#/$defs/Namespace"
+          },
+          "version": {
+            "$ref": "common.schema.json#/$defs/SemVer"
+          },
+          "path": {
+            "type": "string",
+            "pattern": "^res://vn_plugins/",
+            "description": "Pasta do plugin no jogo."
+          },
+          "trust": {
+            "enum": [
+              "official",
+              "reviewed",
+              "local"
+            ]
+          },
+          "embedded": {
+            "type": "boolean"
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Capacidades efetivas, com prefixo runtime:/editor:."
+          },
+          "variables": {
+            "type": "object",
+            "required": [
+              "read",
+              "write"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "read": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "write": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "scenes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "config": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  }
+}

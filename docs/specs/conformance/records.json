@@ -1,0 +1,253 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/1/conformance.schema.json",
+  "title": "Recordes de minijogos",
+  "covers": [
+    "Plugin SDK §9.1"
+  ],
+  "cases": [
+    {
+      "id": "desc_insere_no_meio",
+      "description": "desc: 400 entra em 2º e a última sai",
+      "kind": "record",
+      "board": {
+        "order": "desc",
+        "keep": 3,
+        "format": "integer"
+      },
+      "entries": [
+        {
+          "score": 500,
+          "at": "2026-11-01T10:00:00Z"
+        },
+        {
+          "score": 300,
+          "at": "2026-11-02T10:00:00Z"
+        },
+        {
+          "score": 300,
+          "at": "2026-11-03T10:00:00Z"
+        }
+      ],
+      "submit": {
+        "score": 400,
+        "at": "2026-11-04T10:00:00Z"
+      },
+      "expect": {
+        "rank": 2,
+        "entries": [
+          {
+            "score": 500,
+            "at": "2026-11-01T10:00:00Z"
+          },
+          {
+            "score": 400,
+            "at": "2026-11-04T10:00:00Z"
+          },
+          {
+            "score": 300,
+            "at": "2026-11-02T10:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "id": "desc_empate_fica_com_a_antiga",
+      "description": "empate com a 2ª: a nova fica depois das iguais e, com keep 3, sai",
+      "kind": "record",
+      "board": {
+        "order": "desc",
+        "keep": 3,
+        "format": "integer"
+      },
+      "entries": [
+        {
+          "score": 500,
+          "at": "2026-11-01T10:00:00Z"
+        },
+        {
+          "score": 300,
+          "at": "2026-11-02T10:00:00Z"
+        },
+        {
+          "score": 300,
+          "at": "2026-11-03T10:00:00Z"
+        }
+      ],
+      "submit": {
+        "score": 300,
+        "at": "2026-11-04T10:00:00Z"
+      },
+      "expect": {
+        "rank": 0,
+        "entries": [
+          {
+            "score": 500,
+            "at": "2026-11-01T10:00:00Z"
+          },
+          {
+            "score": 300,
+            "at": "2026-11-02T10:00:00Z"
+          },
+          {
+            "score": 300,
+            "at": "2026-11-03T10:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "id": "desc_lista_vazia",
+      "description": "primeira marca",
+      "kind": "record",
+      "board": {
+        "order": "desc",
+        "keep": 3,
+        "format": "integer"
+      },
+      "entries": [],
+      "submit": {
+        "score": 10,
+        "at": "2026-11-04T10:00:00Z"
+      },
+      "expect": {
+        "rank": 1,
+        "entries": [
+          {
+            "score": 10,
+            "at": "2026-11-04T10:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "id": "asc_tempo",
+      "description": "asc (tempo): menor é melhor",
+      "kind": "record",
+      "board": {
+        "order": "asc",
+        "keep": 3,
+        "format": "time_ms"
+      },
+      "entries": [
+        {
+          "score": 61000,
+          "at": "2026-11-01T10:00:00Z"
+        },
+        {
+          "score": 75500,
+          "at": "2026-11-02T10:00:00Z"
+        }
+      ],
+      "submit": {
+        "score": 59990,
+        "at": "2026-11-04T10:00:00Z"
+      },
+      "locale": "pt-BR",
+      "expect": {
+        "rank": 1,
+        "entries": [
+          {
+            "score": 59990,
+            "at": "2026-11-04T10:00:00Z"
+          },
+          {
+            "score": 61000,
+            "at": "2026-11-01T10:00:00Z"
+          },
+          {
+            "score": 75500,
+            "at": "2026-11-02T10:00:00Z"
+          }
+        ],
+        "display": [
+          "0:59,99",
+          "1:01,00",
+          "1:15,50"
+        ]
+      }
+    },
+    {
+      "id": "desc_nao_entra",
+      "description": "marca pior que todas com o quadro cheio: posição 0",
+      "kind": "record",
+      "board": {
+        "order": "desc",
+        "keep": 3,
+        "format": "integer"
+      },
+      "entries": [
+        {
+          "score": 500,
+          "at": "2026-11-01T10:00:00Z"
+        },
+        {
+          "score": 300,
+          "at": "2026-11-02T10:00:00Z"
+        },
+        {
+          "score": 300,
+          "at": "2026-11-03T10:00:00Z"
+        }
+      ],
+      "submit": {
+        "score": 100,
+        "at": "2026-11-04T10:00:00Z"
+      },
+      "expect": {
+        "rank": 0,
+        "entries": [
+          {
+            "score": 500,
+            "at": "2026-11-01T10:00:00Z"
+          },
+          {
+            "score": 300,
+            "at": "2026-11-02T10:00:00Z"
+          },
+          {
+            "score": 300,
+            "at": "2026-11-03T10:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "id": "number_exibicao_fr",
+      "description": "format number em francês",
+      "kind": "record",
+      "board": {
+        "order": "desc",
+        "keep": 2,
+        "format": "number"
+      },
+      "entries": [
+        {
+          "score": 1234.5,
+          "at": "2026-11-01T10:00:00Z"
+        }
+      ],
+      "submit": {
+        "score": 99.125,
+        "at": "2026-11-04T10:00:00Z"
+      },
+      "locale": "fr",
+      "expect": {
+        "rank": 2,
+        "entries": [
+          {
+            "score": 1234.5,
+            "at": "2026-11-01T10:00:00Z"
+          },
+          {
+            "score": 99.125,
+            "at": "2026-11-04T10:00:00Z"
+          }
+        ],
+        "display": [
+          "1 234,5",
+          "99,13"
+        ]
+      }
+    }
+  ]
+}

@@ -92,7 +92,9 @@ func _vn_migrate_save_data(data: Variant, _from_version: int) -> Variant:
 func _on_rare_fish_caught(species: String) -> void:
 	# No modo livre o emit é só registrado no log (Plugin SDK §6.1).
 	_ctx.narrative.events.emit("fishing.rare_fish_caught", {"species": species})
-	_ctx.audio.play("res://vn_plugins/fishing/runtime/assets/rare_fish.ogg")  # sfx curto: o handle não é guardado
+	var sound: String = _ctx.config.get("rare_fish_sound", "")
+	if sound != "":
+		_ctx.audio.play(sound)  # asset escolhido pelo autor na config (Plugin SDK §4.4); sfx curto, o handle não é guardado
 
 
 func _close_game() -> void:

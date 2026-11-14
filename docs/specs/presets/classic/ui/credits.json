@@ -1,0 +1,45 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/1/ui-screen.schema.json",
+  "id": "credits",
+  "kind": "credits",
+  "focus_start": "btn_back",
+  "elements": [
+    {
+      "id": "game_title",
+      "type": "label",
+      "text": "$project.title",
+      "style": "title_label",
+      "position": [
+        0.5,
+        0.15
+      ],
+      "align": "center"
+    },
+    {
+      "id": "licenses",
+      "type": "licenses_list",
+      "position": [
+        0.5,
+        0.55
+      ],
+      "size": [
+        1200,
+        560
+      ]
+    },
+    {
+      "id": "btn_back",
+      "type": "button",
+      "text": "Back",
+      "actions": [
+        {
+          "do": "back"
+        }
+      ],
+      "position": [
+        0.5,
+        0.92
+      ]
+    }
+  ]
+}

@@ -17,20 +17,22 @@ As palavras **DEVE**, **DEVERIA** e **PODE** seguem a RFC 2119.
 | Expressões e funções | `expressions.json` | DM §6.1, §6.1.1; RT §12.1 (intervalo de inteiros, `concat`) | 31 |
 | Condições | `conditions.json` | DM §5, §5.1, §5.2 | 12 |
 | Efeitos e transações | `effects.json` | DM §6.2; RT §6.2 (ordem das verificações, rollback, truncamento, restrições) | 11 |
-| Texto | `text.json` | RT §12.1 (`concat` e formatação de números por idioma) | 17 |
+| Texto | `text.json` | RT §12.1 (`concat`, formatação de números por idioma, `settings.number_formats`); exibição de recordes (SDK §9.1) | 25 |
 | RNG | `rng.json` | RT §12.2 (PCG32, `random_int`, sementes de atividade e de plugin) | 8 |
 | Seleção de cena | `selection.json` | RT §4.2–§4.4 (elegibilidade, prioridade, desempate, pedidos, fim de capítulo, fallback) | 26 |
+| Recordes | `records.json` | SDK §9.1 (`submit_record`: ordem, `keep`, empate fica com a mais antiga, posição devolvida; exibição) | 6 |
+| Fluxo de cena | `flow.json` | RT §5.1–§5.4, §7.2 (falas com interpolação, escolhas, `on_fail`, `branch`/`jump`, ordem dos eventos, atividade com resultado, pulada e sem opção visível, fim do grafo sem `end`) | 9 |
 
-São 105 casos no total. Todos conferem com a implementação de referência:
+São 128 casos no total. Todos conferem com a implementação de referência:
 
 ```bash
 python3 tools/conformance.py
-# 105/105 vetores conferem com a referência.
+# 128/128 vetores conferem com a referência.
 ```
 
 Os casos de RNG só valem para projetos com `settings.reproducible_rng` ligado (RT §12.2). Uma implementação PODE pular `rng.json` e o caso `weighted` de `selection.json` enquanto não implementa o RNG reproduzível, mas DEVE passar em todos os outros.
 
-**Fora do conjunto inicial:** a execução de uma cena inteira, nó a nó (falas, escolhas com entradas do jogador, `emit` e a fila de eventos, atividades com mock), a interpolação de textos com marcação e o JCS. Ficam para a segunda leva, com o formato `kind: "flow"` reservado (§4).
+**Ainda fora do conjunto:** o nó `interact`, a interpolação com marcação de estilo e o JCS (já coberto pelo `examples/demo-save.json`). Entram em casos `flow` e `text` novos quando o runtime chegar a eles.
 
 ## 2. Formato
 
@@ -63,6 +65,11 @@ Nos resultados, `type` diz qual dos dois é. Um `number` com parte fracionária 
 | `text` | `mode` (`concat` ou `interpolation`), `value`, `locale` | `{text}` |
 | `rng` | `op` (`sequence`, `random_int`, `activity_seed`, `plugin_seed`), `seed` e os parâmetros da operação | `{values, state_after?}` ou `{seed}` |
 | `selection` | `chapter`, `scenes`, `state` (`variables`, `history`, `rng_state`), `content_request`? | Decisão (§2.3) |
+| `text` com `mode: record` | `value` (a marca), `format` (`integer`, `number`, `time_ms`), `locale` | `{text}` |
+| `record` | `board` (`order`, `keep`, `format`), `entries` (as marcas atuais), `submit` (`score`, `at`, `meta`?) | `{rank, entries}` (`rank` 0 quando a marca não entra) |
+| `flow` | `scene` (nós no formato de `scene.schema.json`), `variables`, `locale`, `inputs` (lista de `"advance"`, `{choose: <opção>}` ou `{activity: {outcome, payload, skipped?, failed?}}`) | `{trace}`: lista em ordem, cada item com uma chave só: `event` (evento `sys.*` ou do conteúdo), `node` (nó em que entrou), `text` (fala já interpolada), `options` (opções mostradas), `changes` (mudanças de uma transação), `waiting` (o caso acabou parado num nó bloqueante), `error` e `end` (o `then` da cena) |
+
+Um caso `text` aceita também `number_formats`, que simula `project.json → settings.number_formats`.
 
 `error` é o código do RT §6.2: `VARIABLE_NOT_FOUND`, `TYPE_MISMATCH`, `OUT_OF_RANGE` ou `CONSTRAINT_VIOLATION`. Num caso `effects` com erro, nenhuma variável muda (a transação é desfeita), e o caso não lista mudanças.
 
@@ -109,7 +116,7 @@ Estas regras estavam implícitas ou ambíguas; os casos as fixam, e o RT foi aju
 
 A saída de cada runner é uma linha por caso com falha, no formato `FALHOU <arquivo>#<id>`, com o esperado e o obtido, e um resumo `N/M`.
 
-**Reservado para a segunda leva:** `kind: "flow"`, com `bundle` (projeto mínimo inline ou caminho de exemplo), `inputs` (uma lista de ações do jogador: `advance`, `choose <opção>`, `click <hotspot>`, `activity <outcome, payload>`) e `expect.trace` (as notificações do Preview Protocol §4 em ordem: `scene.started`, `node.entered`, `state.changed`, `event.emitted`, `scheduler.evaluated`).
+**Casos `flow`.** O runner monta só a cena do caso (sem capítulo nem Scheduler), aplica `variables` e alimenta os `inputs` em ordem a cada nó bloqueante; uma atividade usa o resultado do input em vez de um plugin real. O traço segue a ordem da spec 07 §4.2. São o primeiro alvo do runtime: passar neles é o passo antes de abrir a demo com `--vn-bundle` (RT §2.1). Casos com Scheduler entre cenas e com `interact` ficam para a próxima leva.
 
 ## 5. Mudanças
 
