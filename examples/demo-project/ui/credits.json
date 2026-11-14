@@ -1,0 +1,37 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/1/ui-screen.schema.json",
+  "id": "credits",
+  "kind": "credits",
+  "background": "bg/pier_sunset",
+  "focus_start": "btn_back",
+  "elements": [
+    {
+      "id": "text",
+      "type": "label",
+      "text": "Roteiro e arte: Seaside Team",
+      "position": [
+        0.5,
+        0.45
+      ],
+      "align": "center",
+      "appear": {
+        "kind": "fade",
+        "duration": 1.0
+      }
+    },
+    {
+      "id": "btn_back",
+      "type": "button",
+      "text": "Voltar",
+      "position": [
+        0.5,
+        0.9
+      ],
+      "actions": [
+        {
+          "do": "back"
+        }
+      ]
+    }
+  ]
+}

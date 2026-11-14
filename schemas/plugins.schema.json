@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.vnstudio.dev/1/plugins.schema.json",
+  "title": "plugins.json (projeto)",
+  "description": "Plugins usados pelo projeto, com faixas de versão, permissões CONCEDIDAS e configuração. Editado pelo Plugin Manager; o plugin-lock.json é gerado a partir dele.",
+  "type": "object",
+  "required": [
+    "plugins"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "plugins": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]{1,38}\\.[a-z][a-z0-9-]{1,63}$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "version",
+          "source"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "version": {
+            "$ref": "common.schema.json#/$defs/SemVerRange"
+          },
+          "source": {
+            "description": "Origem do pacote. catalog:<nome do catálogo> (ex.: catalog:official; o plugin é a chave deste mapa) | github:<owner>/<repo> | path:<relativo ao projeto>. Vínculos de desenvolvimento não ficam aqui, e sim em .vnstudio/plugin-lock.local.json (Plugin SDK §12.3).",
+            "type": "string",
+            "pattern": "^(catalog:[a-z0-9-]+|github:[A-Za-z0-9-]+/[A-Za-z0-9._-]+|path:.+)$"
+          },
+          "enabled": {
+            "type": "boolean",
+            "default": true
+          },
+          "grants": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "capabilities": {
+                "description": "Subconjunto das capacidades pedidas (runtime e editor juntos, ex.: 'runtime:variables.write').",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^(runtime|editor):[a-z_.]+$"
+                },
+                "uniqueItems": true
+              },
+              "variables": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "read": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "uniqueItems": true
+                  },
+                  "write": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "uniqueItems": true
+                  }
+                },
+                "description": "Variáveis concedidas. Leitura exige plugins_read diferente de none na variável (P014); escrita exige plugins_write: granted (P008)."
+              },
+              "scenes": {
+                "description": "Cenas que o plugin pode pedir via SceneAPI.request(). Vazio = nenhuma. No runtime, o pedido só é aceito para cena do capítulo ativo ou global (Runtime Spec §4.3).",
+                "type": "array",
+                "items": {
+                  "$ref": "common.schema.json#/$defs/EntityId"
+                }
+              }
+            }
+          },
+          "config": {
+            "description": "Validado contra config_schema do plugin.",
+            "type": "object"
+          }
+        }
+      }
+    }
+  }
+}

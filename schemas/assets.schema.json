@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.vnstudio.dev/1/assets.schema.json",
+  "title": "assets.json",
+  "description": "Registro de assets. Conteúdo narrativo referencia assets por ID, nunca por caminho, para que renomear arquivos não quebre cenas.",
+  "type": "object",
+  "required": [
+    "assets"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "assets": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "common.schema.json#/$defs/AssetRef"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "path",
+          "type"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "description": "Relativo a assets/.",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "image",
+              "sprite",
+              "background",
+              "audio_music",
+              "audio_sfx",
+              "audio_voice",
+              "video",
+              "font",
+              "other"
+            ]
+          },
+          "hash": {
+            "$ref": "common.schema.json#/$defs/Hash"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "import": {
+            "description": "Opções de importação repassadas ao Godot.",
+            "type": "object"
+          },
+          "anchor": {
+            "description": "Só sprite: ponto do sprite que fica na posição do palco, em fração da imagem ([0.5, 1.0] = centro dos pés, padrão).",
+            "type": "array",
+            "items": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "scale": {
+            "description": "Só sprite: escala aplicada no palco (padrão 1.0).",
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 10
+          },
+          "nine_slice": {
+            "description": "Só image usada no tema: margens [esquerda, topo, direita, base] em pixels que não esticam.",
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "minItems": 4,
+            "maxItems": 4
+          },
+          "always_include": {
+            "description": "Inclui o asset no build mesmo sem referência no conteúdo (ex.: usado só por um plugin via config). Build System §6.1.",
+            "type": "boolean",
+            "default": false
+          },
+          "renamed_from": {
+            "description": "IDs anteriores deste asset (Data Model §12), aplicados ao restaurar o palco de saves antigos.",
+            "type": "array",
+            "items": {
+              "$ref": "common.schema.json#/$defs/AssetRef"
+            },
+            "uniqueItems": true
+          }
+        }
+      }
+    }
+  }
+}

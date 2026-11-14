@@ -1,0 +1,122 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/1/theme.schema.json",
+  "preset": "classic",
+  "fonts": {
+    "dialogue": "font/body",
+    "ui": "font/body",
+    "dialogue_size": 28,
+    "title": "font/title",
+    "fallbacks": {
+      "ja": [
+        "font/noto_sans_jp"
+      ]
+    }
+  },
+  "colors": {
+    "text": "#ffffff",
+    "accent": "#e05a7a",
+    "panel": "#1b2a3acc"
+  },
+  "textbox": {
+    "image": "ui/textbox",
+    "position": "bottom",
+    "height": 0.28,
+    "name_plate": {
+      "use_character_color": true
+    }
+  },
+  "choices": {
+    "layout": "center"
+  },
+  "sounds": {
+    "click": "sfx/click",
+    "hover": "sfx/hover"
+  },
+  "styles": {
+    "button": {
+      "shape": "rounded",
+      "radius": 12,
+      "fill": {
+        "normal": "#1b2a3acc",
+        "hover": "#2b4a66ee",
+        "pressed": "#10202ecc",
+        "disabled": "#1b2a3a66",
+        "focus": "#2b4a66ee"
+      },
+      "border": {
+        "normal": "#ffffff33",
+        "focus": "#e05a7a"
+      },
+      "border_width": 2,
+      "font_size": 30,
+      "text_color": {
+        "normal": "#ffffff",
+        "disabled": "#ffffff66"
+      },
+      "padding": [
+        24,
+        10,
+        24,
+        10
+      ],
+      "hover": {
+        "scale": 1.04,
+        "duration": 0.1
+      },
+      "press": {
+        "scale": 0.97
+      },
+      "sounds": {
+        "hover": "sfx/hover",
+        "press": "sfx/click"
+      },
+      "auto_shrink": true
+    },
+    "gold": {
+      "extends": "button",
+      "image": {
+        "normal": "ui/btn_gold",
+        "hover": "ui/btn_gold_hover",
+        "pressed": "ui/btn_gold_down",
+        "disabled": "ui/btn_gold_off",
+        "focus": "ui/btn_gold_hover"
+      },
+      "font": "font/title",
+      "font_size": 34,
+      "text_color": {
+        "normal": "#3b2400",
+        "hover": "#000000",
+        "disabled": "#7a6a50"
+      },
+      "hover": {
+        "scale": 1.06,
+        "offset": [
+          0,
+          -2
+        ],
+        "glow": "#ffd76a",
+        "duration": 0.12
+      },
+      "idle": {
+        "kind": "pulse",
+        "amount": 0.02,
+        "duration": 2.4,
+        "loop": true
+      }
+    },
+    "icon_round": {
+      "extends": "button",
+      "shape": "circle",
+      "icon_position": "only",
+      "padding": [
+        12,
+        12,
+        12,
+        12
+      ]
+    }
+  },
+  "dialog": {
+    "button_style": "button"
+  }
+}

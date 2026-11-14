@@ -1,0 +1,546 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.vnstudio.dev/1/common.schema.json",
+  "title": "VN Studio — definições comuns",
+  "description": "Tipos compartilhados pelo Narrative Data Model, pelo save e pelo manifesto de plugins. Não é validado sozinho; os outros schemas o referenciam.",
+  "$defs": {
+    "Id": {
+      "description": "Identificador legível: minúsculas, dígitos e underscore, começando com letra. Usado onde pessoas escrevem ou leem o ID (chaves de variável, expressões, grupos, finais, outcomes). Estável: nunca é regenerado.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,63}$"
+    },
+    "EntityId": {
+      "description": "Identificador de entidade: UUID em minúsculas (o Studio gera UUIDv7, ordenado pelo momento de criação). Usado em cenas, capítulos, personagens, nós e opções de escolha. Nunca é exibido nem digitado pelo autor; o Studio mostra o título.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "Namespace": {
+      "description": "Namespace de plugin, único por projeto (ex.: fishing). Reservados: sys, story, vn, global, character, chapter, scene, plugin (Data Model §3).",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{1,31}$",
+      "not": {
+        "enum": [
+          "sys",
+          "story",
+          "vn",
+          "global",
+          "character",
+          "chapter",
+          "scene",
+          "plugin"
+        ]
+      }
+    },
+    "SemVer": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+    },
+    "SemVerRange": {
+      "description": "Faixa no formato npm/node-semver (ex.: ^1.2.0, >=1.0.0 <2.0.0).",
+      "type": "string",
+      "minLength": 1
+    },
+    "Locale": {
+      "description": "Tag BCP 47 (ex.: pt-BR, en, ja).",
+      "type": "string",
+      "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+    },
+    "AssetRef": {
+      "description": "ID de asset registrado em assets.json.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_./-]{0,127}$"
+    },
+    "VariableRef": {
+      "description": "Referência totalmente qualificada a uma variável. Prefixos: global., character.<key do personagem>., chapter., scene., plugin.<namespace>., sys. (somente leitura; pode conter UUIDs de entidade, ex.: sys.scenes.<uuid>.plays).",
+      "type": "string",
+      "pattern": "^(global\\.[a-z][a-z0-9_]*|character\\.[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*|chapter\\.[a-z][a-z0-9_]*|scene\\.[a-z][a-z0-9_]*|plugin\\.[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*|sys(\\.[a-z0-9_-]+)+)$"
+    },
+    "WritableVariableRef": {
+      "description": "Como VariableRef, mas sem o namespace sys.",
+      "allOf": [
+        {
+          "$ref": "#/$defs/VariableRef"
+        },
+        {
+          "not": {
+            "pattern": "^sys\\."
+          }
+        }
+      ]
+    },
+    "EventName": {
+      "description": "Nome de evento: <namespace>.<nome>. O namespace 'story' é reservado ao projeto e 'sys' ao runtime.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_.]*$"
+    },
+    "Literal": {
+      "description": "Valor literal permitido para variáveis.",
+      "type": [
+        "boolean",
+        "integer",
+        "number",
+        "string"
+      ]
+    },
+    "LocalizedText": {
+      "description": "Texto no idioma-fonte do projeto. Traduções ficam em locales/<lang>/ indexadas pelo caminho estável do nó. Interpolação: {global.player_money}; use {{ e }} para chaves literais.",
+      "type": "string"
+    },
+    "Comparison": {
+      "type": "object",
+      "required": [
+        "variable",
+        "operator"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "variable": {
+          "$ref": "#/$defs/VariableRef"
+        },
+        "operator": {
+          "enum": [
+            "equals",
+            "not_equals",
+            "greater_than",
+            "greater_than_or_equal",
+            "less_than",
+            "less_than_or_equal",
+            "in",
+            "not_in",
+            "contains",
+            "is_default"
+          ]
+        },
+        "value": {
+          "description": "Literal, lista de literais (para in/not_in) ou referência a outra variável do mesmo tipo (integer e number se comparam entre si). Ausente apenas para is_default, que é verdadeiro quando o valor atual é igual ao padrão efetivo (initial_values do personagem, senão default).",
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Literal"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Literal"
+              }
+            },
+            {
+              "$ref": "#/$defs/VarValue"
+            }
+          ]
+        }
+      },
+      "if": {
+        "properties": {
+          "operator": {
+            "const": "is_default"
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "required": [
+            "value"
+          ]
+        }
+      },
+      "else": {
+        "required": [
+          "value"
+        ]
+      }
+    },
+    "Condition": {
+      "description": "Árvore de condição. Uma lista no lugar de uma condição equivale a {\"all\": [...]}. Lista vazia é verdadeira.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Comparison"
+        },
+        {
+          "type": "object",
+          "required": [
+            "all"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "all": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Condition"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "any"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "any": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Condition"
+              },
+              "minItems": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "not"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "not": {
+              "$ref": "#/$defs/Condition"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "event_since_last_selection"
+          ],
+          "additionalProperties": false,
+          "description": "Verdadeira se o evento foi emitido desde o último ponto de seleção de cena.",
+          "properties": {
+            "event_since_last_selection": {
+              "$ref": "#/$defs/EventName"
+            }
+          }
+        }
+      ]
+    },
+    "ConditionList": {
+      "description": "Forma abreviada usada em campos 'conditions': lista com semântica AND, ou uma única Condition.",
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Condition"
+          }
+        },
+        {
+          "$ref": "#/$defs/Condition"
+        }
+      ]
+    },
+    "VarValue": {
+      "type": "object",
+      "required": [
+        "var"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "var": {
+          "$ref": "#/$defs/VariableRef"
+        }
+      }
+    },
+    "ValueExpr": {
+      "description": "Expressão de valor (sem efeitos colaterais). Usada em efeitos e em variáveis derivadas.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Literal"
+        },
+        {
+          "$ref": "#/$defs/VarValue"
+        },
+        {
+          "type": "object",
+          "required": [
+            "result"
+          ],
+          "additionalProperties": false,
+          "description": "Campo do payload de resultado de uma atividade de plugin (só é válido em on_result.effects; T005). 'default' é usado quando o campo falta no payload; sem 'default', vale o padrão do tipo da variável de destino (Data Model §6.1).",
+          "properties": {
+            "result": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.]+$",
+              "description": "Campo do payload; 'a.b' lê o campo b do objeto a."
+            },
+            "default": {
+              "$ref": "#/$defs/Literal"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "fn",
+            "args"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "fn": {
+              "enum": [
+                "add",
+                "sub",
+                "mul",
+                "div",
+                "mod",
+                "min",
+                "max",
+                "clamp",
+                "round",
+                "floor",
+                "ceil",
+                "abs",
+                "concat",
+                "random_int"
+              ]
+            },
+            "args": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ValueExpr"
+              },
+              "minItems": 1,
+              "maxItems": 8
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "if",
+            "then",
+            "else"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "if": {
+              "$ref": "#/$defs/ConditionList"
+            },
+            "then": {
+              "$ref": "#/$defs/ValueExpr"
+            },
+            "else": {
+              "$ref": "#/$defs/ValueExpr"
+            }
+          }
+        }
+      ]
+    },
+    "Effect": {
+      "description": "Mutação de variável. Uma lista de efeitos é aplicada como uma única transação.",
+      "type": "object",
+      "required": [
+        "op",
+        "variable"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "op": {
+          "enum": [
+            "set",
+            "add",
+            "subtract",
+            "multiply",
+            "toggle",
+            "reset"
+          ]
+        },
+        "variable": {
+          "$ref": "#/$defs/WritableVariableRef"
+        },
+        "value": {
+          "$ref": "#/$defs/ValueExpr"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "enum": [
+                  "toggle",
+                  "reset"
+                ]
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "required": [
+                "value"
+              ]
+            }
+          },
+          "else": {
+            "required": [
+              "value"
+            ]
+          }
+        }
+      ]
+    },
+    "EffectList": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Effect"
+      }
+    },
+    "VariableType": {
+      "enum": [
+        "boolean",
+        "integer",
+        "number",
+        "string",
+        "enum"
+      ]
+    },
+    "VariableConstraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        },
+        "on_overflow": {
+          "description": "clamp: ajusta ao limite (padrão). reject: a transação inteira falha.",
+          "enum": [
+            "clamp",
+            "reject"
+          ]
+        },
+        "max_length": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "values": {
+          "description": "Valores permitidos (obrigatório para type=enum).",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "labels": {
+          "description": "Só enum: texto exibido ao jogador para cada valor na interpolação (Data Model §9). Traduzível por variable/<id qualificado>/value/<valor>.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "VariableDefinition": {
+      "type": "object",
+      "required": [
+        "key",
+        "type"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "description": "Nome local. O ID qualificado é derivado do escopo: global.<key>, character.<char>.<key>, chapter.<key>, scene.<key>, plugin.<ns>.<key>.",
+          "$ref": "#/$defs/Id"
+        },
+        "name": {
+          "description": "Rótulo exibido no Studio.",
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/VariableType"
+        },
+        "default": {
+          "$ref": "#/$defs/Literal"
+        },
+        "persistence": {
+          "description": "save: vai para o save (padrão). profile: sobrevive entre saves e novos jogos (galeria, NG+); só em variáveis globais e de plugin. session: nunca é salva; volta ao padrão ao carregar.",
+          "enum": [
+            "save",
+            "profile",
+            "session"
+          ]
+        },
+        "constraints": {
+          "$ref": "#/$defs/VariableConstraints"
+        },
+        "derived": {
+          "description": "Se presente, a variável é somente leitura e calculada a partir desta expressão. 'default' e 'persistence' são ignorados.",
+          "$ref": "#/$defs/ValueExpr"
+        },
+        "access": {
+          "description": "Permissões de plugins sobre esta variável (a concessão efetiva fica em plugins.json).",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "plugins_read": {
+              "enum": [
+                "none",
+                "granted",
+                "all"
+              ]
+            },
+            "plugins_write": {
+              "enum": [
+                "none",
+                "granted"
+              ]
+            }
+          }
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "characters": {
+          "description": "Somente em variables.json/character: restringe o modelo a estes personagens, pela key do personagem. Ausente = todos.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          }
+        },
+        "renamed_from": {
+          "description": "Chaves anteriores desta variável (Data Model §12). O Save Manager aplica o alias ao carregar saves antigos, para que renomear depois de lançar o jogo não perca valores.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          },
+          "uniqueItems": true
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "enum"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "constraints"
+            ],
+            "properties": {
+              "constraints": {
+                "required": [
+                  "values"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Hash": {
+      "description": "Forma canônica de um SHA-256 em JSON: 'sha256-' + base64 padrão (formato SRI). Em hexadecimal (build_id, nomes de arquivo) usam-se os mesmos 32 bytes em hex minúsculo; em binário (.vnb), os 32 bytes crus (Build System §5.1).",
+      "type": "string",
+      "pattern": "^sha256-[A-Za-z0-9+/=]{43,44}$"
+    }
+  }
+}

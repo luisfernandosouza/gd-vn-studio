@@ -1,0 +1,217 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/1/ui-screen.schema.json",
+  "id": "settings",
+  "kind": "settings",
+  "background": "bg/beach_day",
+  "focus_start": "sl_master",
+  "elements": [
+    {
+      "id": "title",
+      "type": "label",
+      "text": "Configurações",
+      "position": [
+        0.5,
+        0.1
+      ]
+    },
+    {
+      "id": "col_audio",
+      "type": "container",
+      "position": [
+        0.28,
+        0.5
+      ],
+      "layout": "column",
+      "spacing": 18,
+      "children": [
+        {
+          "id": "lbl_audio",
+          "type": "label",
+          "text": "Áudio"
+        },
+        {
+          "id": "sl_master",
+          "type": "slider",
+          "bind": "volume.master",
+          "label": "Volume geral",
+          "min": 0,
+          "max": 1,
+          "step": 0.05
+        },
+        {
+          "id": "sl_music",
+          "type": "slider",
+          "bind": "volume.music",
+          "label": "Música",
+          "min": 0,
+          "max": 1,
+          "step": 0.05
+        },
+        {
+          "id": "sl_sfx",
+          "type": "slider",
+          "bind": "volume.sfx",
+          "label": "Efeitos",
+          "min": 0,
+          "max": 1,
+          "step": 0.05
+        },
+        {
+          "id": "sl_voice",
+          "type": "slider",
+          "bind": "volume.voice",
+          "label": "Vozes",
+          "min": 0,
+          "max": 1,
+          "step": 0.05
+        }
+      ]
+    },
+    {
+      "id": "col_video",
+      "type": "container",
+      "position": [
+        0.72,
+        0.5
+      ],
+      "layout": "column",
+      "spacing": 18,
+      "children": [
+        {
+          "id": "lbl_video",
+          "type": "label",
+          "text": "Vídeo"
+        },
+        {
+          "id": "sel_mode",
+          "type": "select",
+          "bind": "display_mode",
+          "label": "Modo de tela",
+          "visible_if": [
+            {
+              "variable": "sys.ui.platform",
+              "operator": "not_equals",
+              "value": "web"
+            }
+          ]
+        },
+        {
+          "id": "sel_resolution",
+          "type": "select",
+          "bind": "resolution",
+          "label": "Resolução",
+          "visible_if": [
+            {
+              "variable": "sys.ui.platform",
+              "operator": "not_equals",
+              "value": "web"
+            }
+          ]
+        },
+        {
+          "id": "tg_vsync",
+          "type": "toggle",
+          "bind": "vsync",
+          "label": "VSync"
+        },
+        {
+          "id": "sel_fps_vn",
+          "type": "select",
+          "bind": "fps_limit_vn",
+          "label": "FPS na história",
+          "options": [
+            {
+              "value": 30,
+              "text": "30"
+            },
+            {
+              "value": 60,
+              "text": "60"
+            },
+            {
+              "value": 120,
+              "text": "120"
+            },
+            {
+              "value": 144,
+              "text": "144"
+            },
+            {
+              "value": 0,
+              "text": "Sem limite"
+            }
+          ],
+          "visible_if": [
+            {
+              "variable": "sys.ui.platform",
+              "operator": "not_equals",
+              "value": "web"
+            }
+          ]
+        },
+        {
+          "id": "sel_fps_act",
+          "type": "select",
+          "bind": "fps_limit_activity",
+          "label": "FPS nos minijogos",
+          "options": [
+            {
+              "value": 30,
+              "text": "30"
+            },
+            {
+              "value": 60,
+              "text": "60"
+            },
+            {
+              "value": 120,
+              "text": "120"
+            },
+            {
+              "value": 144,
+              "text": "144"
+            },
+            {
+              "value": 0,
+              "text": "Sem limite"
+            }
+          ],
+          "visible_if": [
+            {
+              "variable": "sys.ui.platform",
+              "operator": "not_equals",
+              "value": "web"
+            }
+          ]
+        },
+        {
+          "id": "sel_locale",
+          "type": "select",
+          "bind": "locale",
+          "label": "Idioma"
+        },
+        {
+          "id": "tg_hotspots",
+          "type": "toggle",
+          "bind": "show_hotspots",
+          "label": "Destacar objetos clicáveis"
+        }
+      ]
+    },
+    {
+      "id": "btn_back",
+      "type": "button",
+      "text": "Voltar",
+      "position": [
+        0.5,
+        0.92
+      ],
+      "shortcut": "vn_cancel",
+      "actions": [
+        {
+          "do": "back"
+        }
+      ]
+    }
+  ]
+}

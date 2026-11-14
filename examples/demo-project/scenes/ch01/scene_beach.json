@@ -1,0 +1,226 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/1/scene.schema.json",
+  "id": "019a7a00-1388-7f6b-b667-94bbd1305982",
+  "chapter": "019a7a00-03e8-7e8e-9f34-b5a38f4a780b",
+  "title": "Encontro na praia",
+  "scheduling": {
+    "priority": 50,
+    "conditions": [
+      {
+        "variable": "character.alice.met",
+        "operator": "equals",
+        "value": false
+      }
+    ],
+    "max_plays": 1
+  },
+  "variables": [
+    {
+      "key": "current_choice",
+      "type": "enum",
+      "constraints": {
+        "values": [
+          "fish",
+          "talk",
+          "icecream"
+        ]
+      },
+      "default": "talk"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "019a7a00-2ee0-78cd-b7fb-730161b48bdb",
+      "type": "background",
+      "asset": "bg/beach_day",
+      "transition": {
+        "kind": "fade",
+        "duration": 0.5
+      }
+    },
+    {
+      "id": "019a7a00-32c8-7abc-bd4e-760003754829",
+      "type": "audio",
+      "action": "play",
+      "channel": "music",
+      "asset": "music/waves",
+      "loop": true
+    },
+    {
+      "id": "019a7a00-36b0-730b-8106-1b950bcffc70",
+      "type": "show",
+      "character": "019a7a00-0bb8-7dc0-b468-e39508f1443d",
+      "expression": "happy",
+      "position": "center"
+    },
+    {
+      "id": "019a7a00-3a98-732b-89dd-170487226b34",
+      "type": "line",
+      "speaker": "019a7a00-0bb8-7dc0-b468-e39508f1443d",
+      "text": "Oi! Você é novo por aqui? Eu tenho {global.player_money} moedas, e você?"
+    },
+    {
+      "id": "019a7a00-3e80-7807-b5f0-b3eea7845894",
+      "type": "effects",
+      "effects": [
+        {
+          "op": "set",
+          "variable": "character.alice.met",
+          "value": true
+        }
+      ]
+    },
+    {
+      "id": "019a7a00-4268-71d6-977e-cf1637d45f1b",
+      "type": "choice",
+      "record": "scene.current_choice",
+      "options": [
+        {
+          "id": "019a7a00-4650-7571-a41a-c83fdebea0ae",
+          "text": "Vamos pescar!",
+          "value": "fish",
+          "goto": "019a7a00-4a38-76e1-9cd6-55120fa376e8",
+          "effects": [
+            {
+              "op": "add",
+              "variable": "character.alice.affection",
+              "value": 5
+            }
+          ]
+        },
+        {
+          "id": "019a7a00-4e20-7121-8b7a-3686b62d8686",
+          "text": "Só quero conversar.",
+          "value": "talk",
+          "goto": "019a7a00-5208-755e-9cef-6bcd6be6611e"
+        },
+        {
+          "id": "019a7a00-55f0-7d02-b43b-d18b41604bdf",
+          "text": "Comprar um sorvete (50 moedas)",
+          "value": "icecream",
+          "goto": "019a7a00-59d8-7758-a202-a61a12f3ba79",
+          "enabled_if": [
+            {
+              "variable": "global.player_money",
+              "operator": "greater_than_or_equal",
+              "value": 50
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "019a7a00-4a38-76e1-9cd6-55120fa376e8",
+      "type": "plugin",
+      "activity": "fishing.fishing_game",
+      "params": {
+        "difficulty": "easy",
+        "duration_seconds": 60,
+        "target_fish": 3
+      },
+      "on_result": {
+        "effects": [
+          {
+            "op": "set",
+            "variable": "global.fishing_won",
+            "value": {
+              "result": "won"
+            }
+          },
+          {
+            "op": "add",
+            "variable": "global.fishing_skill",
+            "value": {
+              "fn": "floor",
+              "args": [
+                {
+                  "fn": "div",
+                  "args": [
+                    {
+                      "result": "score"
+                    },
+                    100
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "op": "add",
+            "variable": "global.player_money",
+            "value": {
+              "fn": "mul",
+              "args": [
+                {
+                  "result": "fish_count"
+                },
+                10
+              ]
+            }
+          }
+        ],
+        "outcomes": {
+          "won": "019a7a00-5dc0-7aff-afa3-e85b08375cdf",
+          "lost": "019a7a00-61a8-79a8-a339-bfeac680291c"
+        }
+      },
+      "on_error": "019a7a00-5208-755e-9cef-6bcd6be6611e"
+    },
+    {
+      "id": "019a7a00-5dc0-7aff-afa3-e85b08375cdf",
+      "type": "line",
+      "speaker": "019a7a00-0bb8-7dc0-b468-e39508f1443d",
+      "expression": "happy",
+      "text": "Uau, você é bom nisso!"
+    },
+    {
+      "id": "019a7a00-6590-7770-bd5c-2c937c722da2",
+      "type": "end"
+    },
+    {
+      "id": "019a7a00-61a8-79a8-a339-bfeac680291c",
+      "type": "line",
+      "speaker": "019a7a00-0bb8-7dc0-b468-e39508f1443d",
+      "expression": "sad",
+      "text": "Não foi dessa vez..."
+    },
+    {
+      "id": "019a7a00-6978-78c5-b869-10c564964502",
+      "type": "end"
+    },
+    {
+      "id": "019a7a00-5208-755e-9cef-6bcd6be6611e",
+      "type": "line",
+      "speaker": "019a7a00-0bb8-7dc0-b468-e39508f1443d",
+      "text": "Gosto de conversar também.",
+      "next": "019a7a00-6d60-75f4-8227-e8f6d08b0e47"
+    },
+    {
+      "id": "019a7a00-59d8-7758-a202-a61a12f3ba79",
+      "type": "effects",
+      "effects": [
+        {
+          "op": "subtract",
+          "variable": "global.player_money",
+          "value": 50
+        }
+      ]
+    },
+    {
+      "id": "019a7a00-6d60-75f4-8227-e8f6d08b0e47",
+      "type": "effects",
+      "effects": [
+        {
+          "op": "add",
+          "variable": "chapter.days_passed",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "019a7a00-7148-7fad-b651-2fdde0726371",
+      "type": "end",
+      "then": "schedule"
+    }
+  ]
+}

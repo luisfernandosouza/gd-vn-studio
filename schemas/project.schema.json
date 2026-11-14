@@ -1,0 +1,324 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.vnstudio.dev/1/project.schema.json",
+  "title": "project.json",
+  "description": "Raiz de um projeto do Visual Novel Studio.",
+  "type": "object",
+  "required": [
+    "format_version",
+    "id",
+    "title",
+    "default_locale",
+    "start_chapter"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "format_version": {
+      "description": "Versão do Narrative Data Model usada pelos arquivos do projeto. MAJOR diferente exige migração.",
+      "$ref": "common.schema.json#/$defs/SemVer"
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/Id"
+    },
+    "title": {
+      "description": "Nome do jogo no idioma-fonte. Tradução pela chave project/title (Data Model §9).",
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "description": "Versão do jogo. Obrigatória na exportação (regra R021).",
+      "$ref": "common.schema.json#/$defs/SemVer"
+    },
+    "authors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "default_locale": {
+      "$ref": "common.schema.json#/$defs/Locale"
+    },
+    "locales": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/Locale"
+      },
+      "uniqueItems": true
+    },
+    "start_chapter": {
+      "$ref": "common.schema.json#/$defs/EntityId"
+    },
+    "chapters": {
+      "description": "Ordem de autoria dos capítulos (também é o desempate final entre capítulos).",
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/EntityId"
+      },
+      "uniqueItems": true
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "min_version": {
+          "$ref": "common.schema.json#/$defs/SemVer",
+          "description": "Versão mínima do runtime. O build falha (B014) se o runtime do Studio for menor."
+        },
+        "godot": {
+          "$ref": "common.schema.json#/$defs/SemVerRange",
+          "description": "Faixa de versões do Godot aceita pelo projeto. O build usa a versão exata fixada pelo runtime do Studio e falha (B014) se ela estiver fora da faixa (Build System §2.1)."
+        }
+      }
+    },
+    "scheduler": {
+      "description": "Padrões do Scene Scheduler; capítulos podem sobrescrever.",
+      "$ref": "chapter.schema.json#/$defs/SchedulerSettings"
+    },
+    "exclusive_groups": {
+      "description": "Grupos de exclusividade com tempo de vida de jogo inteiro. Um id não pode se repetir num capítulo (R015).",
+      "type": "array",
+      "items": {
+        "$ref": "chapter.schema.json#/$defs/ExclusiveGroup"
+      }
+    },
+    "events": {
+      "description": "Eventos do namespace story usados pelo projeto. Emitir ou testar um evento story.* não declarado gera aviso W015.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "$ref": "common.schema.json#/$defs/EventName"
+          },
+          "description": {
+            "type": "string"
+          },
+          "payload": {
+            "description": "JSON Schema do payload.",
+            "type": "object"
+          }
+        }
+      }
+    },
+    "settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "resolution": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "text_speed": {
+          "type": "number",
+          "minimum": 0
+        },
+        "autosave": {
+          "enum": [
+            "off",
+            "scene_start",
+            "selection_point"
+          ]
+        },
+        "activity_timeout_seconds": {
+          "description": "Tempo máximo de uma atividade de plugin; ao estourar, a atividade falha e segue on_error (Runtime Spec §5.3). Ausente = sem limite.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "reproducible_rng": {
+          "description": "Opcional, desligado por padrão. Ligado, todo sorteio (random_int, weighted_random, ctx.rng) usa o RNG reproduzível do Runtime Spec §12.2: estado no save e traço idêntico entre Preview no Studio e Runtime. Desligado, os sorteios usam o RNG comum do motor e não entram no save nem nos vetores de conformidade.",
+          "type": "boolean",
+          "default": false
+        },
+        "display": {
+          "description": "Padrões de exibição e o que o jogador pode mudar (UI Spec §8).",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "resolutions": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "uniqueItems": true,
+              "description": "Tamanhos de janela oferecidos ao jogador. Ausente = 1280x720, 1600x900, 1920x1080, 2560x1440 com a mesma proporção da resolução base."
+            },
+            "display_mode": {
+              "enum": [
+                "windowed",
+                "fullscreen",
+                "borderless"
+              ],
+              "default": "windowed"
+            },
+            "vsync": {
+              "type": "boolean",
+              "default": true
+            },
+            "fps_limit_vn": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 360,
+              "default": 60
+            },
+            "fps_limit_activity": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 360,
+              "default": 0
+            }
+          }
+        }
+      }
+    },
+    "endings": {
+      "description": "Finais do jogo. Todo 'ending' de nó end DEVE estar aqui (R012). Alimenta a galeria de finais e sys.endings.<id>.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "$ref": "common.schema.json#/$defs/Id"
+          },
+          "title": {
+            "$ref": "common.schema.json#/$defs/LocalizedText"
+          },
+          "description": {
+            "$ref": "common.schema.json#/$defs/LocalizedText"
+          },
+          "image": {
+            "description": "Imagem na galeria de finais.",
+            "$ref": "common.schema.json#/$defs/AssetRef"
+          },
+          "order": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "theme": {
+      "description": "Caminho do arquivo de tema, relativo à raiz do projeto. Ausente = theme.json se existir, senão o preset 'classic'.",
+      "type": "string",
+      "default": "theme.json"
+    },
+    "build": {
+      "description": "Metadados de exportação editados no assistente de exportação do Studio.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "executable_name": {
+          "description": "Nome do arquivo gerado, sem extensão. Padrão: derivado de title.",
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9 _.-]{0,63}$"
+        },
+        "icon": {
+          "description": "Ícone do executável (PNG quadrado, 512x512 ou maior; o Studio gera .ico/.icns).",
+          "$ref": "common.schema.json#/$defs/AssetRef"
+        },
+        "company": {
+          "type": "string"
+        },
+        "splash": {
+          "description": "Imagem exibida ao abrir o jogo.",
+          "$ref": "common.schema.json#/$defs/AssetRef"
+        },
+        "platforms": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "windows",
+              "linux",
+              "macos",
+              "web"
+            ]
+          },
+          "description": "Plataformas de exportação do v1. Android fica para depois (Build System §14)."
+        },
+        "signing": {
+          "description": "Assinatura de código por plataforma. Credenciais nunca ficam no projeto: só o nome de um perfil guardado no cofre do sistema operacional.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "windows": {
+              "type": "string"
+            },
+            "macos": {
+              "type": "string"
+            }
+          }
+        },
+        "locales": {
+          "description": "Idiomas incluídos no build (Build System §5.3). Ausente = todos de locales. Deve conter default_locale.",
+          "type": "array",
+          "uniqueItems": true,
+          "minItems": 1,
+          "items": {
+            "$ref": "common.schema.json#/$defs/Locale"
+          }
+        },
+        "textures": {
+          "description": "Compressão das imagens no build (Build System §6.2): lossless (padrão) ou lossy (WebP, menor; recomendado para Web).",
+          "enum": [
+            "lossless",
+            "lossy"
+          ],
+          "default": "lossless"
+        },
+        "protection": {
+          "description": "Proteção do conteúdo (Build System §8). Ofuscação e detecção de alteração, não segurança.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "encrypt_pck": {
+              "description": "Opção avançada: cifra o PCK com templates personalizados (Build System §8.4).",
+              "type": "boolean",
+              "default": false
+            },
+            "save_tamper": {
+              "description": "O que fazer com save ou perfil cuja assinatura não confere (Build System §8.3).",
+              "enum": [
+                "ignore",
+                "flag",
+                "reject"
+              ],
+              "default": "flag"
+            },
+            "save_key_id": {
+              "description": "Impressão digital da chave de saves: 8 primeiros caracteres hex do SHA-256 da chave (não é segredo). Gravada pelo Studio no primeiro build de release. Se presente e a chave disponível (cofre ou VNSTUDIO_SAVE_KEY) faltar ou tiver outra impressão digital, o build para com B017 (Build System §8.1).",
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}$"
+            }
+          }
+        },
+        "allow_urls": {
+          "description": "Permite a ação open_url nas telas (UI Spec §4). Padrão true; sempre pede confirmação.",
+          "type": "boolean",
+          "default": true
+        }
+      }
+    }
+  }
+}

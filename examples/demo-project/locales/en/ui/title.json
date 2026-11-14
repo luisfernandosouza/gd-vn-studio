@@ -1,0 +1,14 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/1/locale.schema.json",
+  "locale": "en",
+  "strings": {
+    "ui/title/btn_continue": "Continue",
+    "ui/title/btn_new_game": "New game",
+    "ui/title/btn_load": "Load",
+    "ui/title/btn_gallery": "Gallery",
+    "ui/title/btn_settings": "Settings",
+    "ui/title/btn_quit": "Quit",
+    "ui/title/btn_credits/tooltip": "Credits",
+    "ui/title/shell": "Shell"
+  }
+}

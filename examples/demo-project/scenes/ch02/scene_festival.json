@@ -1,0 +1,22 @@
+{
+  "id": "019a7a00-1f40-7bda-a77e-3d949dc6efb2",
+  "chapter": "019a7a00-07d0-79cc-8832-8bb38a8122f3",
+  "title": "O festival",
+  "scheduling": {
+    "mode": "manual"
+  },
+  "nodes": [
+    {
+      "id": "019a7a00-9858-76bf-a64f-5e4c8652285d",
+      "type": "line",
+      "speaker": "019a7a00-0bb8-7dc0-b468-e39508f1443d",
+      "text": "Você veio ao festival!"
+    },
+    {
+      "id": "019a7a00-9c40-72a0-9205-fb64389c9644",
+      "type": "end",
+      "then": "end_game",
+      "ending": "festival_ending"
+    }
+  ]
+}

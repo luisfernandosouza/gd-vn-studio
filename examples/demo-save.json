@@ -1,0 +1,83 @@
+{
+  "save_format": "1.0.0",
+  "project": {
+    "id": "seaside_story",
+    "version": "0.1.0"
+  },
+  "runtime_version": "1.0.0",
+  "created_at": "2026-11-12T02:30:00Z",
+  "label": "Capítulo 1 — Praia",
+  "state": {
+    "variables": {
+      "global.player_money": 130,
+      "global.fishing_won": true,
+      "global.fishing_skill": 12,
+      "character.alice.affection": 15,
+      "character.alice.met": true,
+      "chapter.days_passed": 0,
+      "plugin.fishing.total_caught": 3
+    },
+    "chapter": {
+      "id": "019a7a00-03e8-7e8e-9f34-b5a38f4a780b",
+      "entered_at": 0
+    },
+    "scene": null,
+    "history": {
+      "selection_count": 2,
+      "scenes": {
+        "019a7a00-0fa0-755e-a143-bcfdef94a367": {
+          "plays": 1,
+          "starts": 1,
+          "last_selection": 0
+        },
+        "019a7a00-1388-7f6b-b667-94bbd1305982": {
+          "plays": 1,
+          "starts": 1,
+          "last_selection": 1
+        }
+      },
+      "groups": {},
+      "chapters": {
+        "019a7a00-03e8-7e8e-9f34-b5a38f4a780b": {
+          "entries": 1,
+          "completed": false
+        }
+      },
+      "events_since_selection": [
+        "fishing.completed"
+      ]
+    },
+    "plugins": {
+      "fishing": {
+        "plugin_version": "1.0.0",
+        "data_version": 1,
+        "data": {
+          "rod_level": 2,
+          "tutorial_seen": true
+        }
+      }
+    },
+    "backlog": [
+      {
+        "path": "019a7a00-0fa0-755e-a143-bcfdef94a367/019a7a00-2710-730c-a8a2-c3737040ab76",
+        "speaker": null
+      },
+      {
+        "path": "019a7a00-1388-7f6b-b667-94bbd1305982/019a7a00-3a98-732b-89dd-170487226b34",
+        "speaker": "019a7a00-0bb8-7dc0-b468-e39508f1443d",
+        "vars": {
+          "global.player_money": 100
+        }
+      },
+      {
+        "path": "019a7a00-1388-7f6b-b667-94bbd1305982/019a7a00-4268-71d6-977e-cf1637d45f1b/019a7a00-4650-7571-a41a-c83fdebea0ae",
+        "speaker": null
+      },
+      {
+        "path": "019a7a00-1388-7f6b-b667-94bbd1305982/019a7a00-5dc0-7aff-afa3-e85b08375cdf",
+        "speaker": "019a7a00-0bb8-7dc0-b468-e39508f1443d"
+      }
+    ]
+  },
+  "integrity": "hmac-sha256-WUg1fVQ7ur04X33MeYRAPN9Rm0kgaD5LCpoVOAMpAkQ="
+}

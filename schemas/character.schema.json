@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.vnstudio.dev/1/character.schema.json",
+  "title": "characters/<id>.json",
+  "type": "object",
+  "required": [
+    "id",
+    "key",
+    "name"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/EntityId"
+    },
+    "key": {
+      "description": "Nome legível e estável do personagem, usado nas referências de variáveis (character.<key>.affection) e na interpolação de texto. Gerado pelo Studio a partir do nome na criação; não muda quando o nome muda.",
+      "$ref": "common.schema.json#/$defs/Id"
+    },
+    "renamed_from": {
+      "description": "Keys anteriores do personagem (Data Model §12), aplicadas ao carregar saves antigos.",
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/Id"
+      },
+      "uniqueItems": true
+    },
+    "name": {
+      "$ref": "common.schema.json#/$defs/LocalizedText"
+    },
+    "display_name": {
+      "description": "Nome exibido na caixa de diálogo, quando diferente de 'name'. Pode interpolar variáveis (ex.: '{global.player_name}').",
+      "$ref": "common.schema.json#/$defs/LocalizedText"
+    },
+    "color": {
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{6}$"
+    },
+    "expressions": {
+      "description": "Mapa expressão → asset de sprite.",
+      "type": "object",
+      "propertyNames": {
+        "$ref": "common.schema.json#/$defs/Id"
+      },
+      "additionalProperties": {
+        "$ref": "common.schema.json#/$defs/AssetRef"
+      }
+    },
+    "default_expression": {
+      "$ref": "common.schema.json#/$defs/Id"
+    },
+    "voice": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "blip": {
+          "$ref": "common.schema.json#/$defs/AssetRef"
+        }
+      }
+    },
+    "initial_values": {
+      "description": "Sobrescreve o default de variáveis de personagem para este personagem (chave = key).",
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "common.schema.json#/$defs/Literal"
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

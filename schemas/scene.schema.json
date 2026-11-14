@@ -1,0 +1,825 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.vnstudio.dev/1/scene.schema.json",
+  "title": "scenes/<capitulo>/<id>.json",
+  "description": "Uma cena: metadados de agendamento + grafo plano de nós. Um arquivo por cena para reduzir conflitos de merge no Git.",
+  "type": "object",
+  "required": [
+    "id",
+    "chapter",
+    "nodes"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/EntityId"
+    },
+    "chapter": {
+      "description": "Capítulo dono da cena, ou null para cena global (candidata em qualquer capítulo que inclua cenas globais).",
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "scheduling": {
+      "$ref": "#/$defs/Scheduling"
+    },
+    "variables": {
+      "description": "Variáveis locais (scene.<key>). Reiniciadas a cada execução da cena e descartadas ao terminar.",
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/VariableDefinition"
+      }
+    },
+    "start": {
+      "description": "Nó inicial. Padrão: o primeiro de 'nodes'.",
+      "$ref": "common.schema.json#/$defs/EntityId"
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/Node"
+      }
+    }
+  },
+  "$defs": {
+    "Scheduling": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "description": "scheduled (padrão): candidata ao Scene Scheduler. manual: só é executada por link direto (entry_scene, fallback_scene, end.then.scene, SceneAPI.request de plugin autorizado).",
+          "enum": [
+            "scheduled",
+            "manual"
+          ]
+        },
+        "priority": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000,
+          "default": 100
+        },
+        "conditions": {
+          "$ref": "common.schema.json#/$defs/ConditionList"
+        },
+        "max_plays": {
+          "description": "Quantas vezes a cena pode ser concluída. Padrão 1. null = ilimitado.",
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cooldown": {
+          "description": "Número de pontos de seleção que devem passar antes de a cena voltar a ser elegível. Padrão 0.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "exclusive_groups": {
+          "description": "Grupos (definidos no capítulo ou no projeto) de que esta cena participa.",
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/Id"
+          },
+          "uniqueItems": true
+        },
+        "weight": {
+          "description": "Peso no sorteio quando o capítulo usa tie_breaker=weighted_random. Padrão 1.",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "order": {
+          "description": "Ordem de autoria usada no desempate determinístico. Cenas sem 'order' vêm depois de todas as que têm 'order' e, entre si, ficam na ordem do id (Runtime Spec §4.3).",
+          "type": "integer"
+        }
+      }
+    },
+    "NodeBase": {
+      "type": "object",
+      "required": [
+        "id",
+        "type"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        "type": {
+          "type": "string"
+        },
+        "next": {
+          "description": "Próximo nó. Ausente = nó seguinte do array; no último nó = fim da cena.",
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        "note": {
+          "description": "Comentário do autor; ignorado pelo runtime.",
+          "type": "string"
+        },
+        "editor": {
+          "description": "Dados de layout do Studio (posição no grafo etc.); ignorado pelo runtime.",
+          "type": "object"
+        },
+        "unresolved": {
+          "description": "Passo incompleto criado pela importação de roteiro ou por um plugin (ex.: asset ou personagem não encontrado). O validador avisa (W013) e bloqueia a exportação.",
+          "type": "object",
+          "required": [
+            "reason"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "reason": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "Transition": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "none",
+            "fade",
+            "dissolve",
+            "slide_left",
+            "slide_right"
+          ]
+        },
+        "duration": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "Node": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/LineNode"
+        },
+        {
+          "$ref": "#/$defs/ChoiceNode"
+        },
+        {
+          "$ref": "#/$defs/InteractNode"
+        },
+        {
+          "$ref": "#/$defs/EffectsNode"
+        },
+        {
+          "$ref": "#/$defs/BranchNode"
+        },
+        {
+          "$ref": "#/$defs/JumpNode"
+        },
+        {
+          "$ref": "#/$defs/BackgroundNode"
+        },
+        {
+          "$ref": "#/$defs/ShowNode"
+        },
+        {
+          "$ref": "#/$defs/HideNode"
+        },
+        {
+          "$ref": "#/$defs/AudioNode"
+        },
+        {
+          "$ref": "#/$defs/WaitNode"
+        },
+        {
+          "$ref": "#/$defs/EmitNode"
+        },
+        {
+          "$ref": "#/$defs/PluginNode"
+        },
+        {
+          "$ref": "#/$defs/EndNode"
+        }
+      ]
+    },
+    "LineNode": {
+      "description": "Fala ou narração.",
+      "allOf": [
+        {
+          "$ref": "#/$defs/NodeBase"
+        }
+      ],
+      "required": [
+        "text"
+      ],
+      "properties": {
+        "type": {
+          "const": "line"
+        },
+        "speaker": {
+          "description": "ID do personagem, ou null/ausente para narração.",
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/EntityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "text": {
+          "$ref": "common.schema.json#/$defs/LocalizedText"
+        },
+        "expression": {
+          "$ref": "common.schema.json#/$defs/Id"
+        },
+        "voice": {
+          "$ref": "common.schema.json#/$defs/AssetRef"
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "ChoiceNode": {
+      "description": "Menu de escolhas. Cada opção define o próximo nó em 'goto'. 'next' do nó (ou o nó seguinte do array) é usado quando nenhuma opção está visível e pelas opções sem 'goto'.",
+      "allOf": [
+        {
+          "$ref": "#/$defs/NodeBase"
+        }
+      ],
+      "required": [
+        "options"
+      ],
+      "properties": {
+        "type": {
+          "const": "choice"
+        },
+        "prompt": {
+          "$ref": "common.schema.json#/$defs/LocalizedText"
+        },
+        "speaker": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/EntityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "record": {
+          "description": "Variável que recebe o 'value' da opção escolhida (ou o id da opção, se ela não tiver 'value'). Tipo string ou enum; num enum, todo 'value' deve estar em constraints.values (R016). Ex.: scene.current_choice.",
+          "$ref": "common.schema.json#/$defs/WritableVariableRef"
+        },
+        "options": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "text"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/EntityId"
+              },
+              "text": {
+                "$ref": "common.schema.json#/$defs/LocalizedText"
+              },
+              "value": {
+                "description": "Valor legível gravado em 'record' quando esta opção é escolhida.",
+                "$ref": "common.schema.json#/$defs/Id"
+              },
+              "visible_if": {
+                "$ref": "common.schema.json#/$defs/ConditionList"
+              },
+              "enabled_if": {
+                "description": "Visível mas desabilitada (acinzentada) quando falsa.",
+                "$ref": "common.schema.json#/$defs/ConditionList"
+              },
+              "effects": {
+                "$ref": "common.schema.json#/$defs/EffectList"
+              },
+              "goto": {
+                "$ref": "common.schema.json#/$defs/EntityId",
+                "description": "Próximo nó. Ausente = segue 'next' do nó de escolha (caso da importação de roteiro, Req §10)."
+              }
+            }
+          }
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "EffectsNode": {
+      "description": "Aplica uma lista de efeitos como uma transação.",
+      "allOf": [
+        {
+          "$ref": "#/$defs/NodeBase"
+        }
+      ],
+      "required": [
+        "effects"
+      ],
+      "properties": {
+        "type": {
+          "const": "effects"
+        },
+        "effects": {
+          "$ref": "common.schema.json#/$defs/EffectList"
+        },
+        "on_fail": {
+          "description": "Nó para onde ir se a transação falhar (ex.: on_overflow: reject por falta de dinheiro). Ausente = segue o fluxo normal. Falha de restrição não é erro de conteúdo (Runtime Spec §5.2).",
+          "$ref": "common.schema.json#/$defs/EntityId"
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "BranchNode": {
+      "description": "Desvio condicional: primeiro caso verdadeiro vence; senão 'else' (ou 'next').",
+      "allOf": [
+        {
+          "$ref": "#/$defs/NodeBase"
+        }
+      ],
+      "required": [
+        "cases"
+      ],
+      "properties": {
+        "type": {
+          "const": "branch"
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "conditions",
+              "goto"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/EntityId",
+                "description": "Identifica o caso (merge no Git e endereçamento @<id> do Editor SDK §10.4.1)."
+              },
+              "conditions": {
+                "$ref": "common.schema.json#/$defs/ConditionList"
+              },
+              "goto": {
+                "$ref": "common.schema.json#/$defs/EntityId"
+              }
+            }
+          }
+        },
+        "else": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "JumpNode": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/NodeBase"
+        }
+      ],
+      "required": [
+        "goto"
+      ],
+      "properties": {
+        "type": {
+          "const": "jump"
+        },
+        "goto": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "BackgroundNode": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/NodeBase"
+        }
+      ],
+      "properties": {
+        "type": {
+          "const": "background"
+        },
+        "asset": {
+          "$ref": "common.schema.json#/$defs/AssetRef"
+        },
+        "transition": {
+          "$ref": "#/$defs/Transition"
+        },
+        "set": {
+          "description": "Cenário composto (sets/<id>.json) no lugar de um asset; seus hotspots cosméticos ficam ativos em falas e escolhas (UI Spec §5).",
+          "$ref": "common.schema.json#/$defs/Id"
+        }
+      },
+      "unevaluatedProperties": false,
+      "oneOf": [
+        {
+          "required": [
+            "asset"
+          ]
+        },
+        {
+          "required": [
+            "set"
+          ]
+        }
+      ]
+    },
+    "ShowNode": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/NodeBase"
+        }
+      ],
+      "required": [
+        "character"
+      ],
+      "properties": {
+        "type": {
+          "const": "show"
+        },
+        "character": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        "expression": {
+          "$ref": "common.schema.json#/$defs/Id"
+        },
+        "position": {
+          "oneOf": [
+            {
+              "enum": [
+                "far_left",
+                "left",
+                "center",
+                "right",
+                "far_right"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          ]
+        },
+        "transition": {
+          "$ref": "#/$defs/Transition"
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "HideNode": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/NodeBase"
+        }
+      ],
+      "required": [
+        "character"
+      ],
+      "properties": {
+        "type": {
+          "const": "hide"
+        },
+        "character": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/EntityId"
+            },
+            {
+              "const": "*"
+            }
+          ]
+        },
+        "transition": {
+          "$ref": "#/$defs/Transition"
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "AudioNode": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/NodeBase"
+        }
+      ],
+      "required": [
+        "action",
+        "channel"
+      ],
+      "properties": {
+        "type": {
+          "const": "audio"
+        },
+        "action": {
+          "enum": [
+            "play",
+            "stop"
+          ]
+        },
+        "channel": {
+          "enum": [
+            "music",
+            "ambient",
+            "sfx",
+            "voice"
+          ]
+        },
+        "asset": {
+          "$ref": "common.schema.json#/$defs/AssetRef"
+        },
+        "loop": {
+          "type": "boolean"
+        },
+        "volume": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "fade": {
+          "type": "number",
+          "minimum": 0
+        },
+        "caption": {
+          "description": "Legenda exibida com PlayerSettings.subtitles (ex.: '[ondas quebrando]'). Traduzível pelo caminho <cena>/<nó>.",
+          "$ref": "common.schema.json#/$defs/LocalizedText"
+        }
+      },
+      "if": {
+        "properties": {
+          "action": {
+            "const": "play"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "asset"
+        ]
+      },
+      "unevaluatedProperties": false
+    },
+    "WaitNode": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/NodeBase"
+        }
+      ],
+      "required": [
+        "seconds"
+      ],
+      "properties": {
+        "type": {
+          "const": "wait"
+        },
+        "seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "skippable": {
+          "type": "boolean"
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "EmitNode": {
+      "description": "Emite um evento narrativo. Só o namespace story (R020).",
+      "allOf": [
+        {
+          "$ref": "#/$defs/NodeBase"
+        }
+      ],
+      "required": [
+        "event"
+      ],
+      "properties": {
+        "type": {
+          "const": "emit"
+        },
+        "event": {
+          "$ref": "common.schema.json#/$defs/EventName"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "common.schema.json#/$defs/ValueExpr"
+          }
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "PluginNode": {
+      "description": "Executa uma atividade declarada por um plugin (ex.: minigame). A cena fica suspensa até a atividade terminar.",
+      "allOf": [
+        {
+          "$ref": "#/$defs/NodeBase"
+        }
+      ],
+      "required": [
+        "activity"
+      ],
+      "properties": {
+        "type": {
+          "const": "plugin"
+        },
+        "activity": {
+          "description": "<namespace>.<atividade>, ex.: fishing.fishing_game.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+        },
+        "params": {
+          "description": "Validado contra o params_schema da atividade no plugin.json.",
+          "type": "object"
+        },
+        "on_result": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "effects": {
+              "description": "Efeitos aplicados com o payload do resultado disponível via {\"result\": \"campo\"}.",
+              "$ref": "common.schema.json#/$defs/EffectList"
+            },
+            "outcomes": {
+              "description": "Mapa outcome → nó. Outcomes devem existir na declaração da atividade.",
+              "type": "object",
+              "propertyNames": {
+                "$ref": "common.schema.json#/$defs/Id"
+              },
+              "additionalProperties": {
+                "$ref": "common.schema.json#/$defs/EntityId"
+              }
+            }
+          }
+        },
+        "on_error": {
+          "description": "Nó para onde ir se a atividade falhar ou o plugin estiver ausente. Padrão: 'next'.",
+          "$ref": "common.schema.json#/$defs/EntityId"
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "EndNode": {
+      "description": "Termina a cena e diz ao Narrative Engine o que fazer em seguida.",
+      "allOf": [
+        {
+          "$ref": "#/$defs/NodeBase"
+        }
+      ],
+      "properties": {
+        "type": {
+          "const": "end"
+        },
+        "then": {
+          "description": "schedule (padrão): ponto de seleção normal. {scene}: pedido de cena seguinte do mesmo capítulo ou global (R014) — aceito se a cena for elegível ou 'manual', senão cai na seleção normal. end_chapter / end_game: encerramento explícito.",
+          "oneOf": [
+            {
+              "enum": [
+                "schedule",
+                "end_chapter",
+                "end_game"
+              ]
+            },
+            {
+              "type": "object",
+              "required": [
+                "scene"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "scene": {
+                  "$ref": "common.schema.json#/$defs/EntityId"
+                }
+              }
+            }
+          ]
+        },
+        "ending": {
+          "description": "ID do final alcançado. Só tem efeito com then=end_game (W011 em outro caso). Registrado no perfil (galeria de finais).",
+          "$ref": "common.schema.json#/$defs/Id"
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "InteractNode": {
+      "description": "Escolha espacial: o jogador clica em áreas da cena (UI Spec §6). Mesma semântica da choice.",
+      "allOf": [
+        {
+          "$ref": "#/$defs/NodeBase"
+        }
+      ],
+      "required": [
+        "hotspots"
+      ],
+      "properties": {
+        "type": {
+          "const": "interact"
+        },
+        "prompt": {
+          "$ref": "common.schema.json#/$defs/LocalizedText"
+        },
+        "record": {
+          "$ref": "common.schema.json#/$defs/WritableVariableRef",
+          "description": "Recebe o value do hotspot clicado (ou o id). Tipo string ou enum (R016)."
+        },
+        "hotspots": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "area"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/EntityId"
+              },
+              "label": {
+                "$ref": "common.schema.json#/$defs/LocalizedText"
+              },
+              "value": {
+                "$ref": "common.schema.json#/$defs/Id"
+              },
+              "area": {
+                "$ref": "set.schema.json#/$defs/Area"
+              },
+              "cursor": {
+                "$ref": "set.schema.json#/$defs/Cursor"
+              },
+              "highlight": {
+                "$ref": "set.schema.json#/$defs/Highlight"
+              },
+              "visible_if": {
+                "$ref": "common.schema.json#/$defs/ConditionList"
+              },
+              "enabled_if": {
+                "$ref": "common.schema.json#/$defs/ConditionList"
+              },
+              "once": {
+                "type": "boolean",
+                "description": "Some depois de usado nesta execução da cena."
+              },
+              "effects": {
+                "$ref": "common.schema.json#/$defs/EffectList"
+              },
+              "goto": {
+                "$ref": "common.schema.json#/$defs/EntityId"
+              }
+            }
+          }
+        },
+        "exit": {
+          "type": "object",
+          "required": [
+            "label"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "label": {
+              "$ref": "common.schema.json#/$defs/LocalizedText"
+            },
+            "goto": {
+              "$ref": "common.schema.json#/$defs/EntityId"
+            },
+            "style": {
+              "$ref": "common.schema.json#/$defs/Id"
+            }
+          }
+        }
+      },
+      "unevaluatedProperties": false
+    }
+  }
+}

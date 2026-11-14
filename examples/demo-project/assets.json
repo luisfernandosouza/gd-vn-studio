@@ -1,0 +1,151 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/1/assets.schema.json",
+  "assets": {
+    "bg/beach_day": {
+      "path": "backgrounds/beach_day.png",
+      "type": "background"
+    },
+    "bg/pier_sunset": {
+      "path": "backgrounds/pier_sunset.png",
+      "type": "background"
+    },
+    "char/alice/neutral": {
+      "path": "characters/alice/neutral.png",
+      "type": "sprite",
+      "anchor": [
+        0.5,
+        1.0
+      ]
+    },
+    "char/alice/happy": {
+      "path": "characters/alice/happy.png",
+      "type": "sprite",
+      "anchor": [
+        0.5,
+        1.0
+      ]
+    },
+    "char/alice/sad": {
+      "path": "characters/alice/sad.png",
+      "type": "sprite",
+      "anchor": [
+        0.5,
+        1.0
+      ]
+    },
+    "music/waves": {
+      "path": "audio/music/waves.ogg",
+      "type": "audio_music"
+    },
+    "ui/icon": {
+      "path": "ui/icon.png",
+      "type": "image"
+    },
+    "ui/textbox": {
+      "path": "ui/textbox.png",
+      "type": "image",
+      "nine_slice": [
+        24,
+        24,
+        24,
+        24
+      ]
+    },
+    "ui/logo": {
+      "path": "ui/logo.png",
+      "type": "image"
+    },
+    "font/body": {
+      "path": "fonts/Nunito-Regular.ttf",
+      "type": "font"
+    },
+    "bg/sky_day": {
+      "path": "backgrounds/title/sky_day.png",
+      "type": "background"
+    },
+    "bg/sky_night": {
+      "path": "backgrounds/title/sky_night.png",
+      "type": "background"
+    },
+    "bg/sea": {
+      "path": "backgrounds/title/sea.png",
+      "type": "background"
+    },
+    "obj/lamp_off": {
+      "path": "objects/lamp_off.png",
+      "type": "image"
+    },
+    "obj/lamp_on": {
+      "path": "objects/lamp_on.png",
+      "type": "image"
+    },
+    "obj/shell": {
+      "path": "objects/shell.png",
+      "type": "image"
+    },
+    "ui/btn_gold": {
+      "path": "ui/btn_gold.png",
+      "type": "image",
+      "nine_slice": [
+        20,
+        20,
+        20,
+        20
+      ]
+    },
+    "ui/btn_gold_hover": {
+      "path": "ui/btn_gold_hover.png",
+      "type": "image",
+      "nine_slice": [
+        20,
+        20,
+        20,
+        20
+      ]
+    },
+    "ui/btn_gold_down": {
+      "path": "ui/btn_gold_down.png",
+      "type": "image",
+      "nine_slice": [
+        20,
+        20,
+        20,
+        20
+      ]
+    },
+    "ui/btn_gold_off": {
+      "path": "ui/btn_gold_off.png",
+      "type": "image",
+      "nine_slice": [
+        20,
+        20,
+        20,
+        20
+      ]
+    },
+    "ui/icon_info": {
+      "path": "ui/icon_info.png",
+      "type": "image"
+    },
+    "sfx/click": {
+      "path": "audio/sfx/click.ogg",
+      "type": "audio_sfx"
+    },
+    "sfx/hover": {
+      "path": "audio/sfx/hover.ogg",
+      "type": "audio_sfx"
+    },
+    "sfx/shell": {
+      "path": "audio/sfx/shell.ogg",
+      "type": "audio_sfx"
+    },
+    "font/title": {
+      "path": "fonts/Lobster-Regular.ttf",
+      "type": "font"
+    },
+    "font/noto_sans_jp": {
+      "path": "fonts/NotoSansJP-Regular.ttf",
+      "type": "font"
+    }
+  }
+}

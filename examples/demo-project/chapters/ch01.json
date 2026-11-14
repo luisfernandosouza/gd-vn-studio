@@ -1,0 +1,37 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/1/chapter.schema.json",
+  "id": "019a7a00-03e8-7e8e-9f34-b5a38f4a780b",
+  "title": "A praia",
+  "variables": [
+    {
+      "key": "days_passed",
+      "type": "integer",
+      "default": 0,
+      "persistence": "save"
+    }
+  ],
+  "entry_scene": "019a7a00-0fa0-755e-a143-bcfdef94a367",
+  "exclusive_groups": [
+    {
+      "id": "evening_event",
+      "description": "Só um evento noturno por capítulo."
+    }
+  ],
+  "completion": {
+    "conditions": [
+      {
+        "variable": "chapter.days_passed",
+        "operator": "greater_than_or_equal",
+        "value": 3
+      }
+    ],
+    "on_exhausted": "scene",
+    "fallback_scene": "019a7a00-1b58-719e-a5e5-9bc09a99b364"
+  },
+  "next": [
+    {
+      "chapter": "019a7a00-07d0-79cc-8832-8bb38a8122f3",
+      "priority": 100
+    }
+  ]
+}

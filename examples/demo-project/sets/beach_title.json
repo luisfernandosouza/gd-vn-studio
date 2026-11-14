@@ -1,0 +1,74 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/1/set.schema.json",
+  "id": "beach_title",
+  "description": "Praia do menu inicial: céu muda à noite depois do final do festival; a lâmpada acende ao clicar.",
+  "layers": [
+    {
+      "id": "sky",
+      "asset": "bg/sky_day",
+      "parallax": 0.01,
+      "states": {
+        "night": {
+          "asset": "bg/sky_night"
+        }
+      }
+    },
+    {
+      "id": "sea",
+      "asset": "bg/sea",
+      "parallax": 0.02,
+      "animation": {
+        "kind": "float",
+        "amount": 6,
+        "duration": 4,
+        "loop": true
+      }
+    },
+    {
+      "id": "lamp",
+      "asset": "obj/lamp_off",
+      "position": [
+        0.8,
+        0.62
+      ],
+      "states": {
+        "on": {
+          "asset": "obj/lamp_on"
+        }
+      }
+    },
+    {
+      "id": "shell",
+      "asset": "obj/shell",
+      "position": [
+        0.575,
+        0.845
+      ]
+    }
+  ],
+  "hotspots": [
+    {
+      "id": "lamp_click",
+      "area": {
+        "layer": "lamp"
+      },
+      "label": "Lâmpada",
+      "cursor": "use",
+      "highlight": "outline",
+      "on_press": [
+        {
+          "do": "toggle_state",
+          "target": "lamp",
+          "states": [
+            "default",
+            "on"
+          ]
+        },
+        {
+          "do": "play_sfx",
+          "asset": "sfx/click"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.vnstudio.dev/1/plugin-lock.schema.json",
+  "title": "plugin-lock.json",
+  "description": "Gerado pelo Dependency Resolver. Versionado no Git. O Build System só usa o que está aqui e recusa pacotes cujo hash não confere. O mesmo schema vale para .vnstudio/plugin-lock.local.json, fora do Git, que guarda vínculos de desenvolvimento e sobrepõe entradas deste arquivo só naquela máquina.",
+  "type": "object",
+  "required": [
+    "lock_version",
+    "plugins"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "lock_version": {
+      "const": 1
+    },
+    "plugins": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]{1,38}\\.[a-z][a-z0-9-]{1,63}$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "version",
+          "namespace",
+          "resolved",
+          "enabled"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "version": {
+            "$ref": "common.schema.json#/$defs/SemVer"
+          },
+          "namespace": {
+            "$ref": "common.schema.json#/$defs/Namespace"
+          },
+          "resolved": {
+            "description": "URL ou caminho exato do pacote usado.",
+            "type": "string"
+          },
+          "integrity": {
+            "description": "SHA-256 do arquivo .vnplugin.",
+            "$ref": "common.schema.json#/$defs/Hash"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "trust": {
+            "enum": [
+              "official",
+              "reviewed",
+              "local"
+            ]
+          },
+          "requested_by": {
+            "description": "'project' ou ids dos plugins que exigiram este como dependência.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "dependencies": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "common.schema.json#/$defs/SemVer"
+            }
+          },
+          "link": {
+            "description": "Vínculo de desenvolvimento com uma pasta local (fonte path:). Só aparece em .vnstudio/plugin-lock.local.json. O Studio lê os arquivos direto da pasta, sem pacote nem hash. A exportação recusa o vínculo até o plugin ser empacotado (P013).",
+            "type": "boolean"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "link": {
+                  "const": true
+                }
+              },
+              "required": [
+                "link"
+              ]
+            },
+            "then": {
+              "properties": {
+                "trust": {
+                  "const": "local"
+                }
+              }
+            },
+            "else": {
+              "required": [
+                "integrity"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}
