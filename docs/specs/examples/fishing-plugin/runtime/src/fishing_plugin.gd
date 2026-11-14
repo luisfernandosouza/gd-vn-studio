@@ -52,14 +52,18 @@ func _vn_start_activity(activity_id: StringName, params: Dictionary, handle: VNA
 	var score: int = r.score
 	var won := fish_count >= int(params.target_fish)
 
-	# Variáveis próprias: o autor pode usá-las em condições, mas não alterá-las.
-	_ctx.narrative.variables.add_value("~total_caught", fish_count)
+	# Recordes valem na história e no modo livre (Plugin SDK §9.1).
+	_ctx.profile.submit_record(&"high_scores", score, {"difficulty": params.difficulty, "fish": fish_count})
+	# best_score é variável de perfil: gravável também no modo livre.
 	if score > int(_ctx.narrative.variables.get_value("~best_score", 0)):
 		_ctx.narrative.variables.set_value("~best_score", score)
-	if won and _rod_level < 3:
-		_rod_level += 1
 
-	_ctx.narrative.events.emit("fishing.completed", {"fish_count": fish_count, "score": score})
+	if handle.mode == &"story":
+		# Só na história: estado da partida e eventos (no modo livre seriam recusados).
+		_ctx.narrative.variables.add_value("~total_caught", fish_count)
+		if won and _rod_level < 3:
+			_rod_level += 1
+		_ctx.narrative.events.emit("fishing.completed", {"fish_count": fish_count, "score": score})
 	handle.complete(&"won" if won else &"lost", {"won": won, "fish_count": fish_count, "score": score})
 
 
@@ -86,6 +90,7 @@ func _vn_migrate_save_data(data: Variant, _from_version: int) -> Variant:
 
 
 func _on_rare_fish_caught(species: String) -> void:
+	# No modo livre o emit é só registrado no log (Plugin SDK §6.1).
 	_ctx.narrative.events.emit("fishing.rare_fish_caught", {"species": species})
 	_ctx.audio.play("res://vn_plugins/fishing/runtime/assets/rare_fish.ogg")  # sfx curto: o handle não é guardado
 

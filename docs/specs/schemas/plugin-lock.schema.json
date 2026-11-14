@@ -68,18 +68,36 @@
           "link": {
             "description": "Vínculo de desenvolvimento com uma pasta local (fonte path:). Só aparece em .vnstudio/plugin-lock.local.json. O Studio lê os arquivos direto da pasta, sem pacote nem hash. A exportação recusa o vínculo até o plugin ser empacotado (P013).",
             "type": "boolean"
+          },
+          "embedded": {
+            "description": "Plugin embutido no repositório do jogo (fonte path: para uma pasta, spec 09 §3.2). Vai para o Git com o projeto; o Studio lê a pasta direto e o Build System empacota e calcula o integrity no build.",
+            "type": "boolean"
           }
         },
         "allOf": [
           {
             "if": {
-              "properties": {
-                "link": {
-                  "const": true
+              "anyOf": [
+                {
+                  "properties": {
+                    "link": {
+                      "const": true
+                    }
+                  },
+                  "required": [
+                    "link"
+                  ]
+                },
+                {
+                  "properties": {
+                    "embedded": {
+                      "const": true
+                    }
+                  },
+                  "required": [
+                    "embedded"
+                  ]
                 }
-              },
-              "required": [
-                "link"
               ]
             },
             "then": {
@@ -87,6 +105,11 @@
                 "trust": {
                   "const": "local"
                 }
+              },
+              "not": {
+                "required": [
+                  "integrity"
+                ]
               }
             },
             "else": {

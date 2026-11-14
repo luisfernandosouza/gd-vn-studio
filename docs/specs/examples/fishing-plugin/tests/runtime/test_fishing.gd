@@ -17,6 +17,16 @@ func test_vence_quem_fisga_sempre() -> void:
 	assert_true(h.emitted("fishing.completed"))
 
 
+func test_modo_livre_grava_recorde_e_nao_mexe_na_partida() -> void:
+	var h := VNTestHarness.new(MANIFEST, {"seed": 42})
+	var input := VNScriptedInput.new().repeat(&"vn_confirm", 0.1)
+	var r := await h.run_activity(&"fishing_game", EASY, input, 600.0, &"free_play")
+	assert_eq(h.records(&"high_scores")[0].score, r.payload.score)
+	assert_eq(h.get_value("plugin.fishing.best_score"), r.payload.score)   # variável de perfil
+	assert_eq(h.get_value("plugin.fishing.total_caught"), 0)               # estado da partida não muda
+	assert_false(h.emitted("fishing.completed"))
+
+
 func test_perde_sem_input() -> void:
 	var h := VNTestHarness.new(MANIFEST, {"seed": 42})
 	var r := await h.run_activity(&"fishing_game", EASY)

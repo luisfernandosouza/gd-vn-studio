@@ -67,9 +67,10 @@ Cada etapa pode falhar com um código `B0xx` (§13). Falhas que dependem de uma 
 ### 3.2. Dependências
 
 1. Lê `plugin-lock.json`. Plugins com `enabled: false` não entram.
-2. Para cada plugin, pega o `.vnplugin` do cache; se não estiver lá, baixa de `resolved`.
+2. Para cada plugin, pega o `.vnplugin` do cache; se não estiver lá, baixa de `resolved`. Um pacote guardado (`path:` para um `.vnplugin`) é lido do repositório.
 3. Calcula o SHA-256 do arquivo e compara com `integrity`. Diferente: B002.
-4. Consulta o catálogo (quando houver rede) e falha com B003 se a versão estiver `revoked` e o autor não tiver confirmado explicitamente (SDK §13.3). Sem rede, segue com aviso B015.
+4. Plugin embutido (`embedded: true`, spec 09 §3.2): empacota a pasta `vn_plugins/<namespace>/` com as regras do pacote reprodutível (Plugin SDK §2.1–§2.2), calcula o `integrity` e o registra no manifesto do build (§9.2). Não há o que conferir, porque o código é do próprio projeto; o histórico do Git é a referência.
+5. Consulta o catálogo (quando houver rede) e falha com B003 se a versão estiver `revoked` e o autor não tiver confirmado explicitamente (SDK §13.3). Sem rede, segue com aviso B015.
 
 ## 4. Build Staging
 
@@ -307,7 +308,8 @@ Gravado na pasta de saída e, numa forma resumida (`build_id`, `version`, `conte
   "type": "release",
   "tools": { "studio": "1.0.0", "runtime": "1.0.0", "runtime_sdk": "1.0.0", "godot": "4.7.2", "godot_label": "4.7.2-stable" },
   "plugins": [
-    { "id": "vnstudio.fishing", "version": "1.0.0", "integrity": "sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=" }
+    { "id": "vnstudio.fishing", "version": "1.0.0", "integrity": "sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=" },
+    { "id": "seaside_story.quiz", "version": "0.3.0", "integrity": "sha256-…", "embedded": true }
   ],
   "locales": ["pt-BR", "en"],
   "protection": { "encrypt_pck": false, "save_tamper": "flag", "save_key_id": "5f1c0a93" },

@@ -29,6 +29,8 @@ meu-projeto/
 ├── assets.json             # registro de assets (ID → arquivo)
 ├── plugins.json            # plugins usados, permissões concedidas, configuração
 ├── plugin-lock.json        # gerado: versões e hashes fixados
+├── plugins/                # minijogos embutidos neste jogo (opcional; spec 09 §3.2)
+├── vendor/plugins/         # pacotes .vnplugin guardados no repositório (opcional; spec 09 §3.3)
 ├── theme.json              # estilos: fontes, cores, caixa de diálogo, botões
 ├── ui/                     # telas: título, pausa, configurações… (UI Spec)
 │   └── title.json
@@ -508,6 +510,9 @@ O JSON Schema garante a forma. O Content Validator (implementação de referênc
 | P016 | erro | Capacidade de editor `network` pedida por plugin que não é oficial |
 | P017 | erro | Variável de plugin com `access`/`characters`, `derived` lendo fora do próprio namespace, ou pedido de variável de outro plugin sem dependência declarada (ou para escrita) |
 | P018 | erro | Asset, cena ou personagem citado num campo `vn-asset`/`vn-scene`/`vn-character` da `config` ou dos `params` não existe |
+| P019 | erro | Plugin declara `records` ou `profile` sem pedir a capacidade `profile.data` |
+| P020 | erro | `play_activity` cita atividade inexistente ou sem `free_play` |
+| P021 | erro | Fonte `path:` de `plugins.json` não existe, ou a pasta de um plugin embutido não tem exatamente um `vn_plugins/<namespace>/plugin.json` (spec 09 §3.2) |
 | W001 | aviso | Nó inalcançável |
 | W002 | aviso | Outcome de atividade sem destino explícito |
 | W003 | aviso | Tradução órfã |

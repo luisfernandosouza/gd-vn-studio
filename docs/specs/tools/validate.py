@@ -181,7 +181,7 @@ def ui_actions(lst):
         yield from ui_actions(a.get("else"))
         yield from ui_actions(a.get("then"))
 
-def check_ui(root, project, theme, theme_file, screens, sets, assets, resolve, check_style, set_parts, text_paths, vars_, endings):
+def check_ui(root, project, theme, theme_file, screens, sets, assets, resolve, check_style, set_parts, text_paths, vars_, endings, activities, manifests):
     """UI Spec §11: U001–U008."""
     stage_parts = set()
     for st_id in sets:
@@ -237,6 +237,13 @@ def check_ui(root, project, theme, theme_file, screens, sets, assets, resolve, c
                     elif ctx["title"] and d.get("persistence") != "profile": err("U004", where, f"{e['variable']}: no título, effects só em variáveis profile")
             if do == "emit" and not a["event"].startswith("story."): err("R020", where, f"emit de {a['event']}: só eventos story.*")
             if do == "set_setting": check_setting_value(a["setting"], a["value"], where)
+            if do == "play_activity":
+                if ctx["kind"] in ("pause", "hud"): err("U004", where, "play_activity só vale fora do jogo (título e telas abertas a partir dele)")
+                act = activities.get(a["activity"])
+                if act is None or "free_play" not in act[1]: err("P020", where, f"atividade {a['activity']} inexistente ou sem free_play")
+                else:
+                    merged = {**act[1]["free_play"].get("params", {}), **a.get("params", {})}
+                    for e in Draft202012Validator(act[1].get("params_schema", {})).iter_errors(merged): err("P004", where, f"params do modo livre: {e.message}")
             if do == "confirm":
                 ctx["conf"] += 1; text_paths.add(f"{ctx['path']}/confirm{ctx['conf']}")
                 check_markup(a["text"], where)
@@ -281,6 +288,11 @@ def check_ui(root, project, theme, theme_file, screens, sets, assets, resolve, c
                         if resolve(ref, None, None) is None: err("R019", ew, f"interpolação {{{ref}}}: variável inexistente ou fora de escopo")
                         elif title and not profile_ok(ref): err("U003", ew, f"{{{ref}}}: no título só valem variáveis profile, sys.endings.* e sys.ui.*")
             if e.get("tooltip"): text_paths.add(f"{tp}/tooltip")
+            if e.get("empty_text"): text_paths.add(f"{tp}/empty")
+            if e["type"] == "records_list":
+                ns, _, board = e["board"].partition(".")
+                m = next((m for m in manifests.values() if m["namespace"] == ns), None)
+                if m is None or board not in {r["id"] for r in m.get("records", [])}: err("U001", ew, f"quadro de recordes {e['board']} não existe")
             for o in e.get("options", []):
                 text_paths.add(f"{tp}/option/{o['value']}")
                 check_setting_value(e["bind"], o["value"], ew)
@@ -356,6 +368,19 @@ def main(root, plugin_dirs):
     lock = load(root / "plugin-lock.json") if (root / "plugin-lock.json").exists() else {"plugins": {}}
     local_lock = load(local_lock_file) if local_lock_file.exists() else {"plugins": {}}
     manifests, plugin_roots = {}, {}
+    # fontes path: (spec 09 §3): pacote guardado ou plugin embutido, cujo manifesto é carregado sozinho
+    plugin_dirs = list(plugin_dirs)
+    for pid, cfg in plugins_cfg["plugins"].items():
+        if not cfg["source"].startswith("path:"): continue
+        target = root / cfg["source"][5:]
+        if target.suffix == ".vnplugin":
+            if not target.is_file(): err("P021", f"plugins.json/{pid}", f"pacote {cfg['source'][5:]} não existe")
+            continue
+        found = sorted(target.glob("vn_plugins/*/plugin.json")) if target.is_dir() else []
+        if len(found) != 1:
+            err("P021", f"plugins.json/{pid}", f"{cfg['source'][5:]}: esperado exatamente um vn_plugins/<namespace>/plugin.json, achei {len(found)}")
+        elif found[0].parent.resolve() not in {Path(x).resolve() for x in plugin_dirs}:
+            plugin_dirs.append(found[0].parent)
     for d in plugin_dirs:
         m = check_schema(Path(d) / "plugin.json", "plugin.schema.json")
         manifests[m["id"]] = m; plugin_roots[m["id"]] = Path(d)
@@ -765,7 +790,7 @@ def main(root, plugin_dirs):
         for i, n in enumerate(nodes):
             if i not in seen: warn("W001", f"{where}#{n['id']}", "nó inalcançável")
 
-    check_ui(root, project, theme, theme_file, screens, sets, assets, resolve, check_style, set_parts, text_paths, vars_, endings)
+    check_ui(root, project, theme, theme_file, screens, sets, assets, resolve, check_style, set_parts, text_paths, vars_, endings, activities, manifests)
     for p in sorted((root / "locales").rglob("*.json")):
         for k, v in load(p)["strings"].items():
             if k.count("/") >= 1 and (k.split("/")[0] in scenes or k.split("/")[0] in ("ui", "sets")) and k not in text_paths:
@@ -827,6 +852,12 @@ def main(root, plugin_dirs):
         for d in m.get("variables", []):
             if "name" not in d: warn("W007", f"{pid}/variables", f"variável plugin.{m['namespace']}.{d['key']} sem 'name'; o Studio mostrará o nome técnico")
         caps = m.get("capabilities", {})
+        if (m.get("records") or m.get("profile")) and "profile.data" not in caps.get("runtime", []):
+            err("P019", pid, "records/profile exigem a capacidade profile.data")
+        for a in m.get("activities", []):
+            if "free_play" in a:
+                for e in Draft202012Validator(a.get("params_schema", {})).iter_errors(a["free_play"].get("params", {})):
+                    err("P004", f"{pid}/{a['id']}", f"free_play.params: {e.message}")
         if m.get("events", {}).get("subscribes") and "events.subscribe" not in caps.get("runtime", []):
             warn("W012", pid, "events.subscribes sem a capacidade events.subscribe")
         if "network" in caps.get("editor", []) and not pid.startswith("vnstudio."):

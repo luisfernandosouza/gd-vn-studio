@@ -44,7 +44,7 @@ ZIP com a estrutura do ADD §5.3. Regras:
 
 ### 2.4. Ambiente de desenvolvimento
 
-O repositório do plugin **é um projeto Godot** que o dev abre direto no editor. `vnplugin create` gera:
+O repositório do plugin **é um projeto Godot** que o dev abre direto no editor. O mesmo formato vale para um plugin embutido no repositório de um jogo (`plugins/<nome>/`) e para os plugins oficiais no repositório do produto; onde cada um mora está na spec 09 ([09-repositories-and-code-layout.md](09-repositories-and-code-layout.md)). `vnplugin create` gera:
 
 ```text
 fishing-plugin/                 # repositório Git = projeto Godot de desenvolvimento
@@ -122,6 +122,7 @@ Na instalação, o Plugin Manager mostra o pedido em linguagem simples ("Este pl
 | `characters.read` | Dados públicos de personagens (nome, cor, expressões) |
 | `scenes.request` | `scenes.request(id)` para as cenas listadas em `grants.scenes` |
 | `save.data` | Guardar dados próprios no save |
+| `profile.data` | Guardar dados próprios e recordes no perfil do jogador, que sobrevivem entre partidas (§9.1) |
 | `assets.read` | Carregar assets do projeto por ID |
 | `audio.play` | Tocar áudio nos canais `sfx`/`ambient` (música é do Narrative Engine); o runtime para os sons do plugin ao fim de cada atividade |
 | `ui.overlay` | Desenhar camada própria sobre o jogo |
@@ -151,7 +152,7 @@ Variáveis do próprio namespace não precisam de capacidade.
 |---|---|---|
 | `official` | Catálogo oficial, publisher `vnstudio` | Instala e executa |
 | `reviewed` | Catálogo oficial, plugin externo aprovado na revisão | Instala e executa |
-| `local` | `path:` ou GitHub fora do catálogo | Instala, mas **não executa** até o usuário confirmar explicitamente por projeto (ADD §8.2) |
+| `local` | `path:` (pacote guardado ou plugin embutido) ou GitHub fora do catálogo | Instala, mas **não executa** até o usuário confirmar explicitamente por projeto (ADD §8.2). A confirmação fica em `.vnstudio/`, por máquina (spec 09 §3.2) |
 
 Runtime plugins rodam no processo do Godot e **não são isolados** (ADD §8.2). A verificação de permissões do SDK protege contra erro, não contra código malicioso; contra isso valem revisão, hash e revogação (§13).
 
@@ -213,6 +214,9 @@ func _vn_load(data: Variant) -> void:
 func _vn_migrate_save_data(data: Variant, from_version: int) -> Variant:
     return data
 
+func _vn_migrate_profile_data(data: Variant, from_version: int) -> Variant:   # requer profile.data
+    return data
+
 func _vn_game_ended() -> void:
     pass
 
@@ -235,6 +239,7 @@ var scenes: VNSceneAPI             # scenes.request
 var assets: VNAssetAPI             # assets.read
 var audio: VNAudioAPI              # audio.play
 var ui: VNUIAPI                    # ui.overlay
+var profile: VNProfileAPI          # profile.data (§9.1)
 var rng: VNRandom                  # fluxo do plugin fora de atividades; reproduzível só com settings.reproducible_rng (Runtime Spec §12.2). Na atividade, use handle.rng
 var i18n: VNI18nAPI                # idioma do jogo e textos runtime/ do plugin (§5.7)
 var theme: VNThemeInfo             # aparência do projeto, somente leitura (§5.7)
@@ -372,6 +377,7 @@ class_name VNActivityHandle
 var activity_id: StringName
 var params: Dictionary            # validado e com defaults do schema
 var rng: VNRandom                 # fluxo próprio desta atividade (Runtime Spec §12.2)
+var mode: StringName              # &"story" (nó plugin de uma cena) ou &"free_play" (§6.1)
 func complete(outcome: StringName, payload: Dictionary = {}) -> void
 func fail(reason: String) -> void
 func is_active() -> bool
@@ -386,6 +392,20 @@ Regras:
 - Ao pular (`skippable`) ou por timeout, o runtime encerra o handle (`is_active()` passa a ser falso) **antes** de chamar `_vn_cancel_activity`. Assim o plugin pode fechar o minijogo no mesmo fluxo do `await` sem completar duas vezes.
 - No pulo, a cena segue pelo `default_outcome`, mas `on_result.effects` **não** é aplicado (Runtime Spec §5.3): um minijogo pulado não rende moedas nem pontos. Se o `payload` de um `complete` normal não tiver algum campo usado em `{result}`, vale o `default` do `{result}` ou o padrão do tipo da variável (Data Model §6.1).
 - Sorteios do minijogo DEVERIAM usar `handle.rng`, o fluxo próprio da atividade, separado do RNG da narrativa e do `ctx.rng` do plugin. Com `settings.reproducible_rng` ele é reproduzível (Runtime Spec §12.2); sem ela, é o RNG comum do motor. `ctx.rng` não muda de fluxo durante a atividade, então guardar `ctx.rng` em `_vn_init` não troca um pelo outro.
+
+### 6.1. Modo livre
+
+Uma atividade com `free_play` no manifesto pode ser jogada **fora da história**: o autor põe um botão "Minijogos" no menu (ação `play_activity`, UI Spec §4) e o jogador joga quantas vezes quiser, como num modo arcade.
+
+```json
+"free_play": { "params": { "difficulty": "normal", "duration_seconds": 90 } }
+```
+
+- O runtime chama `_vn_start_activity` com `handle.mode == &"free_play"` e os `params` de `free_play.params`, sobrepostos pelos da ação. Não há cena, nó, `on_result` nem autosave.
+- **A história não muda.** Leituras da NarrativeAPI devolvem os valores padrão das variáveis (e os de perfil); escritas, `emit` e `scenes.request` devolvem `INVALID_STATE` (`emit` só registra no log). As variáveis do próprio plugin com `persistence: profile` são a exceção: podem ser lidas e gravadas, e vão para o perfil.
+- O que o modo livre guarda vai para o perfil: recordes e dados de perfil (§9.1). `complete` e `fail` encerram a atividade e voltam à tela que a abriu; o `payload` é ignorado.
+- `handle.rng` usa o RNG comum do motor (o modo livre nunca é reproduzível). O limite de FPS é o de minijogos (UI Spec §8).
+- O validador confere `free_play.params` contra `params_schema` (P004). Uma ação `play_activity` para atividade sem `free_play` é erro P020.
 
 ## 7. Eventos
 
@@ -408,6 +428,24 @@ Regras:
 - O dado DEVE ser serializável em JSON e DEVERIA ter menos de 256 KB.
 - Ao mudar o formato, o plugin incrementa `save.data_version` e implementa `_vn_migrate_save_data(data, from_version)`; o runtime chama a migração em cadeia antes de `_vn_load`.
 - Estado que afeta a história DEVE ficar em variáveis (visíveis ao autor e ao Condition Evaluator), não nos dados opacos do plugin. Dados opacos são para estado interno de gameplay (nível da vara de pesca, recordes, inventário interno).
+
+### 9.1. Dados de perfil e recordes
+
+O save guarda o estado de **uma partida**. Para o que deve sobreviver entre partidas e novos jogos (recordes, fases liberadas no modo livre, estatísticas do minijogo), o plugin usa o **perfil** do jogador, com a capacidade `profile.data`:
+
+```gdscript
+class_name VNProfileAPI
+func get_data() -> Variant                                  # null se o plugin nunca gravou
+func set_data(data: Variant) -> VNResult                    # JSON, até 64 KB; vai para o disco no próximo debounce do perfil
+func submit_record(board: StringName, score: float, meta: Dictionary = {}) -> int   # posição alcançada (1…keep) ou 0
+func get_records(board: StringName) -> Array[Dictionary]    # [{ score, at, meta }], já ordenado
+```
+
+- **Onde fica.** Em `profile.json → plugins.<namespace>` (`save.schema.json → $defs/Profile`), com `plugin_version`, `data_version`, `data` e `records`. O perfil é assinado como os saves (BS §8.3), então recordes editados à mão são recusados como o resto do perfil.
+- **Recordes.** Cada quadro é declarado no manifesto (`records`: `id`, `name`, `order` `desc`/`asc`, `keep`, `format` `integer`/`number`/`time_ms`). `submit_record` insere a marca com a data (`at`, UTC) e mantém só as `keep` melhores; empate fica com a mais antiga. `meta` (até 1 KB) guarda detalhes curtos, como a dificuldade. A tela de menu mostra um quadro com o elemento `records_list` (UI Spec §3.1).
+- **Variáveis de perfil × dados de perfil.** Um número que o autor da VN deve poder usar em condições ("já pescou 100 peixes no total?") é uma variável do plugin com `persistence: profile`, visível no Studio. `data` é para o resto, que só o plugin entende.
+- **Migração.** Ao mudar o formato, o plugin incrementa `profile.data_version` no manifesto e implementa `_vn_migrate_profile_data(data, from_version)`; o runtime chama a migração em cadeia antes do primeiro `get_data()`. Recordes não migram: um quadro removido do manifesto é descartado; um `order` novo reordena as marcas.
+- Valem em qualquer modo (história e livre). "Apagar dados do jogo" nas configurações apaga o perfil inteiro, inclusive recordes.
 
 ## 10. Editor SDK (TypeScript)
 
@@ -559,9 +597,9 @@ O addon do Runtime SDK inclui o `VNTestHarness`, uma NarrativeAPI falsa em memó
 ```gdscript
 class_name VNTestHarness
 func _init(manifest_path: String, opts: Dictionary = {})
-    # opts: variables, config, grants (padrão: tudo que o manifesto pede), seed, locale
+    # opts: variables, config, grants (padrão: tudo que o manifesto pede), seed, locale, profile
 func run_activity(id: StringName, params: Dictionary, input: VNScriptedInput = null,
-                  max_seconds: float = 600.0) -> VNActivityResult   # { outcome, payload, failed, reason, seconds }
+                  max_seconds: float = 600.0, mode: StringName = &"story") -> VNActivityResult   # { outcome, payload, failed, reason, seconds }
 func skip_activity_after(id: StringName, params: Dictionary, seconds: float) -> VNActivityResult
 func get_value(id: String) -> Variant
 func set_value(id: String, value: Variant) -> void
@@ -570,6 +608,8 @@ func events() -> Array[Dictionary]                     # { name, payload, at }
 func save_plugin() -> Variant                          # chama _vn_save
 func load_plugin(data: Variant, from_version: int = -1) -> void   # migra se preciso e chama _vn_load
 func logs() -> Array[Dictionary]
+func profile_data() -> Variant                         # dados de perfil gravados pelo plugin
+func records(board: StringName) -> Array[Dictionary]  # quadro de recordes, como em VNProfileAPI.get_records
 func plugin_context() -> VNPluginContext              # o ctx entregue ao plugin, para testar i18n, theme etc.
 
 class_name VNScriptedInput
@@ -601,7 +641,7 @@ Os tempos de `VNScriptedInput` são segundos desde o início da atividade, no re
 
 | Comando | Faz |
 |---|---|
-| `create` | Gera o projeto de desenvolvimento (§2.4): tipo, id, namespace, addon do SDK, sandbox e um teste de exemplo |
+| `create` | Gera o projeto de desenvolvimento (§2.4): tipo, id, namespace, addon do SDK, sandbox, `.gitignore` e um teste de exemplo. Com `--embedded <projeto>`, cria em `plugins/<nome>/` do projeto de VN e registra em `plugins.json` (spec 09 §3.2) |
 | `doctor` | Mostra versões do Studio, runtime, Godot fixado, SDK e Node, e o que falta instalar |
 | `godot install` / `godot open` | Baixa o editor do Godot na versão exata do runtime / abre o projeto com ele |
 | `link <projeto>` | Vincula a pasta do plugin a um projeto de VN para depuração (§12.3) |

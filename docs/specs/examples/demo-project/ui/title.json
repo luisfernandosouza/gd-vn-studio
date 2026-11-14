@@ -116,6 +116,30 @@
           }
         },
         {
+          "id": "btn_extras",
+          "type": "button",
+          "text": "Minijogos",
+          "visible_if": [
+            {
+              "variable": "sys.endings.festival_ending",
+              "operator": "equals",
+              "value": true
+            }
+          ],
+          "actions": [
+            {
+              "do": "open_screen",
+              "screen": "extras"
+            }
+          ],
+          "appear": {
+            "kind": "slide",
+            "from": "left",
+            "duration": 0.4,
+            "delay": 0.45
+          }
+        },
+        {
           "id": "btn_settings",
           "type": "button",
           "text": "Configurações",

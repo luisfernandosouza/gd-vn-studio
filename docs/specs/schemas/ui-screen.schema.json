@@ -699,6 +699,34 @@
               "$ref": "#/$defs/ActionList"
             }
           }
+        },
+        {
+          "type": "object",
+          "required": [
+            "do",
+            "activity"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "do": {
+              "const": "play_activity"
+            },
+            "if": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "else": {
+              "$ref": "#/$defs/ActionList"
+            },
+            "activity": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]{1,31}\\.[a-z][a-z0-9_]{0,63}$",
+              "description": "<namespace>.<atividade> com free_play no manifesto."
+            },
+            "params": {
+              "type": "object",
+              "description": "Sobrepõe free_play.params do manifesto; validado contra params_schema."
+            }
+          }
         }
       ]
     },
@@ -818,6 +846,9 @@
         },
         {
           "$ref": "#/$defs/Container"
+        },
+        {
+          "$ref": "#/$defs/RecordsList"
         }
       ]
     },
@@ -1195,6 +1226,35 @@
           "items": {
             "$ref": "#/$defs/Element"
           }
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "RecordsList": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ElementBase"
+        }
+      ],
+      "required": [
+        "board"
+      ],
+      "properties": {
+        "type": {
+          "const": "records_list"
+        },
+        "board": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{1,31}\\.[a-z][a-z0-9_]{0,63}$",
+          "description": "<namespace>.<quadro> declarado em records do plugin."
+        },
+        "max_items": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "empty_text": {
+          "$ref": "common.schema.json#/$defs/LocalizedText"
         }
       },
       "unevaluatedProperties": false

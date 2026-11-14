@@ -1,0 +1,82 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/1/ui-screen.schema.json",
+  "id": "extras",
+  "kind": "custom",
+  "background": "bg/pier_sunset",
+  "focus_start": "btn_fishing",
+  "elements": [
+    {
+      "id": "title",
+      "type": "label",
+      "text": "Minijogos",
+      "position": [
+        0.5,
+        0.12
+      ],
+      "align": "center"
+    },
+    {
+      "id": "btn_fishing",
+      "type": "button",
+      "text": "Pescaria (modo livre)",
+      "style": "gold",
+      "position": [
+        0.3,
+        0.5
+      ],
+      "actions": [
+        {
+          "do": "play_activity",
+          "activity": "fishing.fishing_game"
+        }
+      ]
+    },
+    {
+      "id": "btn_fishing_hard",
+      "type": "button",
+      "text": "Pescaria difícil",
+      "position": [
+        0.3,
+        0.62
+      ],
+      "actions": [
+        {
+          "do": "play_activity",
+          "activity": "fishing.fishing_game",
+          "params": {
+            "difficulty": "hard"
+          }
+        }
+      ]
+    },
+    {
+      "id": "records",
+      "type": "records_list",
+      "board": "fishing.high_scores",
+      "position": [
+        0.7,
+        0.5
+      ],
+      "size": [
+        520,
+        560
+      ],
+      "max_items": 10,
+      "empty_text": "Nenhum recorde ainda."
+    },
+    {
+      "id": "btn_back",
+      "type": "button",
+      "text": "Voltar",
+      "position": [
+        0.5,
+        0.92
+      ],
+      "actions": [
+        {
+          "do": "back"
+        }
+      ]
+    }
+  ]
+}

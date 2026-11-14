@@ -27,6 +27,7 @@ ALICE = "019a7a00-0bb8-7dc0-b468-e39508f1443d"
 TITLE = "ui/title.json"
 SETTINGS = "ui/settings.json"
 SET = "sets/beach_title.json"
+EXTRAS = "ui/extras.json"
 
 
 class Workspace:
@@ -160,6 +161,16 @@ CASES = [
     ("W006", "interact pode ficar sem hotspots", lambda w: w.edit(QUIET, lambda d: [h.update(visible_if=[{"variable": "global.fishing_won", "operator": "equals", "value": True}]) for h in nodes_of(d, "interact")[0]["hotspots"]] and nodes_of(d, "interact")[0].pop("exit")), False),
     ("W003", "tradução órfã de tela", lambda w: w.edit("locales/en/ui/title.json", lambda d: d["strings"].update({"ui/title/btn_nada": "Nothing"})), False),
     ("W014", "som de estilo com asset de imagem", lambda w: w.edit("theme.json", lambda d: d["styles"]["button"]["sounds"].update(press="ui/logo")), False),
+    # Plugin SDK §6.1 e §9.1: modo livre, perfil e recordes
+    ("P019", "records sem a capacidade profile.data", lambda w: w.edit("plugin.json", lambda d: d["capabilities"]["runtime"].remove("profile.data"), plugin=True), False),
+    ("P020", "play_activity para atividade sem free_play", lambda w: w.edit("plugin.json", lambda d: d["activities"][0].pop("free_play"), plugin=True), False),
+    ("P020", "play_activity para atividade inexistente", lambda w: w.edit(EXTRAS, lambda d: d["elements"][1]["actions"][0].update(activity="fishing.nada")), False),
+    ("P004", "params do modo livre inválidos", lambda w: w.edit(EXTRAS, lambda d: d["elements"][2]["actions"][0].update(params={"difficulty": "insana"})), False),
+    ("U001", "quadro de recordes inexistente", lambda w: w.edit(EXTRAS, lambda d: d["elements"][3].update(board="fishing.nada")), False),
+    ("U004", "play_activity na tela de pausa", lambda w: w.edit(EXTRAS, lambda d: d.update(kind="pause")), False),
+    # spec 09: fontes path:
+    ("P021", "plugin embutido sem pasta", lambda w: w.edit("plugins.json", lambda d: d["plugins"].update({"seaside_story.quiz": {"version": "^0.1.0", "source": "path:plugins/quiz"}})), False),
+    ("P021", "pacote guardado inexistente", lambda w: w.edit("plugins.json", lambda d: d["plugins"]["vnstudio.fishing"].update(source="path:vendor/plugins/vnstudio.fishing-1.0.0.vnplugin")), False),
 ]
 
 

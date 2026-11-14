@@ -450,6 +450,59 @@
           },
           "uniqueItems": true
         },
+        "plugins": {
+          "description": "Dados de perfil e recordes de cada plugin, por namespace (SDK §9.1).",
+          "type": "object",
+          "propertyNames": {
+            "$ref": "common.schema.json#/$defs/Namespace"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "plugin_version": {
+                "$ref": "common.schema.json#/$defs/SemVer"
+              },
+              "data_version": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "data": {
+                "description": "Opaco; JSON de até 64 KB."
+              },
+              "records": {
+                "type": "object",
+                "propertyNames": {
+                  "$ref": "common.schema.json#/$defs/Id"
+                },
+                "additionalProperties": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "score",
+                      "at"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "score": {
+                        "type": "number"
+                      },
+                      "at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "meta": {
+                        "type": "object",
+                        "description": "Até 1 KB; textos curtos e números (ex.: dificuldade)."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "integrity": {
           "description": "Assinatura hmac-sha256-<base64> do JSON canônico sem este campo, com a chave de saves do projeto (Build System §8.3).",
           "type": "string",

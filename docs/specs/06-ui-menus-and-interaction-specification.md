@@ -101,6 +101,7 @@ Todo elemento tem `id` (legível, único na tela), `type` e uma **posição**:
 | `gallery_grid` | Grade da galeria | `source` (`endings`, `images`, `music`), `columns`, `locked_asset` |
 | `backlog_list` | Histórico de falas | `max_items` |
 | `container` | Agrupa e alinha elementos | `layout` (`row`, `column`, `grid`), `spacing`, `children` |
+| `records_list` | Quadro de recordes de um minijogo (Plugin SDK §9.1) | `board` (`<namespace>.<quadro>`), `max_items`, `empty_text` |
 
 ### 3.2. Condições no menu
 
@@ -155,6 +156,7 @@ Botões, hotspots e eventos de tela executam uma **lista de ações**, em ordem.
 | `emit` | `event` (`story.*`), `payload` | Jogo |
 | `open_url` | `url` | Qualquer; sempre pede confirmação; desligado no Web e com `build.allow_urls: false` |
 | `confirm` | `text`, `then`, `else` | Qualquer: caixa de confirmação do tema |
+| `play_activity` | `activity` (`<namespace>.<atividade>`), `params` | Fora do jogo (título e telas abertas a partir dele): joga o minijogo no modo livre (Plugin SDK §6.1) e volta à tela |
 
 `target` aponta para um elemento da tela (`btn_new_game`), uma camada ou hotspot do cenário (`set:sky`) ou, numa cena, para o cenário em cena (`stage:lamp`).
 
@@ -332,7 +334,8 @@ O autor escolhe quais controles aparecem e onde; um controle omitido usa o valor
 4. **Investigação na cena** (nó `interact`): clicar em objetos para descobrir pistas, com hotspots `once` e um botão de saída.
 5. **Conversar clicando no personagem** (`area.character`) em vez de escolher num menu.
 6. **HUD temático**: um celular no canto que abre uma tela própria com "mensagens" (texto com interpolação de variáveis) e emite `story.read_messages` para a próxima cena reagir.
-7. **Mapa clicável** como tela própria: cada local é um hotspot com `effects` em `global.next_location`, e o Scheduler escolhe a próxima cena pelo local.
+7. **Sala de jogos** nos extras: cada minijogo com `free_play` vira um botão `play_activity`, com o quadro de recordes (`records_list`) ao lado.
+8. **Mapa clicável** como tela própria: cada local é um hotspot com `effects` em `global.next_location`, e o Scheduler escolhe a próxima cena pelo local.
 
 ### 10.4. Futuro (fora do v1)
 
@@ -344,10 +347,10 @@ O autor escolhe quais controles aparecem e onde; um controle omitido usa o valor
 
 | Código | Nível | Regra |
 |---|---|---|
-| U001 | erro | Ação, `target`, `focus`, `focus_start`, `set` ou área cita elemento, camada, estado, set ou tela inexistente; id de tela ou set diferente do nome do arquivo; id repetido na tela ou no set |
+| U001 | erro | Ação, `target`, `focus`, `focus_start`, `set`, área ou `board` cita elemento, camada, estado, set, tela ou quadro de recordes inexistente; id de tela ou set diferente do nome do arquivo; id repetido na tela ou no set |
 | U002 | erro | Estilo inexistente no tema, ou ciclo em `extends` |
 | U003 | erro | Condição de tela de título usa variável que não é `profile`, `sys.endings.*` nem `sys.ui.*` |
-| U004 | erro | Ação não cosmética em hotspot de set; ação fora do lugar onde vale (§4); `effects` no título em variável que não é `profile` |
+| U004 | erro | Ação não cosmética em hotspot de set; ação fora do lugar onde vale (§4), inclusive `play_activity` em `pause` ou `hud`; `effects` no título em variável que não é `profile` |
 | U005 | erro | Controle ou valor que não combina com a configuração: `toggle` em configuração não booleana, `slider` em não numérica, opção de `select` ou `set_setting` com tipo errado, idioma fora de `project.json → locales` (configuração desconhecida já é barrada pelo schema) |
 | U006 | erro | Tela obrigatória sem botão para sair: título sem `new_game`, pausa sem `close_screen`/`back` |
 | U007 | aviso | Elemento com `size` que sai da tela na resolução base |

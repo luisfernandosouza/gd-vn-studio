@@ -178,7 +178,8 @@
               "assets.read",
               "audio.play",
               "ui.overlay",
-              "input.capture"
+              "input.capture",
+              "profile.data"
             ]
           }
         },
@@ -374,6 +375,16 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 360
+          },
+          "free_play": {
+            "description": "A atividade pode ser jogada fora da história, no modo livre (SDK §6.1), a partir de um botão de menu (ação play_activity, UI Spec §4). params são os parâmetros padrão do modo livre, validados contra params_schema.",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "params": {
+                "type": "object"
+              }
+            }
           }
         },
         "allOf": [
@@ -444,6 +455,59 @@
           "description": "Versão do formato dos dados salvos via SaveAPI. Incrementar exige implementar _vn_migrate_save_data().",
           "type": "integer",
           "minimum": 1
+        }
+      }
+    },
+    "profile": {
+      "description": "Dados próprios do plugin no perfil do jogador (profile.json), que sobrevivem entre partidas: progresso de modo livre, desbloqueios, estatísticas. Exige a capacidade profile.data (SDK §9.1).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "data_version": {
+          "description": "Versão do formato dos dados de perfil. Incrementar exige implementar _vn_migrate_profile_data().",
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "records": {
+      "description": "Quadros de recordes guardados no perfil do jogador (SDK §9.1). Exigem a capacidade profile.data. Nome traduzível em plugin_locales (record/<id>/name).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "$ref": "common.schema.json#/$defs/Id"
+          },
+          "name": {
+            "type": "string"
+          },
+          "order": {
+            "description": "desc (padrão): maior é melhor. asc: menor é melhor (tempo).",
+            "enum": [
+              "desc",
+              "asc"
+            ]
+          },
+          "keep": {
+            "description": "Quantas marcas o quadro guarda. Padrão 10.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "format": {
+            "description": "Como a UI mostra a marca. Padrão integer.",
+            "enum": [
+              "integer",
+              "number",
+              "time_ms"
+            ]
+          }
         }
       }
     },

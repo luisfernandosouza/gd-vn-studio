@@ -29,7 +29,7 @@
             "$ref": "common.schema.json#/$defs/SemVerRange"
           },
           "source": {
-            "description": "Origem do pacote. catalog:<nome do catálogo> (ex.: catalog:official; o plugin é a chave deste mapa) | github:<owner>/<repo> | path:<relativo ao projeto>. Vínculos de desenvolvimento não ficam aqui, e sim em .vnstudio/plugin-lock.local.json (Plugin SDK §12.3).",
+            "description": "Origem do pacote (spec 09 §3.1). catalog:<nome do catálogo> (ex.: catalog:official; o plugin é a chave deste mapa) | github:<owner>/<repo> | path:<arquivo .vnplugin relativo ao projeto> (pacote guardado, ex.: vendor/plugins/acme.cards-1.2.0.vnplugin) | path:<pasta relativa ao projeto> (plugin embutido, ex.: plugins/quiz). Vínculos de desenvolvimento não ficam aqui, e sim em .vnstudio/plugin-lock.local.json (Plugin SDK §12.3).",
             "type": "string",
             "pattern": "^(catalog:[a-z0-9-]+|github:[A-Za-z0-9-]+/[A-Za-z0-9._-]+|path:.+)$"
           },

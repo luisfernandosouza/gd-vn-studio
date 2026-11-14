@@ -250,6 +250,8 @@ Guarda contra laço infinito: mais de 10 000 nós instantâneos seguidos sem um 
 
 Durante uma atividade a cena está suspensa: nenhum nó avança e o Scheduler não roda.
 
+**Modo livre.** A ação de menu `play_activity` (UI Spec §4) roda uma atividade fora da história (Plugin SDK §6.1): só os passos 1, 2, 4 e 5 acima, com `handle.mode = free_play`, sem cena, sem autosave e sem `on_result`; escritas narrativas são recusadas com `INVALID_STATE`, exceto as variáveis `profile` do próprio plugin. Ao terminar, volta à tela que a abriu.
+
 **Taxa de quadros.** Fora de atividades vale `PlayerSettings.fps_limit_vn` (padrão do projeto: `settings.display.fps_limit_vn`, 60). No passo 4, antes de chamar o plugin, o runtime troca para `fps_limit_activity` (padrão 0, sem limite), elevado ao `min_fps` da atividade quando o limite vem do padrão do projeto; ao terminar, cancelar ou falhar, volta ao limite da VN. `0` = sem limite; com `vsync`, o monitor limita. No Web, o navegador decide (UI Spec §8).
 
 ### 5.4. Fim de cena
@@ -399,7 +401,7 @@ Todos os arquivos ficam em `user://` (no Web, IndexedDB).
 | `saves/slot_<n>.json` (n = 1 a 99) | Saves manuais, com miniatura em `saves/slot_<n>.png` (320 × 180) |
 | `saves/quick.json` | Salvamento rápido (uma tecla, sem menu) |
 | `saves/auto_<n>.json` (n = 1 a 3) | Autosaves em rodízio (`settings.autosave` e antes de atividades) |
-| `profile.json` | Perfil (`save.schema.json → $defs/Profile`) |
+| `profile.json` | Perfil (`save.schema.json → $defs/Profile`): variáveis `profile`, finais vistos, textos lidos e, por plugin, dados de perfil e recordes (Plugin SDK §9.1) |
 | `settings.json` | Preferências do jogador (`$defs/PlayerSettings`): idioma, velocidade do texto, espera do modo automático, pular só texto lido, modo de tela, resolução, VSync, limites de FPS da VN e dos minijogos, volumes por canal e acessibilidade. Sem assinatura. Só os campos que o jogador mudou são gravados; os demais vêm de `project.json → settings.display` e dos padrões do runtime (UI Spec §8) |
 
 - **Continuar** abre o save mais recente entre todos os slots, rápido e autosaves.

@@ -42,7 +42,8 @@
       "save.data",
       "audio.play",
       "ui.overlay",
-      "input.capture"
+      "input.capture",
+      "profile.data"
     ],
     "editor": [
       "preview"
@@ -52,7 +53,7 @@
     {
       "key": "total_caught",
       "name": "Fish caught (total)",
-      "description": "Soma de todos os peixes pescados no jogo. Atualizada pelo plugin.",
+      "description": "Total fish caught in this playthrough. Updated by the plugin.",
       "type": "integer",
       "default": 0,
       "constraints": {
@@ -62,7 +63,7 @@
     {
       "key": "best_score",
       "name": "Best fishing score",
-      "description": "Maior pontuação numa única sessão, entre todos os jogos do jogador.",
+      "description": "Best score in a single session, across all of the player's games.",
       "type": "integer",
       "default": 0,
       "persistence": "profile"
@@ -72,7 +73,7 @@
     "emits": [
       {
         "name": "fishing.completed",
-        "description": "Fim de uma sessão de pesca.",
+        "description": "End of a fishing session.",
         "payload": {
           "type": "object",
           "required": [
@@ -91,7 +92,7 @@
       },
       {
         "name": "fishing.rare_fish_caught",
-        "description": "O jogador pescou um peixe raro durante a sessão.",
+        "description": "The player caught a rare fish during the session.",
         "payload": {
           "type": "object",
           "required": [
@@ -224,7 +225,14 @@
             ]
           }
         }
-      ]
+      ],
+      "free_play": {
+        "params": {
+          "difficulty": "normal",
+          "duration_seconds": 90,
+          "target_fish": 5
+        }
+      }
     }
   ],
   "config_schema": {
@@ -249,6 +257,15 @@
   "save": {
     "data_version": 1
   },
+  "records": [
+    {
+      "id": "high_scores",
+      "name": "High scores",
+      "order": "desc",
+      "keep": 10,
+      "format": "integer"
+    }
+  ],
   "plugin_locales": {
     "en": {
       "runtime/hud/fish_count": "Fish: {count}",
@@ -270,6 +287,7 @@
       "config/rare_fish_chance/description": "De 0 a 0,5. Cada peixe fisgado tem essa chance de ser raro.",
       "config/rare_fish_chance/title": "Chance de peixe raro",
       "config/show_tutorial/title": "Mostrar tutorial na primeira pescaria",
+      "record/high_scores/name": "Recordes",
       "runtime/hud/fish_count": "Peixes: {count}",
       "runtime/hud/time_left": "Tempo: {seconds}s",
       "runtime/tutorial/cast": "Aperte Espaço para lançar a linha",
