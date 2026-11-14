@@ -1,0 +1,631 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.vnstudio.dev/1/save.schema.json",
+  "title": "Save do Visual Novel Runtime",
+  "description": "Snapshot completo do estado narrativo. Gerado e lido apenas pelo Save Manager. Arquivos de perfil usam $defs/Profile e as preferências do jogador, $defs/PlayerSettings.",
+  "type": "object",
+  "required": [
+    "save_format",
+    "project",
+    "runtime_version",
+    "created_at",
+    "state"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "save_format": {
+      "$ref": "common.schema.json#/$defs/SemVer"
+    },
+    "project": {
+      "type": "object",
+      "required": [
+        "id",
+        "version"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/Id"
+        },
+        "version": {
+          "$ref": "common.schema.json#/$defs/SemVer"
+        },
+        "content_hash": {
+          "description": "Hash do conteúdo narrativo compilado. Diferente ou ausente = o jogo foi atualizado desde o save (Runtime Spec §8.4). Saves de release DEVEM tê-lo.",
+          "$ref": "common.schema.json#/$defs/Hash"
+        }
+      }
+    },
+    "runtime_version": {
+      "$ref": "common.schema.json#/$defs/SemVer"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "label": {
+      "type": "string"
+    },
+    "thumbnail": {
+      "type": "string",
+      "description": "Caminho relativo da miniatura."
+    },
+    "state": {
+      "type": "object",
+      "required": [
+        "variables",
+        "chapter",
+        "history"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "variables": {
+          "description": "Todas as variáveis com persistence=save do escopo ativo, inclusive as que estão no padrão (Runtime Spec §8.2). Chave = ID qualificado.",
+          "type": "object",
+          "propertyNames": {
+            "$ref": "common.schema.json#/$defs/WritableVariableRef"
+          },
+          "additionalProperties": {
+            "$ref": "common.schema.json#/$defs/Literal"
+          }
+        },
+        "chapter": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "$ref": "common.schema.json#/$defs/EntityId"
+                },
+                "entered_at": {
+                  "description": "selection_count no momento da entrada.",
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          ]
+        },
+        "scene": {
+          "description": "Cena em andamento, ou null se o save foi feito num ponto de seleção.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "required": [
+                "id",
+                "node"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "$ref": "common.schema.json#/$defs/EntityId"
+                },
+                "node": {
+                  "description": "Nó a ser (re)executado ao carregar.",
+                  "$ref": "common.schema.json#/$defs/EntityId"
+                },
+                "stage": {
+                  "$ref": "#/$defs/Stage"
+                },
+                "used_hotspots": {
+                  "description": "Hotspots 'once' de nós interact já usados nesta execução da cena (UI Spec §6).",
+                  "type": "array",
+                  "items": {
+                    "$ref": "common.schema.json#/$defs/EntityId"
+                  },
+                  "uniqueItems": true
+                }
+              }
+            }
+          ]
+        },
+        "history": {
+          "type": "object",
+          "required": [
+            "selection_count",
+            "scenes"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "selection_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "scenes": {
+              "type": "object",
+              "propertyNames": {
+                "$ref": "common.schema.json#/$defs/EntityId"
+              },
+              "additionalProperties": {
+                "type": "object",
+                "required": [
+                  "plays"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "plays": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "starts": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "last_selection": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            },
+            "groups": {
+              "description": "Grupo de exclusividade → cenas do grupo já executadas. Ids de grupo são únicos entre projeto e capítulo (R015).",
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "$ref": "common.schema.json#/$defs/EntityId"
+                }
+              }
+            },
+            "chapters": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "entries": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "completed": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "propertyNames": {
+                "$ref": "common.schema.json#/$defs/EntityId"
+              }
+            },
+            "events_since_selection": {
+              "type": "array",
+              "items": {
+                "$ref": "common.schema.json#/$defs/EventName"
+              },
+              "uniqueItems": true,
+              "description": "Eventos story.* e de plugins emitidos desde o último ponto de seleção. Eventos sys.* não entram (Runtime Spec §7.2)."
+            },
+            "pending_request": {
+              "description": "Pedido de cena de plugin (SceneAPI.request) ainda não atendido; é consumido no próximo ponto de seleção (Runtime Spec §4.3).",
+              "oneOf": [
+                {
+                  "$ref": "common.schema.json#/$defs/EntityId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fallback_streak": {
+              "description": "Seleções seguidas da fallback_scene do capítulo ativo (Runtime Spec §4.3).",
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "rng": {
+          "description": "Só presente com settings.reproducible_rng (Runtime Spec §12.2). Estado em hexadecimal, porque inteiros de 64 bits perdem precisão em JSON no JavaScript.",
+          "type": "object",
+          "required": [
+            "algorithm",
+            "seed",
+            "state"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "algorithm": {
+              "const": "pcg32"
+            },
+            "seed": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{16}$"
+            },
+            "state": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{16}$"
+            },
+            "streams": {
+              "description": "Estado do fluxo de RNG de cada plugin fora de atividades (ctx.rng), por namespace (Runtime Spec §12.2).",
+              "type": "object",
+              "propertyNames": {
+                "$ref": "common.schema.json#/$defs/Namespace"
+              },
+              "additionalProperties": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{16}$"
+              }
+            }
+          }
+        },
+        "plugins": {
+          "description": "Dados opacos de cada plugin (via SaveAPI), versionados para migração.",
+          "type": "object",
+          "propertyNames": {
+            "$ref": "common.schema.json#/$defs/Namespace"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "plugin_version",
+              "data_version",
+              "data"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "plugin_version": {
+                "$ref": "common.schema.json#/$defs/SemVer"
+              },
+              "data_version": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "data": {}
+            }
+          }
+        },
+        "backlog": {
+          "description": "Últimas falas exibidas, limitado pelo runtime. Guarda o caminho do texto e os valores interpolados, não o texto pronto, para que trocar de idioma ou atualizar o jogo se reflita no histórico.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "path"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "description": "Caminho de texto (<cena>/<nó> ou <cena>/<nó>/<opção> para a escolha feita).",
+                "type": "string"
+              },
+              "speaker": {
+                "oneOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/EntityId"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "vars": {
+                "description": "Valores das variáveis interpoladas no momento da fala.",
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "common.schema.json#/$defs/Literal"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "integrity": {
+      "description": "Assinatura hmac-sha256-<base64> do JSON canônico sem este campo, com a chave de saves do projeto (Build System §8.3).",
+      "type": "string",
+      "pattern": "^hmac-sha256-[A-Za-z0-9+/]+=*$"
+    }
+  },
+  "$defs": {
+    "Stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "background": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/AssetRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "characters": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/EntityId"
+              },
+              "expression": {
+                "$ref": "common.schema.json#/$defs/Id"
+              },
+              "position": {
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "audio": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "asset"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "asset": {
+                "$ref": "common.schema.json#/$defs/AssetRef"
+              },
+              "loop": {
+                "type": "boolean"
+              },
+              "volume": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "set": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Id"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Set em cena, se o fundo for um cenário composto."
+        },
+        "set_states": {
+          "description": "Estado atual de cada camada do set (camada → estado) e visibilidade alterada.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "Profile": {
+      "description": "profile.json: dados que sobrevivem entre saves e novos jogos.",
+      "type": "object",
+      "required": [
+        "save_format",
+        "project_id",
+        "variables"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "save_format": {
+          "$ref": "common.schema.json#/$defs/SemVer"
+        },
+        "project_id": {
+          "$ref": "common.schema.json#/$defs/Id"
+        },
+        "variables": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "common.schema.json#/$defs/WritableVariableRef"
+          },
+          "additionalProperties": {
+            "$ref": "common.schema.json#/$defs/Literal"
+          }
+        },
+        "endings": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/Id"
+          },
+          "uniqueItems": true
+        },
+        "seen_text": {
+          "description": "Textos já lidos (para 'pular apenas texto lido'), como os 16 primeiros caracteres hex do SHA-256 do caminho de texto, em ordem. Mantém o perfil pequeno.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{16}$"
+          },
+          "uniqueItems": true
+        },
+        "plugins": {
+          "description": "Dados de perfil e recordes de cada plugin, por namespace (SDK §9.1).",
+          "type": "object",
+          "propertyNames": {
+            "$ref": "common.schema.json#/$defs/Namespace"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "plugin_version": {
+                "$ref": "common.schema.json#/$defs/SemVer"
+              },
+              "data_version": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "data": {
+                "description": "Opaco; JSON de até 64 KB."
+              },
+              "records": {
+                "type": "object",
+                "propertyNames": {
+                  "$ref": "common.schema.json#/$defs/Id"
+                },
+                "additionalProperties": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "score",
+                      "at"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "score": {
+                        "type": "number"
+                      },
+                      "at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "meta": {
+                        "type": "object",
+                        "description": "Até 1 KB; textos curtos e números (ex.: dificuldade)."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "integrity": {
+          "description": "Assinatura hmac-sha256-<base64> do JSON canônico sem este campo, com a chave de saves do projeto (Build System §8.3).",
+          "type": "string",
+          "pattern": "^hmac-sha256-[A-Za-z0-9+/]+=*$"
+        }
+      }
+    },
+    "PlayerSettings": {
+      "description": "settings.json do jogador (Runtime Spec §8.5): preferências do jogo, sem assinatura e fora do save e do perfil.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "locale": {
+          "$ref": "common.schema.json#/$defs/Locale"
+        },
+        "text_speed": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Caracteres por segundo; 0 = texto instantâneo."
+        },
+        "auto_delay": {
+          "description": "Segundos de espera no modo automático.",
+          "type": "number",
+          "minimum": 0
+        },
+        "skip_unread": {
+          "type": "boolean",
+          "default": false
+        },
+        "fullscreen": {
+          "type": "boolean"
+        },
+        "volume": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "master": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "music": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "ambient": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "sfx": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "voice": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        "text_scale": {
+          "description": "Escala do texto (Req §12).",
+          "type": "number",
+          "minimum": 0.8,
+          "maximum": 2.0,
+          "default": 1.0
+        },
+        "reduce_motion": {
+          "description": "Desliga transições e animações de texto (Req §12).",
+          "type": "boolean",
+          "default": false
+        },
+        "subtitles": {
+          "description": "Mostra legendas de sons com caption (Req §12).",
+          "type": "boolean",
+          "default": true
+        },
+        "high_contrast": {
+          "description": "Caixa de diálogo opaca e texto de alto contraste (Req §12).",
+          "type": "boolean",
+          "default": false
+        },
+        "display_mode": {
+          "enum": [
+            "windowed",
+            "fullscreen",
+            "borderless"
+          ]
+        },
+        "resolution": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "Tamanho da janela; a resolução base do jogo continua settings.resolution do projeto."
+        },
+        "vsync": {
+          "type": "boolean"
+        },
+        "fps_limit_vn": {
+          "description": "Limite de quadros por segundo fora de minijogos; 0 = sem limite (UI Spec §8).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 360
+        },
+        "fps_limit_activity": {
+          "description": "Limite durante atividades de plugin; 0 = sem limite.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 360
+        },
+        "show_hotspots": {
+          "description": "Destaca todos os hotspots (acessibilidade).",
+          "type": "boolean",
+          "default": false
+        }
+      }
+    }
+  }
+}

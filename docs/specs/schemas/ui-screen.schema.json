@@ -1,0 +1,1263 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.vnstudio.dev/1/ui-screen.schema.json",
+  "title": "ui/<id>.json",
+  "description": "Uma tela da interface do jogo (título, pausa, salvar/carregar, configurações, galeria, créditos, HUD ou tela própria). UI Spec §3.",
+  "type": "object",
+  "required": [
+    "id",
+    "kind",
+    "elements"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/Id"
+    },
+    "kind": {
+      "enum": [
+        "title",
+        "pause",
+        "save",
+        "load",
+        "settings",
+        "gallery",
+        "credits",
+        "hud",
+        "custom"
+      ]
+    },
+    "set": {
+      "$ref": "common.schema.json#/$defs/Id"
+    },
+    "background": {
+      "$ref": "common.schema.json#/$defs/AssetRef"
+    },
+    "music": {
+      "$ref": "common.schema.json#/$defs/AssetRef"
+    },
+    "transition": {
+      "$ref": "scene.schema.json#/$defs/Transition"
+    },
+    "modal": {
+      "type": "boolean",
+      "default": true
+    },
+    "focus_start": {
+      "$ref": "common.schema.json#/$defs/Id"
+    },
+    "elements": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Element"
+      }
+    },
+    "on_open": {
+      "$ref": "#/$defs/ActionList"
+    },
+    "on_close": {
+      "$ref": "#/$defs/ActionList"
+    },
+    "back": {
+      "$ref": "#/$defs/ActionList"
+    }
+  },
+  "not": {
+    "required": [
+      "set",
+      "background"
+    ]
+  },
+  "$defs": {
+    "ActionList": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Action"
+      }
+    },
+    "Action": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "do"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "do": {
+              "const": "new_game"
+            },
+            "if": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "else": {
+              "$ref": "#/$defs/ActionList"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "do"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "do": {
+              "const": "continue"
+            },
+            "if": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "else": {
+              "$ref": "#/$defs/ActionList"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "do",
+            "screen"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "do": {
+              "const": "open_screen"
+            },
+            "if": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "else": {
+              "$ref": "#/$defs/ActionList"
+            },
+            "screen": {
+              "$ref": "common.schema.json#/$defs/Id"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "do"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "do": {
+              "const": "close_screen"
+            },
+            "if": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "else": {
+              "$ref": "#/$defs/ActionList"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "do"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "do": {
+              "const": "back"
+            },
+            "if": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "else": {
+              "$ref": "#/$defs/ActionList"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "do"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "do": {
+              "const": "return_to_title"
+            },
+            "if": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "else": {
+              "$ref": "#/$defs/ActionList"
+            },
+            "confirm": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "do"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "do": {
+              "const": "quit"
+            },
+            "if": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "else": {
+              "$ref": "#/$defs/ActionList"
+            },
+            "confirm": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "do"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "do": {
+              "const": "save"
+            },
+            "if": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "else": {
+              "$ref": "#/$defs/ActionList"
+            },
+            "slot": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 99
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "do"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "do": {
+              "const": "load"
+            },
+            "if": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "else": {
+              "$ref": "#/$defs/ActionList"
+            },
+            "slot": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 99
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "do"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "do": {
+              "const": "quick_save"
+            },
+            "if": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "else": {
+              "$ref": "#/$defs/ActionList"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "do"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "do": {
+              "const": "quick_load"
+            },
+            "if": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "else": {
+              "$ref": "#/$defs/ActionList"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "do"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "do": {
+              "const": "toggle_auto"
+            },
+            "if": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "else": {
+              "$ref": "#/$defs/ActionList"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "do"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "do": {
+              "const": "toggle_skip"
+            },
+            "if": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "else": {
+              "$ref": "#/$defs/ActionList"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "do"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "do": {
+              "const": "hide_textbox"
+            },
+            "if": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "else": {
+              "$ref": "#/$defs/ActionList"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "do"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "do": {
+              "const": "open_backlog"
+            },
+            "if": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "else": {
+              "$ref": "#/$defs/ActionList"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "do",
+            "setting",
+            "value"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "do": {
+              "const": "set_setting"
+            },
+            "if": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "else": {
+              "$ref": "#/$defs/ActionList"
+            },
+            "setting": {
+              "enum": [
+                "volume.master",
+                "volume.music",
+                "volume.ambient",
+                "volume.sfx",
+                "volume.voice",
+                "display_mode",
+                "resolution",
+                "vsync",
+                "fps_limit_vn",
+                "fps_limit_activity",
+                "text_speed",
+                "auto_delay",
+                "skip_unread",
+                "locale",
+                "text_scale",
+                "reduce_motion",
+                "subtitles",
+                "high_contrast",
+                "show_hotspots"
+              ]
+            },
+            "value": {
+              "$ref": "common.schema.json#/$defs/Literal"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "do",
+            "asset"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "do": {
+              "const": "play_sfx"
+            },
+            "if": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "else": {
+              "$ref": "#/$defs/ActionList"
+            },
+            "asset": {
+              "$ref": "common.schema.json#/$defs/AssetRef"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "do",
+            "target",
+            "state"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "do": {
+              "const": "set_state"
+            },
+            "if": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "else": {
+              "$ref": "#/$defs/ActionList"
+            },
+            "target": {
+              "type": "string",
+              "pattern": "^((set|stage):)?[a-z][a-z0-9_]{0,63}$",
+              "description": "Elemento da tela (id), camada/hotspot do set da tela (set:<id>) ou do set em cena (stage:<id>)."
+            },
+            "state": {
+              "$ref": "common.schema.json#/$defs/Id"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "do",
+            "target",
+            "states"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "do": {
+              "const": "toggle_state"
+            },
+            "if": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "else": {
+              "$ref": "#/$defs/ActionList"
+            },
+            "target": {
+              "type": "string",
+              "pattern": "^((set|stage):)?[a-z][a-z0-9_]{0,63}$",
+              "description": "Elemento da tela (id), camada/hotspot do set da tela (set:<id>) ou do set em cena (stage:<id>)."
+            },
+            "states": {
+              "type": "array",
+              "items": {
+                "$ref": "common.schema.json#/$defs/Id"
+              },
+              "minItems": 2,
+              "uniqueItems": true
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "do",
+            "target",
+            "animation"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "do": {
+              "const": "play_animation"
+            },
+            "if": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "else": {
+              "$ref": "#/$defs/ActionList"
+            },
+            "target": {
+              "type": "string",
+              "pattern": "^((set|stage):)?[a-z][a-z0-9_]{0,63}$",
+              "description": "Elemento da tela (id), camada/hotspot do set da tela (set:<id>) ou do set em cena (stage:<id>)."
+            },
+            "animation": {
+              "$ref": "theme.schema.json#/$defs/Animation"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "do",
+            "target"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "do": {
+              "const": "show"
+            },
+            "if": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "else": {
+              "$ref": "#/$defs/ActionList"
+            },
+            "target": {
+              "type": "string",
+              "pattern": "^((set|stage):)?[a-z][a-z0-9_]{0,63}$",
+              "description": "Elemento da tela (id), camada/hotspot do set da tela (set:<id>) ou do set em cena (stage:<id>)."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "do",
+            "target"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "do": {
+              "const": "hide"
+            },
+            "if": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "else": {
+              "$ref": "#/$defs/ActionList"
+            },
+            "target": {
+              "type": "string",
+              "pattern": "^((set|stage):)?[a-z][a-z0-9_]{0,63}$",
+              "description": "Elemento da tela (id), camada/hotspot do set da tela (set:<id>) ou do set em cena (stage:<id>)."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "do",
+            "target"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "do": {
+              "const": "toggle_visible"
+            },
+            "if": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "else": {
+              "$ref": "#/$defs/ActionList"
+            },
+            "target": {
+              "type": "string",
+              "pattern": "^((set|stage):)?[a-z][a-z0-9_]{0,63}$",
+              "description": "Elemento da tela (id), camada/hotspot do set da tela (set:<id>) ou do set em cena (stage:<id>)."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "do",
+            "effects"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "do": {
+              "const": "effects"
+            },
+            "if": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "else": {
+              "$ref": "#/$defs/ActionList"
+            },
+            "effects": {
+              "$ref": "common.schema.json#/$defs/EffectList"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "do",
+            "event"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "do": {
+              "const": "emit"
+            },
+            "if": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "else": {
+              "$ref": "#/$defs/ActionList"
+            },
+            "event": {
+              "$ref": "common.schema.json#/$defs/EventName"
+            },
+            "payload": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "common.schema.json#/$defs/ValueExpr"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "do",
+            "url"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "do": {
+              "const": "open_url"
+            },
+            "if": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "else": {
+              "$ref": "#/$defs/ActionList"
+            },
+            "url": {
+              "type": "string",
+              "pattern": "^https://"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "do",
+            "text",
+            "then"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "do": {
+              "const": "confirm"
+            },
+            "if": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "else": {
+              "$ref": "#/$defs/ActionList"
+            },
+            "text": {
+              "$ref": "common.schema.json#/$defs/LocalizedText"
+            },
+            "then": {
+              "$ref": "#/$defs/ActionList"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "do",
+            "activity"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "do": {
+              "const": "play_activity"
+            },
+            "if": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "else": {
+              "$ref": "#/$defs/ActionList"
+            },
+            "activity": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]{1,31}\\.[a-z][a-z0-9_]{0,63}$",
+              "description": "<namespace>.<atividade> com free_play no manifesto."
+            },
+            "params": {
+              "type": "object",
+              "description": "Sobrepõe free_play.params do manifesto; validado contra params_schema."
+            }
+          }
+        }
+      ]
+    },
+    "ElementBase": {
+      "type": "object",
+      "required": [
+        "id",
+        "type"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/Id"
+        },
+        "type": {
+          "type": "string"
+        },
+        "position": {
+          "$ref": "set.schema.json#/$defs/Fraction2",
+          "description": "Fração da resolução base; ausente = [0.5, 0.5]. Ignorada dentro de container."
+        },
+        "pivot": {
+          "$ref": "set.schema.json#/$defs/Fraction2"
+        },
+        "size": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0
+          },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "Pixels da resolução base."
+        },
+        "anchor": {
+          "enum": [
+            "stretch",
+            "edge"
+          ]
+        },
+        "z": {
+          "type": "integer"
+        },
+        "visible_if": {
+          "$ref": "common.schema.json#/$defs/ConditionList"
+        },
+        "enabled_if": {
+          "$ref": "common.schema.json#/$defs/ConditionList"
+        },
+        "style": {
+          "$ref": "common.schema.json#/$defs/Id"
+        },
+        "tooltip": {
+          "$ref": "common.schema.json#/$defs/LocalizedText"
+        },
+        "shortcut": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "focus": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "up": {
+              "$ref": "common.schema.json#/$defs/Id"
+            },
+            "down": {
+              "$ref": "common.schema.json#/$defs/Id"
+            },
+            "left": {
+              "$ref": "common.schema.json#/$defs/Id"
+            },
+            "right": {
+              "$ref": "common.schema.json#/$defs/Id"
+            }
+          }
+        },
+        "appear": {
+          "$ref": "theme.schema.json#/$defs/Animation"
+        },
+        "during_activity": {
+          "type": "boolean",
+          "description": "Só na hud: recebe input durante atividades com input.capture."
+        }
+      }
+    },
+    "Element": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Button"
+        },
+        {
+          "$ref": "#/$defs/Image"
+        },
+        {
+          "$ref": "#/$defs/Label"
+        },
+        {
+          "$ref": "#/$defs/Hotspot"
+        },
+        {
+          "$ref": "#/$defs/Slider"
+        },
+        {
+          "$ref": "#/$defs/Toggle"
+        },
+        {
+          "$ref": "#/$defs/Select"
+        },
+        {
+          "$ref": "#/$defs/SlotGrid"
+        },
+        {
+          "$ref": "#/$defs/GalleryGrid"
+        },
+        {
+          "$ref": "#/$defs/BacklogList"
+        },
+        {
+          "$ref": "#/$defs/Container"
+        },
+        {
+          "$ref": "#/$defs/RecordsList"
+        }
+      ]
+    },
+    "Button": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ElementBase"
+        }
+      ],
+      "required": [],
+      "properties": {
+        "type": {
+          "const": "button"
+        },
+        "text": {
+          "$ref": "common.schema.json#/$defs/LocalizedText"
+        },
+        "icon": {
+          "$ref": "common.schema.json#/$defs/AssetRef"
+        },
+        "actions": {
+          "$ref": "#/$defs/ActionList"
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "Image": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ElementBase"
+        }
+      ],
+      "required": [
+        "asset"
+      ],
+      "properties": {
+        "type": {
+          "const": "image"
+        },
+        "asset": {
+          "$ref": "common.schema.json#/$defs/AssetRef"
+        },
+        "animation": {
+          "$ref": "theme.schema.json#/$defs/Animation"
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "Label": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ElementBase"
+        }
+      ],
+      "required": [
+        "text"
+      ],
+      "properties": {
+        "type": {
+          "const": "label"
+        },
+        "text": {
+          "$ref": "common.schema.json#/$defs/LocalizedText"
+        },
+        "align": {
+          "enum": [
+            "left",
+            "center",
+            "right"
+          ]
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "Hotspot": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ElementBase"
+        }
+      ],
+      "required": [
+        "area"
+      ],
+      "properties": {
+        "type": {
+          "const": "hotspot"
+        },
+        "area": {
+          "$ref": "set.schema.json#/$defs/Area"
+        },
+        "cursor": {
+          "$ref": "set.schema.json#/$defs/Cursor"
+        },
+        "highlight": {
+          "$ref": "set.schema.json#/$defs/Highlight"
+        },
+        "actions": {
+          "$ref": "#/$defs/ActionList"
+        },
+        "on_hover": {
+          "$ref": "#/$defs/ActionList"
+        },
+        "label": {
+          "$ref": "common.schema.json#/$defs/LocalizedText"
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "Slider": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ElementBase"
+        }
+      ],
+      "required": [
+        "bind"
+      ],
+      "properties": {
+        "type": {
+          "const": "slider"
+        },
+        "bind": {
+          "enum": [
+            "volume.master",
+            "volume.music",
+            "volume.ambient",
+            "volume.sfx",
+            "volume.voice",
+            "display_mode",
+            "resolution",
+            "vsync",
+            "fps_limit_vn",
+            "fps_limit_activity",
+            "text_speed",
+            "auto_delay",
+            "skip_unread",
+            "locale",
+            "text_scale",
+            "reduce_motion",
+            "subtitles",
+            "high_contrast",
+            "show_hotspots"
+          ]
+        },
+        "label": {
+          "$ref": "common.schema.json#/$defs/LocalizedText"
+        },
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        },
+        "step": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "Toggle": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ElementBase"
+        }
+      ],
+      "required": [
+        "bind"
+      ],
+      "properties": {
+        "type": {
+          "const": "toggle"
+        },
+        "bind": {
+          "enum": [
+            "volume.master",
+            "volume.music",
+            "volume.ambient",
+            "volume.sfx",
+            "volume.voice",
+            "display_mode",
+            "resolution",
+            "vsync",
+            "fps_limit_vn",
+            "fps_limit_activity",
+            "text_speed",
+            "auto_delay",
+            "skip_unread",
+            "locale",
+            "text_scale",
+            "reduce_motion",
+            "subtitles",
+            "high_contrast",
+            "show_hotspots"
+          ]
+        },
+        "label": {
+          "$ref": "common.schema.json#/$defs/LocalizedText"
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "Select": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ElementBase"
+        }
+      ],
+      "required": [
+        "bind"
+      ],
+      "properties": {
+        "type": {
+          "const": "select"
+        },
+        "bind": {
+          "enum": [
+            "volume.master",
+            "volume.music",
+            "volume.ambient",
+            "volume.sfx",
+            "volume.voice",
+            "display_mode",
+            "resolution",
+            "vsync",
+            "fps_limit_vn",
+            "fps_limit_activity",
+            "text_speed",
+            "auto_delay",
+            "skip_unread",
+            "locale",
+            "text_scale",
+            "reduce_motion",
+            "subtitles",
+            "high_contrast",
+            "show_hotspots"
+          ]
+        },
+        "label": {
+          "$ref": "common.schema.json#/$defs/LocalizedText"
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "value",
+              "text"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "value": {
+                "$ref": "common.schema.json#/$defs/Literal"
+              },
+              "text": {
+                "$ref": "common.schema.json#/$defs/LocalizedText"
+              }
+            }
+          }
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "SlotGrid": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ElementBase"
+        }
+      ],
+      "required": [
+        "mode"
+      ],
+      "properties": {
+        "type": {
+          "const": "slot_grid"
+        },
+        "mode": {
+          "enum": [
+            "save",
+            "load"
+          ]
+        },
+        "columns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "rows": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "slot_style": {
+          "$ref": "common.schema.json#/$defs/Id"
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "GalleryGrid": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ElementBase"
+        }
+      ],
+      "required": [
+        "source"
+      ],
+      "properties": {
+        "type": {
+          "const": "gallery_grid"
+        },
+        "source": {
+          "enum": [
+            "endings",
+            "images",
+            "music"
+          ]
+        },
+        "columns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "locked_asset": {
+          "$ref": "common.schema.json#/$defs/AssetRef"
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "BacklogList": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ElementBase"
+        }
+      ],
+      "required": [],
+      "properties": {
+        "type": {
+          "const": "backlog_list"
+        },
+        "max_items": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "Container": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ElementBase"
+        }
+      ],
+      "required": [
+        "children"
+      ],
+      "properties": {
+        "type": {
+          "const": "container"
+        },
+        "layout": {
+          "enum": [
+            "row",
+            "column",
+            "grid"
+          ]
+        },
+        "spacing": {
+          "type": "number",
+          "minimum": 0
+        },
+        "columns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Element"
+          }
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "RecordsList": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ElementBase"
+        }
+      ],
+      "required": [
+        "board"
+      ],
+      "properties": {
+        "type": {
+          "const": "records_list"
+        },
+        "board": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{1,31}\\.[a-z][a-z0-9_]{0,63}$",
+          "description": "<namespace>.<quadro> declarado em records do plugin."
+        },
+        "max_items": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "empty_text": {
+          "$ref": "common.schema.json#/$defs/LocalizedText"
+        }
+      },
+      "unevaluatedProperties": false
+    }
+  }
+}

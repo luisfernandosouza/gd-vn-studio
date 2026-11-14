@@ -1,0 +1,298 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/1/plugin.schema.json",
+  "manifest_version": 1,
+  "id": "vnstudio.fishing",
+  "namespace": "fishing",
+  "name": "Fishing Minigame",
+  "version": "1.0.0",
+  "description": "Reference fishing minigame for the ecosystem.",
+  "default_locale": "en",
+  "author": {
+    "name": "Visual Novel Studio Team"
+  },
+  "license": "MIT",
+  "sdk": {
+    "runtime": "^1.0.0",
+    "editor": "^1.0.0"
+  },
+  "compatibility": {
+    "studio": "^1.0.0",
+    "runtime": "^1.0.0",
+    "godot": ">=4.7.0 <5.0.0",
+    "data_model": "^1.0.0",
+    "platforms": [
+      "windows",
+      "linux",
+      "macos",
+      "web",
+      "android"
+    ]
+  },
+  "targets": [
+    "editor",
+    "runtime"
+  ],
+  "entrypoints": {
+    "runtime": "runtime/src/fishing_plugin.gd",
+    "editor": "editor/dist/index.js"
+  },
+  "capabilities": {
+    "runtime": [
+      "events.emit",
+      "save.data",
+      "audio.play",
+      "ui.overlay",
+      "input.capture",
+      "profile.data"
+    ],
+    "editor": [
+      "preview"
+    ]
+  },
+  "variables": [
+    {
+      "key": "total_caught",
+      "name": "Fish caught (total)",
+      "description": "Total fish caught in this playthrough. Updated by the plugin.",
+      "type": "integer",
+      "default": 0,
+      "constraints": {
+        "min": 0
+      }
+    },
+    {
+      "key": "best_score",
+      "name": "Best fishing score",
+      "description": "Best score in a single session, across all of the player's games.",
+      "type": "integer",
+      "default": 0,
+      "persistence": "profile"
+    }
+  ],
+  "events": {
+    "emits": [
+      {
+        "name": "fishing.completed",
+        "description": "End of a fishing session.",
+        "payload": {
+          "type": "object",
+          "required": [
+            "fish_count",
+            "score"
+          ],
+          "properties": {
+            "fish_count": {
+              "type": "integer"
+            },
+            "score": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      {
+        "name": "fishing.rare_fish_caught",
+        "description": "The player caught a rare fish during the session.",
+        "payload": {
+          "type": "object",
+          "required": [
+            "species"
+          ],
+          "properties": {
+            "species": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "activities": [
+    {
+      "id": "fishing_game",
+      "name": "Fishing session",
+      "params_schema": {
+        "type": "object",
+        "required": [
+          "difficulty"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "difficulty": {
+            "enum": [
+              "easy",
+              "normal",
+              "hard"
+            ],
+            "title": "Difficulty",
+            "description": "How fast the fish get away."
+          },
+          "duration_seconds": {
+            "type": "integer",
+            "minimum": 10,
+            "maximum": 300,
+            "default": 60,
+            "title": "Duration (seconds)"
+          },
+          "target_fish": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 3,
+            "title": "Fish to win"
+          }
+        }
+      },
+      "outcomes": [
+        "won",
+        "lost"
+      ],
+      "result_schema": {
+        "type": "object",
+        "required": [
+          "won",
+          "fish_count",
+          "score"
+        ],
+        "properties": {
+          "won": {
+            "type": "boolean"
+          },
+          "fish_count": {
+            "type": "integer"
+          },
+          "score": {
+            "type": "integer"
+          }
+        }
+      },
+      "skippable": true,
+      "default_outcome": "lost",
+      "outcome_labels": {
+        "won": "Won",
+        "lost": "Lost"
+      },
+      "suggested_effects": [
+        {
+          "id": "won_flag",
+          "label": "Store whether the player won",
+          "variable_type": "boolean",
+          "op": "set",
+          "value": {
+            "result": "won"
+          }
+        },
+        {
+          "id": "skill_from_score",
+          "label": "Add score ÷ 100",
+          "variable_type": "integer",
+          "op": "add",
+          "value": {
+            "fn": "floor",
+            "args": [
+              {
+                "fn": "div",
+                "args": [
+                  {
+                    "result": "score"
+                  },
+                  100
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "fish_count",
+          "label": "Add fish caught",
+          "variable_type": "integer",
+          "op": "add",
+          "value": {
+            "result": "fish_count"
+          }
+        },
+        {
+          "id": "coins",
+          "label": "Add coins (10 per fish)",
+          "variable_type": "integer",
+          "op": "add",
+          "value": {
+            "fn": "mul",
+            "args": [
+              {
+                "result": "fish_count"
+              },
+              10
+            ]
+          }
+        }
+      ],
+      "free_play": {
+        "params": {
+          "difficulty": "normal",
+          "duration_seconds": 90,
+          "target_fish": 5
+        }
+      }
+    }
+  ],
+  "config_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "show_tutorial": {
+        "type": "boolean",
+        "default": true,
+        "title": "Show tutorial on first session"
+      },
+      "rare_fish_chance": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 0.5,
+        "default": 0.05,
+        "title": "Rare fish chance",
+        "description": "From 0 to 0.5. Each hooked fish has this chance of being rare."
+      }
+    }
+  },
+  "save": {
+    "data_version": 1
+  },
+  "records": [
+    {
+      "id": "high_scores",
+      "name": "High scores",
+      "order": "desc",
+      "keep": 10,
+      "format": "integer"
+    }
+  ],
+  "plugin_locales": {
+    "en": {
+      "runtime/hud/fish_count": "Fish: {count}",
+      "runtime/hud/time_left": "Time: {seconds}s",
+      "runtime/tutorial/cast": "Press Space to cast the line"
+    },
+    "pt-BR": {
+      "activity/fishing_game/name": "Sessão de pesca",
+      "activity/fishing_game/outcome/lost": "Perdeu",
+      "activity/fishing_game/outcome/won": "Ganhou",
+      "activity/fishing_game/param/difficulty/description": "Quão rápido os peixes escapam.",
+      "activity/fishing_game/param/difficulty/title": "Dificuldade",
+      "activity/fishing_game/param/duration_seconds/title": "Duração (segundos)",
+      "activity/fishing_game/param/target_fish/title": "Peixes para vencer",
+      "activity/fishing_game/suggested/coins": "Somar moedas (10 por peixe)",
+      "activity/fishing_game/suggested/fish_count": "Somar peixes pescados",
+      "activity/fishing_game/suggested/skill_from_score": "Somar a pontuação ÷ 100",
+      "activity/fishing_game/suggested/won_flag": "Guardar se venceu",
+      "config/rare_fish_chance/description": "De 0 a 0,5. Cada peixe fisgado tem essa chance de ser raro.",
+      "config/rare_fish_chance/title": "Chance de peixe raro",
+      "config/show_tutorial/title": "Mostrar tutorial na primeira pescaria",
+      "record/high_scores/name": "Recordes",
+      "runtime/hud/fish_count": "Peixes: {count}",
+      "runtime/hud/time_left": "Tempo: {seconds}s",
+      "runtime/tutorial/cast": "Aperte Espaço para lançar a linha",
+      "variable/best_score/name": "Melhor pontuação de pesca",
+      "variable/total_caught/name": "Peixes pescados (total)"
+    }
+  }
+}

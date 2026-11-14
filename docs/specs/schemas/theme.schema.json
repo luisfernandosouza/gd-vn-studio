@@ -1,0 +1,586 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.vnstudio.dev/1/theme.schema.json",
+  "title": "theme.json",
+  "description": "Estilos do jogo: fontes, cores, caixa de diálogo, escolhas e estilos de botão. O layout das telas fica em ui/*.json (UI Spec). Tudo é opcional; o que faltar vem do preset.",
+  "type": "object",
+  "additionalProperties": false,
+  "$defs": {
+    "Color": {
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$"
+    },
+    "Animation": {
+      "description": "Animação pronta (UI Spec §7.3). Com reduce_motion, só fade.",
+      "type": "object",
+      "required": [
+        "kind"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "fade",
+            "slide",
+            "scale",
+            "pulse",
+            "float",
+            "shake",
+            "rotate",
+            "blink"
+          ]
+        },
+        "from": {
+          "enum": [
+            "left",
+            "right",
+            "top",
+            "bottom"
+          ]
+        },
+        "duration": {
+          "type": "number",
+          "minimum": 0
+        },
+        "delay": {
+          "type": "number",
+          "minimum": 0
+        },
+        "amount": {
+          "type": "number"
+        },
+        "loop": {
+          "type": "boolean"
+        },
+        "easing": {
+          "enum": [
+            "linear",
+            "ease_in",
+            "ease_out",
+            "ease_in_out",
+            "back",
+            "elastic",
+            "bounce"
+          ]
+        }
+      }
+    },
+    "Style": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "extends": {
+          "$ref": "common.schema.json#/$defs/Id"
+        },
+        "image": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "normal": {
+              "$ref": "common.schema.json#/$defs/AssetRef"
+            },
+            "hover": {
+              "$ref": "common.schema.json#/$defs/AssetRef"
+            },
+            "pressed": {
+              "$ref": "common.schema.json#/$defs/AssetRef"
+            },
+            "disabled": {
+              "$ref": "common.schema.json#/$defs/AssetRef"
+            },
+            "focus": {
+              "$ref": "common.schema.json#/$defs/AssetRef"
+            },
+            "selected": {
+              "$ref": "common.schema.json#/$defs/AssetRef"
+            }
+          }
+        },
+        "shape": {
+          "enum": [
+            "rect",
+            "rounded",
+            "pill",
+            "circle"
+          ]
+        },
+        "radius": {
+          "type": "number",
+          "minimum": 0
+        },
+        "fill": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "normal": {
+              "$ref": "#/$defs/Color"
+            },
+            "hover": {
+              "$ref": "#/$defs/Color"
+            },
+            "pressed": {
+              "$ref": "#/$defs/Color"
+            },
+            "disabled": {
+              "$ref": "#/$defs/Color"
+            },
+            "focus": {
+              "$ref": "#/$defs/Color"
+            },
+            "selected": {
+              "$ref": "#/$defs/Color"
+            }
+          }
+        },
+        "border": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "normal": {
+              "$ref": "#/$defs/Color"
+            },
+            "hover": {
+              "$ref": "#/$defs/Color"
+            },
+            "pressed": {
+              "$ref": "#/$defs/Color"
+            },
+            "disabled": {
+              "$ref": "#/$defs/Color"
+            },
+            "focus": {
+              "$ref": "#/$defs/Color"
+            },
+            "selected": {
+              "$ref": "#/$defs/Color"
+            }
+          }
+        },
+        "border_width": {
+          "type": "number",
+          "minimum": 0
+        },
+        "font": {
+          "$ref": "common.schema.json#/$defs/AssetRef"
+        },
+        "font_size": {
+          "type": "integer",
+          "minimum": 8,
+          "maximum": 200
+        },
+        "text_color": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "normal": {
+              "$ref": "#/$defs/Color"
+            },
+            "hover": {
+              "$ref": "#/$defs/Color"
+            },
+            "pressed": {
+              "$ref": "#/$defs/Color"
+            },
+            "disabled": {
+              "$ref": "#/$defs/Color"
+            },
+            "focus": {
+              "$ref": "#/$defs/Color"
+            },
+            "selected": {
+              "$ref": "#/$defs/Color"
+            }
+          }
+        },
+        "outline": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "color": {
+              "$ref": "#/$defs/Color"
+            },
+            "size": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "shadow": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "color": {
+              "$ref": "#/$defs/Color"
+            },
+            "offset": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          }
+        },
+        "padding": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "icon_position": {
+          "enum": [
+            "left",
+            "right",
+            "top",
+            "only"
+          ]
+        },
+        "hover": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "scale": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "offset": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "rotation": {
+              "type": "number"
+            },
+            "tint": {
+              "$ref": "#/$defs/Color"
+            },
+            "glow": {
+              "$ref": "#/$defs/Color"
+            },
+            "duration": {
+              "type": "number",
+              "minimum": 0
+            },
+            "easing": {
+              "$ref": "#/$defs/Animation/properties/easing"
+            }
+          }
+        },
+        "press": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "scale": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "offset": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "rotation": {
+              "type": "number"
+            },
+            "tint": {
+              "$ref": "#/$defs/Color"
+            },
+            "glow": {
+              "$ref": "#/$defs/Color"
+            },
+            "duration": {
+              "type": "number",
+              "minimum": 0
+            },
+            "easing": {
+              "$ref": "#/$defs/Animation/properties/easing"
+            }
+          }
+        },
+        "focus": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "scale": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "offset": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "rotation": {
+              "type": "number"
+            },
+            "tint": {
+              "$ref": "#/$defs/Color"
+            },
+            "glow": {
+              "$ref": "#/$defs/Color"
+            },
+            "duration": {
+              "type": "number",
+              "minimum": 0
+            },
+            "easing": {
+              "$ref": "#/$defs/Animation/properties/easing"
+            }
+          }
+        },
+        "idle": {
+          "$ref": "#/$defs/Animation"
+        },
+        "sounds": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "hover": {
+              "$ref": "common.schema.json#/$defs/AssetRef"
+            },
+            "press": {
+              "$ref": "common.schema.json#/$defs/AssetRef"
+            },
+            "disabled_press": {
+              "$ref": "common.schema.json#/$defs/AssetRef"
+            }
+          }
+        },
+        "cursor": {
+          "$ref": "set.schema.json#/$defs/Cursor"
+        },
+        "auto_shrink": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "preset": {
+      "description": "Ponto de partida pronto.",
+      "enum": [
+        "classic",
+        "modern",
+        "minimal"
+      ],
+      "default": "classic"
+    },
+    "fonts": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "dialogue": {
+          "description": "Asset do tipo font (TTF/OTF).",
+          "$ref": "common.schema.json#/$defs/AssetRef"
+        },
+        "name": {
+          "$ref": "common.schema.json#/$defs/AssetRef"
+        },
+        "ui": {
+          "$ref": "common.schema.json#/$defs/AssetRef"
+        },
+        "dialogue_size": {
+          "type": "integer",
+          "minimum": 8,
+          "maximum": 128
+        },
+        "name_size": {
+          "type": "integer",
+          "minimum": 8,
+          "maximum": 128
+        },
+        "ui_size": {
+          "type": "integer",
+          "minimum": 8,
+          "maximum": 128
+        },
+        "title": {
+          "$ref": "common.schema.json#/$defs/AssetRef"
+        },
+        "fallbacks": {
+          "description": "Fontes de reserva por idioma ou sistema de escrita (ja, zh-Hans, zh-Hant, ko…), para caracteres que a fonte principal não tem (UI Spec §7.2, W020). Ausente = Noto do preset.",
+          "type": "object",
+          "propertyNames": {
+            "$ref": "common.schema.json#/$defs/Locale"
+          },
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "$ref": "common.schema.json#/$defs/AssetRef"
+            },
+            "minItems": 1
+          }
+        }
+      }
+    },
+    "colors": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "$ref": "#/$defs/Color"
+        },
+        "accent": {
+          "$ref": "#/$defs/Color"
+        },
+        "panel": {
+          "$ref": "#/$defs/Color"
+        },
+        "disabled": {
+          "$ref": "#/$defs/Color"
+        },
+        "focus": {
+          "$ref": "#/$defs/Color",
+          "description": "Contorno do botão com foco (teclado/gamepad, Req §12)."
+        }
+      }
+    },
+    "textbox": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "image": {
+          "description": "Fundo da caixa; use nine_slice no asset para esticar sem deformar.",
+          "$ref": "common.schema.json#/$defs/AssetRef"
+        },
+        "position": {
+          "enum": [
+            "bottom",
+            "top",
+            "full_screen"
+          ],
+          "default": "bottom"
+        },
+        "height": {
+          "description": "Fração da altura da tela.",
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 1
+        },
+        "padding": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "opacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "name_plate": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "image": {
+              "$ref": "common.schema.json#/$defs/AssetRef"
+            },
+            "offset": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "use_character_color": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "advance_indicator": {
+          "$ref": "common.schema.json#/$defs/AssetRef"
+        }
+      }
+    },
+    "choices": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "button": {
+          "$ref": "common.schema.json#/$defs/AssetRef"
+        },
+        "button_hover": {
+          "$ref": "common.schema.json#/$defs/AssetRef"
+        },
+        "button_disabled": {
+          "$ref": "common.schema.json#/$defs/AssetRef"
+        },
+        "layout": {
+          "enum": [
+            "center",
+            "list_left",
+            "list_right"
+          ],
+          "default": "center"
+        },
+        "style": {
+          "$ref": "common.schema.json#/$defs/Id",
+          "description": "Estilo dos botões de escolha; ausente = estilo 'choice'."
+        }
+      }
+    },
+    "sounds": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "click": {
+          "$ref": "common.schema.json#/$defs/AssetRef"
+        },
+        "hover": {
+          "$ref": "common.schema.json#/$defs/AssetRef"
+        },
+        "choice": {
+          "$ref": "common.schema.json#/$defs/AssetRef"
+        }
+      }
+    },
+    "styles": {
+      "description": "Estilos com nome, usados por elementos das telas (UI Spec §7.1). Os nomes button, choice, slot, slider, toggle, select e hotspot são os estilos padrão de cada tipo.",
+      "type": "object",
+      "propertyNames": {
+        "$ref": "common.schema.json#/$defs/Id"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/Style"
+      }
+    },
+    "cursor": {
+      "description": "Cursor padrão do jogo.",
+      "$ref": "common.schema.json#/$defs/AssetRef"
+    },
+    "dialog": {
+      "description": "Caixa de confirmação (ação confirm).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "image": {
+          "$ref": "common.schema.json#/$defs/AssetRef"
+        },
+        "button_style": {
+          "$ref": "common.schema.json#/$defs/Id"
+        }
+      }
+    }
+  }
+}

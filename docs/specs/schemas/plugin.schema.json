@@ -1,0 +1,677 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.vnstudio.dev/1/plugin.schema.json",
+  "title": "plugin.json (manifest_version 1)",
+  "description": "Manifesto declarativo de um plugin .vnplugin. Declara o que o plugin PEDE; o que ele RECEBE é decidido pelo projeto em plugins.json.",
+  "type": "object",
+  "required": [
+    "manifest_version",
+    "id",
+    "namespace",
+    "name",
+    "version",
+    "license",
+    "default_locale",
+    "sdk",
+    "compatibility",
+    "targets",
+    "entrypoints"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "manifest_version": {
+      "const": 1
+    },
+    "id": {
+      "description": "<publisher>.<nome>, globalmente único. O publisher 'vnstudio' é reservado a plugins oficiais.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{1,38}\\.[a-z][a-z0-9-]{1,63}$"
+    },
+    "namespace": {
+      "description": "Prefixo de variáveis (plugin.<namespace>.*), eventos (<namespace>.*) e atividades. Único dentro de um projeto; conflito impede a instalação.",
+      "$ref": "common.schema.json#/$defs/Namespace"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "version": {
+      "$ref": "common.schema.json#/$defs/SemVer"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "default_locale": {
+      "description": "Idioma-base dos textos do plugin (nome, rótulos, params e textos runtime/). Toda chave runtime/ usada em ctx.i18n.text DEVE ter texto em plugin_locales[default_locale] (W016), que é o texto-fonte da planilha de tradução.",
+      "$ref": "common.schema.json#/$defs/Locale"
+    },
+    "author": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "license": {
+      "description": "Identificador SPDX.",
+      "type": "string"
+    },
+    "homepage": {
+      "type": "string",
+      "format": "uri"
+    },
+    "repository": {
+      "type": "string",
+      "format": "uri"
+    },
+    "sdk": {
+      "description": "Versões dos SDKs contra as quais o plugin foi escrito.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "runtime": {
+          "$ref": "common.schema.json#/$defs/SemVerRange"
+        },
+        "editor": {
+          "$ref": "common.schema.json#/$defs/SemVerRange"
+        }
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "studio": {
+          "$ref": "common.schema.json#/$defs/SemVerRange"
+        },
+        "runtime": {
+          "$ref": "common.schema.json#/$defs/SemVerRange"
+        },
+        "godot": {
+          "$ref": "common.schema.json#/$defs/SemVerRange",
+          "description": "Ausente = a versão do Godot fixada pelo runtime de compatibility.runtime."
+        },
+        "data_model": {
+          "description": "format_version do Narrative Data Model.",
+          "$ref": "common.schema.json#/$defs/SemVerRange"
+        },
+        "platforms": {
+          "description": "Plataformas de exportação em que o plugin foi testado. Ausente = todas. O validador avisa (W008) quando o projeto exporta para uma plataforma fora da lista.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "windows",
+              "linux",
+              "macos",
+              "android",
+              "web"
+            ]
+          }
+        }
+      },
+      "required": [
+        "runtime"
+      ],
+      "description": "runtime é obrigatório. studio e data_model ausentes = qualquer versão; godot ausente = a do runtime."
+    },
+    "targets": {
+      "description": "[editor] = Editor Extension, [runtime] = Runtime Extension, ambos = Full Extension.",
+      "type": "array",
+      "items": {
+        "enum": [
+          "editor",
+          "runtime"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "entrypoints": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "runtime": {
+          "description": "Script GDScript que estende VNRuntimePlugin.",
+          "type": "string",
+          "pattern": "^runtime/.+\\.gd$"
+        },
+        "editor": {
+          "description": "Módulo ES compilado que exporta activate(ctx).",
+          "type": "string",
+          "pattern": "^editor/dist/.+\\.m?js$"
+        }
+      }
+    },
+    "capabilities": {
+      "description": "Capacidades solicitadas. Nada é concedido por padrão.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "runtime": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "variables.read",
+              "variables.write",
+              "events.emit",
+              "events.subscribe",
+              "transactions",
+              "characters.read",
+              "scenes.request",
+              "save.data",
+              "assets.read",
+              "audio.play",
+              "ui.overlay",
+              "input.capture",
+              "profile.data"
+            ]
+          }
+        },
+        "editor": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "panels",
+              "commands",
+              "node_inspector",
+              "project.read",
+              "project.write",
+              "assets.read",
+              "assets.write",
+              "notifications",
+              "preview",
+              "network"
+            ]
+          },
+          "description": "'network' só é aceita em plugins oficiais no v1 (P016)."
+        }
+      }
+    },
+    "variable_permissions": {
+      "description": "Variáveis do projeto que o plugin pede para ler/escrever. Aceita '*' como segmento (ex.: character.*.affection) ou '$config.<campo>' para a variável que o autor escolher num campo do config_schema com format 'vn-variable'. As do próprio namespace são implícitas. Variáveis de outro plugin só podem ser lidas, e só com o plugin em dependencies ou optional_dependencies (P017).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "read": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/VariablePattern"
+          },
+          "uniqueItems": true
+        },
+        "write": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/VariablePattern"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "variables": {
+      "description": "Variáveis próprias (plugin.<namespace>.<key>). Vivem durante todo o jogo. O Studio as mostra ao autor como 'do plugin <name>', somente leitura na definição; cada uma DEVERIA ter 'name' (aviso W007), traduzível em plugin_locales (variable/<key>/name). Não aceitam 'access' nem 'characters', e 'derived' só pode ler variáveis do próprio namespace (P017).",
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/VariableDefinition"
+      }
+    },
+    "events": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "emits": {
+          "description": "Eventos que o plugin emite. Nomes devem começar com '<namespace>.'.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "$ref": "common.schema.json#/$defs/EventName"
+              },
+              "description": {
+                "type": "string"
+              },
+              "payload": {
+                "description": "JSON Schema do payload; validado em debug/preview.",
+                "type": "object"
+              }
+            }
+          }
+        },
+        "subscribes": {
+          "description": "Eventos (ou padrões com * no final) que o plugin escuta. Exige a capacidade runtime events.subscribe (W012).",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*\\.([a-z0-9_.]*[a-z0-9_]|\\*|[a-z0-9_.]*\\.\\*)$"
+          }
+        }
+      }
+    },
+    "activities": {
+      "description": "Atividades que nós 'plugin' das cenas podem invocar (minigames, telas de inventário…).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "outcomes"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "$ref": "common.schema.json#/$defs/Id"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "params_schema": {
+            "description": "JSON Schema dos params; o Studio gera o formulário a partir dele. Cada propriedade DEVERIA ter 'title' e 'description' (aviso W007), traduzíveis em plugin_locales. Aceita os mesmos formatos vn-* do config_schema.",
+            "type": "object"
+          },
+          "outcomes": {
+            "description": "Resultados possíveis; o nó da cena mapeia cada um para um nó.",
+            "type": "array",
+            "items": {
+              "$ref": "common.schema.json#/$defs/Id"
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "result_schema": {
+            "description": "JSON Schema do payload de resultado.",
+            "type": "object"
+          },
+          "skippable": {
+            "description": "Se o jogador pode pular (o runtime usa default_outcome).",
+            "type": "boolean"
+          },
+          "default_outcome": {
+            "$ref": "common.schema.json#/$defs/Id",
+            "description": "Outcome usado quando o jogador pula a atividade. Obrigatório com skippable: true e deve estar em outcomes. No pulo, on_result.effects não é aplicado (Runtime Spec §5.3)."
+          },
+          "outcome_labels": {
+            "description": "Nome legível de cada outcome, exibido no Studio (ex.: won → 'Ganhou'). Traduzível em plugin_locales.",
+            "type": "object",
+            "propertyNames": {
+              "$ref": "common.schema.json#/$defs/Id"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "suggested_effects": {
+            "description": "Mapeamentos prontos de resultado → variável que o Studio oferece ao autor. O autor só escolhe a variável (do tipo indicado); o Studio grava o efeito em on_result.effects.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "label",
+                "op",
+                "value",
+                "variable_type"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "$ref": "common.schema.json#/$defs/Id"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "op": {
+                  "enum": [
+                    "set",
+                    "add",
+                    "subtract"
+                  ]
+                },
+                "variable_type": {
+                  "enum": [
+                    "boolean",
+                    "integer",
+                    "number",
+                    "string"
+                  ]
+                },
+                "value": {
+                  "description": "Expressão de valor; pode usar {\"result\": \"campo\"}.",
+                  "$ref": "common.schema.json#/$defs/ValueExpr"
+                }
+              }
+            }
+          },
+          "min_fps": {
+            "description": "Taxa mínima de quadros de que o minijogo precisa; o runtime a usa se o limite do jogador para atividades for menor, salvo escolha explícita (UI Spec §8).",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 360
+          },
+          "free_play": {
+            "description": "A atividade pode ser jogada fora da história, no modo livre (SDK §6.1), a partir de um botão de menu (ação play_activity, UI Spec §4). params são os parâmetros padrão do modo livre, validados contra params_schema.",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "params": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "skippable": {
+                  "const": true
+                }
+              },
+              "required": [
+                "skippable"
+              ]
+            },
+            "then": {
+              "required": [
+                "default_outcome"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "config_schema": {
+      "description": "JSON Schema da configuração por projeto (em plugins.json → config). Campos com format 'vn-variable' (com 'vn-variable-type'), 'vn-asset' (com 'vn-asset-type'), 'vn-scene' ou 'vn-character' viram seletores no Studio e são conferidos pelo validador (P018); assets citados assim entram no build sem always_include (Plugin SDK §4.4).",
+      "type": "object"
+    },
+    "config_migrations": {
+      "description": "Migrações declarativas da config salva no projeto, aplicadas em ordem pelo Studio ao atualizar o plugin (Plugin SDK §8). Servem também para plugins sem parte de editor; migrateConfig() do Editor SDK roda depois, se existir.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "from_major",
+          "ops"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "from_major": {
+            "description": "MAJOR da versão do plugin que gravou a config.",
+            "type": "integer",
+            "minimum": 0
+          },
+          "destructive": {
+            "description": "Se remove dados; o Studio pede confirmação (ADD §10).",
+            "type": "boolean",
+            "default": false
+          },
+          "ops": {
+            "description": "Operações JSON Patch (RFC 6902) sobre a config.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "op",
+                "path"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "save": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "data_version": {
+          "description": "Versão do formato dos dados salvos via SaveAPI. Incrementar exige implementar _vn_migrate_save_data().",
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "profile": {
+      "description": "Dados próprios do plugin no perfil do jogador (profile.json), que sobrevivem entre partidas: progresso de modo livre, desbloqueios, estatísticas. Exige a capacidade profile.data (SDK §9.1).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "data_version": {
+          "description": "Versão do formato dos dados de perfil. Incrementar exige implementar _vn_migrate_profile_data().",
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "records": {
+      "description": "Quadros de recordes guardados no perfil do jogador (SDK §9.1). Exigem a capacidade profile.data. Nome traduzível em plugin_locales (record/<id>/name).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "$ref": "common.schema.json#/$defs/Id"
+          },
+          "name": {
+            "type": "string"
+          },
+          "order": {
+            "description": "desc (padrão): maior é melhor. asc: menor é melhor (tempo).",
+            "enum": [
+              "desc",
+              "asc"
+            ]
+          },
+          "keep": {
+            "description": "Quantas marcas o quadro guarda. Padrão 10.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "format": {
+            "description": "Como a UI mostra a marca. Padrão integer.",
+            "enum": [
+              "integer",
+              "number",
+              "time_ms"
+            ]
+          }
+        }
+      }
+    },
+    "dependencies": {
+      "description": "id do plugin → faixa semver.",
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]{1,38}\\.[a-z][a-z0-9-]{1,63}$"
+      },
+      "additionalProperties": {
+        "$ref": "common.schema.json#/$defs/SemVerRange"
+      }
+    },
+    "optional_dependencies": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]{1,38}\\.[a-z][a-z0-9-]{1,63}$"
+      },
+      "additionalProperties": {
+        "$ref": "common.schema.json#/$defs/SemVerRange"
+      }
+    },
+    "editor": {
+      "description": "Contribuições declarativas ao Studio (carregadas antes de executar código do plugin).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "panels": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "title"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/Id"
+              },
+              "title": {
+                "type": "string"
+              },
+              "location": {
+                "enum": [
+                  "sidebar",
+                  "bottom",
+                  "main_tab",
+                  "modal"
+                ]
+              },
+              "icon": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "commands": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "title"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/Id"
+              },
+              "title": {
+                "type": "string"
+              },
+              "shortcut": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "node_inspectors": {
+          "description": "Atividades que têm inspetor próprio no Scene Editor (senão o Studio gera um formulário do params_schema).",
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/Id"
+          }
+        }
+      }
+    },
+    "plugin_locales": {
+      "description": "Traduções dos textos do plugin: locale → (caminho → texto). Caminhos exibidos no Studio: activity/<id>/name, activity/<id>/description, activity/<id>/outcome/<outcome>, activity/<id>/param/<prop>/title, activity/<id>/param/<prop>/description, activity/<id>/suggested/<id>, config/<prop>/title, config/<prop>/description, variable/<key>/name, variable/<key>/description. Caminhos runtime/<...> são textos mostrados ao jogador dentro do minijogo, lidos por ctx.i18n.text() no idioma atual do jogo.",
+      "type": "object",
+      "propertyNames": {
+        "$ref": "common.schema.json#/$defs/Locale"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "targets": {
+            "contains": {
+              "const": "runtime"
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "entrypoints": {
+            "required": [
+              "runtime"
+            ]
+          },
+          "sdk": {
+            "required": [
+              "runtime"
+            ]
+          }
+        },
+        "required": [
+          "sdk"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "targets": {
+            "contains": {
+              "const": "editor"
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "entrypoints": {
+            "required": [
+              "editor"
+            ]
+          },
+          "sdk": {
+            "required": [
+              "editor"
+            ]
+          }
+        },
+        "required": [
+          "sdk"
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "VariablePattern": {
+      "type": "string",
+      "pattern": "^((global|character|chapter|scene|plugin|sys)(\\.([a-z][a-z0-9_]*|\\*))+|\\$config\\.[a-z][a-z0-9_]*)$"
+    }
+  }
+}

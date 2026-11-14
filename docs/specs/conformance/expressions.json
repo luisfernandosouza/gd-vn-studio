@@ -1,0 +1,528 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/1/conformance.schema.json",
+  "title": "Expressões e funções",
+  "covers": [
+    "DM §6.1",
+    "DM §6.1.1",
+    "RT §12.1"
+  ],
+  "cases": [
+    {
+      "id": "add_int",
+      "description": "add de dois inteiros é integer",
+      "kind": "expression",
+      "expr": {
+        "fn": "add",
+        "args": [
+          2,
+          3
+        ]
+      },
+      "expect": {
+        "type": "integer",
+        "value": 5
+      }
+    },
+    {
+      "id": "add_mixed",
+      "description": "add de integer com number é number",
+      "kind": "expression",
+      "expr": {
+        "fn": "add",
+        "args": [
+          2,
+          0.5
+        ]
+      },
+      "expect": {
+        "type": "number",
+        "value": 2.5
+      }
+    },
+    {
+      "id": "div_always_number",
+      "description": "div é sempre number (7 / 2)",
+      "kind": "expression",
+      "expr": {
+        "fn": "div",
+        "args": [
+          7,
+          2
+        ]
+      },
+      "expect": {
+        "type": "number",
+        "value": 3.5
+      }
+    },
+    {
+      "id": "div_exact_number",
+      "description": "div exata continua number (6 / 3 = 2.0)",
+      "kind": "expression",
+      "expr": {
+        "fn": "div",
+        "args": [
+          6,
+          3
+        ]
+      },
+      "expect": {
+        "type": "number",
+        "value": 2.0
+      }
+    },
+    {
+      "id": "div_zero",
+      "description": "divisão por zero aborta",
+      "kind": "expression",
+      "expr": {
+        "fn": "div",
+        "args": [
+          1,
+          0
+        ]
+      },
+      "expect": {
+        "error": "OUT_OF_RANGE"
+      }
+    },
+    {
+      "id": "mod_neg_dividend",
+      "description": "mod com o sinal do divisor (-7 mod 3 = 2)",
+      "kind": "expression",
+      "expr": {
+        "fn": "mod",
+        "args": [
+          -7,
+          3
+        ]
+      },
+      "expect": {
+        "type": "integer",
+        "value": 2
+      }
+    },
+    {
+      "id": "mod_neg_divisor",
+      "description": "mod com o sinal do divisor (7 mod -3 = -2)",
+      "kind": "expression",
+      "expr": {
+        "fn": "mod",
+        "args": [
+          7,
+          -3
+        ]
+      },
+      "expect": {
+        "type": "integer",
+        "value": -2
+      }
+    },
+    {
+      "id": "mod_zero",
+      "description": "mod por zero aborta",
+      "kind": "expression",
+      "expr": {
+        "fn": "mod",
+        "args": [
+          5,
+          0
+        ]
+      },
+      "expect": {
+        "error": "OUT_OF_RANGE"
+      }
+    },
+    {
+      "id": "mod_number",
+      "description": "mod com number é erro de tipo",
+      "kind": "expression",
+      "expr": {
+        "fn": "mod",
+        "args": [
+          5.5,
+          2
+        ]
+      },
+      "expect": {
+        "error": "TYPE_MISMATCH"
+      }
+    },
+    {
+      "id": "round_half_up",
+      "description": "round 2.5 → 3",
+      "kind": "expression",
+      "expr": {
+        "fn": "round",
+        "args": [
+          2.5
+        ]
+      },
+      "expect": {
+        "type": "integer",
+        "value": 3
+      }
+    },
+    {
+      "id": "round_half_neg",
+      "description": "round -2.5 → -3 (para longe do zero)",
+      "kind": "expression",
+      "expr": {
+        "fn": "round",
+        "args": [
+          -2.5
+        ]
+      },
+      "expect": {
+        "type": "integer",
+        "value": -3
+      }
+    },
+    {
+      "id": "round_below_half",
+      "description": "round 2.4999 → 2",
+      "kind": "expression",
+      "expr": {
+        "fn": "round",
+        "args": [
+          2.4999
+        ]
+      },
+      "expect": {
+        "type": "integer",
+        "value": 2
+      }
+    },
+    {
+      "id": "floor_neg",
+      "description": "floor -1.5 → -2",
+      "kind": "expression",
+      "expr": {
+        "fn": "floor",
+        "args": [
+          -1.5
+        ]
+      },
+      "expect": {
+        "type": "integer",
+        "value": -2
+      }
+    },
+    {
+      "id": "ceil_neg",
+      "description": "ceil -1.5 → -1",
+      "kind": "expression",
+      "expr": {
+        "fn": "ceil",
+        "args": [
+          -1.5
+        ]
+      },
+      "expect": {
+        "type": "integer",
+        "value": -1
+      }
+    },
+    {
+      "id": "abs_int",
+      "description": "abs mantém integer",
+      "kind": "expression",
+      "expr": {
+        "fn": "abs",
+        "args": [
+          -3
+        ]
+      },
+      "expect": {
+        "type": "integer",
+        "value": 3
+      }
+    },
+    {
+      "id": "abs_number",
+      "description": "abs mantém number",
+      "kind": "expression",
+      "expr": {
+        "fn": "abs",
+        "args": [
+          -2.5
+        ]
+      },
+      "expect": {
+        "type": "number",
+        "value": 2.5
+      }
+    },
+    {
+      "id": "min_mixed",
+      "description": "min com um number é number",
+      "kind": "expression",
+      "expr": {
+        "fn": "min",
+        "args": [
+          3,
+          1.5,
+          2
+        ]
+      },
+      "expect": {
+        "type": "number",
+        "value": 1.5
+      }
+    },
+    {
+      "id": "max_ints",
+      "description": "max de inteiros é integer",
+      "kind": "expression",
+      "expr": {
+        "fn": "max",
+        "args": [
+          1,
+          7,
+          3
+        ]
+      },
+      "expect": {
+        "type": "integer",
+        "value": 7
+      }
+    },
+    {
+      "id": "clamp_high",
+      "description": "clamp acima do máximo",
+      "kind": "expression",
+      "expr": {
+        "fn": "clamp",
+        "args": [
+          15,
+          0,
+          10
+        ]
+      },
+      "expect": {
+        "type": "integer",
+        "value": 10
+      }
+    },
+    {
+      "id": "clamp_inverted",
+      "description": "clamp com min > max devolve min",
+      "kind": "expression",
+      "expr": {
+        "fn": "clamp",
+        "args": [
+          5,
+          10,
+          0
+        ]
+      },
+      "expect": {
+        "type": "integer",
+        "value": 10
+      }
+    },
+    {
+      "id": "int_overflow",
+      "description": "inteiro acima de 2^53 − 1 aborta",
+      "kind": "expression",
+      "expr": {
+        "fn": "add",
+        "args": [
+          9007199254740991,
+          1
+        ]
+      },
+      "expect": {
+        "error": "OUT_OF_RANGE"
+      }
+    },
+    {
+      "id": "int_limit_ok",
+      "description": "2^53 − 1 ainda é válido",
+      "kind": "expression",
+      "expr": {
+        "fn": "sub",
+        "args": [
+          9007199254740991,
+          0
+        ]
+      },
+      "expect": {
+        "type": "integer",
+        "value": 9007199254740991
+      }
+    },
+    {
+      "id": "mul_overflow_number",
+      "description": "number não finito aborta",
+      "kind": "expression",
+      "expr": {
+        "fn": "mul",
+        "args": [
+          1e+308,
+          10.0
+        ]
+      },
+      "expect": {
+        "error": "OUT_OF_RANGE"
+      }
+    },
+    {
+      "id": "concat_third",
+      "description": "concat de 1/3 usa a menor representação",
+      "kind": "expression",
+      "expr": {
+        "fn": "concat",
+        "args": [
+          "x=",
+          {
+            "fn": "div",
+            "args": [
+              1,
+              3
+            ]
+          }
+        ]
+      },
+      "expect": {
+        "type": "string",
+        "value": "x=0.3333333333333333"
+      }
+    },
+    {
+      "id": "concat_whole_number",
+      "description": "concat de number inteiro sai sem casa (4 / 2 → \"2\")",
+      "kind": "expression",
+      "expr": {
+        "fn": "concat",
+        "args": [
+          {
+            "fn": "div",
+            "args": [
+              4,
+              2
+            ]
+          }
+        ]
+      },
+      "expect": {
+        "type": "string",
+        "value": "2"
+      }
+    },
+    {
+      "id": "concat_bool_int",
+      "description": "concat de booleano e inteiro, sem separador de milhar",
+      "kind": "expression",
+      "expr": {
+        "fn": "concat",
+        "args": [
+          true,
+          " ",
+          1000
+        ]
+      },
+      "expect": {
+        "type": "string",
+        "value": "true 1000"
+      }
+    },
+    {
+      "id": "concat_tiny",
+      "description": "concat de 1e-7 segue o JavaScript",
+      "kind": "expression",
+      "expr": {
+        "fn": "concat",
+        "args": [
+          {
+            "fn": "div",
+            "args": [
+              1,
+              10000000
+            ]
+          }
+        ]
+      },
+      "expect": {
+        "type": "string",
+        "value": "1e-7"
+      }
+    },
+    {
+      "id": "concat_small",
+      "description": "concat de 0.000015 sem notação científica",
+      "kind": "expression",
+      "expr": {
+        "fn": "concat",
+        "args": [
+          1.5e-05
+        ]
+      },
+      "expect": {
+        "type": "string",
+        "value": "0.000015"
+      }
+    },
+    {
+      "id": "var_read",
+      "description": "leitura de variável",
+      "kind": "expression",
+      "expr": {
+        "fn": "add",
+        "args": [
+          {
+            "var": "global.money"
+          },
+          10
+        ]
+      },
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30
+        }
+      },
+      "expect": {
+        "type": "integer",
+        "value": 40
+      }
+    },
+    {
+      "id": "if_expr",
+      "description": "expressão condicional",
+      "kind": "expression",
+      "expr": {
+        "if": [
+          {
+            "variable": "global.money",
+            "operator": "greater_than",
+            "value": 10
+          }
+        ],
+        "then": "rico",
+        "else": "pobre"
+      },
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30
+        }
+      },
+      "expect": {
+        "type": "string",
+        "value": "rico"
+      }
+    },
+    {
+      "id": "var_missing",
+      "description": "variável inexistente",
+      "kind": "expression",
+      "expr": {
+        "var": "global.nada"
+      },
+      "expect": {
+        "error": "VARIABLE_NOT_FOUND"
+      }
+    }
+  ]
+}

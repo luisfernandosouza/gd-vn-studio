@@ -1,0 +1,248 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.vnstudio.dev/1/set.schema.json",
+  "title": "sets/<id>.json",
+  "description": "Cenário composto: camadas com estados e hotspots cosméticos. Usado como fundo de telas (ui/*.json → set) e de cenas (nó background → set). UI Spec §5.",
+  "type": "object",
+  "required": [
+    "id",
+    "layers"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/Id"
+    },
+    "description": {
+      "type": "string"
+    },
+    "layers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/Layer"
+      }
+    },
+    "hotspots": {
+      "description": "Áreas clicáveis cosméticas. Só aceitam ações cosméticas (U004).",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/CosmeticHotspot"
+      }
+    }
+  },
+  "$defs": {
+    "Fraction2": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "Layer": {
+      "type": "object",
+      "required": [
+        "id",
+        "asset"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/Id"
+        },
+        "asset": {
+          "$ref": "common.schema.json#/$defs/AssetRef"
+        },
+        "position": {
+          "$ref": "#/$defs/Fraction2",
+          "description": "Fração da tela; ausente = camada cobre a tela inteira."
+        },
+        "pivot": {
+          "$ref": "#/$defs/Fraction2"
+        },
+        "scale": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10
+        },
+        "z": {
+          "type": "integer"
+        },
+        "opacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "parallax": {
+          "description": "Deslocamento máximo com o mouse, em fração da tela. Desligado com reduce_motion.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.2
+        },
+        "animation": {
+          "$ref": "theme.schema.json#/$defs/Animation"
+        },
+        "states": {
+          "description": "Variações nomeadas. O estado inicial é 'default'.",
+          "type": "object",
+          "propertyNames": {
+            "$ref": "common.schema.json#/$defs/Id"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "asset": {
+                "$ref": "common.schema.json#/$defs/AssetRef"
+              },
+              "visible": {
+                "type": "boolean"
+              },
+              "opacity": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "tint": {
+                "$ref": "theme.schema.json#/$defs/Color"
+              },
+              "animation": {
+                "$ref": "theme.schema.json#/$defs/Animation"
+              }
+            }
+          }
+        }
+      }
+    },
+    "Area": {
+      "description": "Área clicável (UI Spec §5.2).",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "rect"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "rect": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "minItems": 4,
+              "maxItems": 4
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "polygon"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "polygon": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Fraction2"
+              },
+              "minItems": 3,
+              "maxItems": 32
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "layer"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "layer": {
+              "$ref": "common.schema.json#/$defs/Id"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "character"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "character": {
+              "$ref": "common.schema.json#/$defs/EntityId"
+            }
+          }
+        }
+      ]
+    },
+    "Cursor": {
+      "anyOf": [
+        {
+          "enum": [
+            "default",
+            "look",
+            "talk",
+            "use",
+            "walk"
+          ]
+        },
+        {
+          "$ref": "common.schema.json#/$defs/AssetRef"
+        }
+      ],
+      "description": "Cursor ao passar sobre a área: um dos nomes prontos ou um asset de imagem. Um nome pronto vence um asset de mesmo id."
+    },
+    "Highlight": {
+      "enum": [
+        "none",
+        "outline",
+        "glow",
+        "tint"
+      ]
+    },
+    "CosmeticHotspot": {
+      "type": "object",
+      "required": [
+        "id",
+        "area"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/Id"
+        },
+        "area": {
+          "$ref": "#/$defs/Area"
+        },
+        "label": {
+          "$ref": "common.schema.json#/$defs/LocalizedText"
+        },
+        "cursor": {
+          "$ref": "#/$defs/Cursor"
+        },
+        "highlight": {
+          "$ref": "#/$defs/Highlight"
+        },
+        "on_hover": {
+          "$ref": "ui-screen.schema.json#/$defs/ActionList"
+        },
+        "on_press": {
+          "$ref": "ui-screen.schema.json#/$defs/ActionList"
+        },
+        "on_release": {
+          "$ref": "ui-screen.schema.json#/$defs/ActionList"
+        }
+      }
+    }
+  }
+}

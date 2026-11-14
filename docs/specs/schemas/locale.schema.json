@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.vnstudio.dev/1/locale.schema.json",
+  "title": "locales/<lang>/<arquivo>.json",
+  "description": "Traduções. Chave = caminho estável do texto (ex.: scene_beach/n3, scene_beach/n7/opt_fish, character/alice/name). Valor = texto traduzido. 'source_hash' detecta tradução desatualizada.",
+  "type": "object",
+  "required": [
+    "locale",
+    "strings"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "locale": {
+      "$ref": "common.schema.json#/$defs/Locale"
+    },
+    "strings": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z0-9][a-z0-9_-]*(/[a-z0-9_-]+)+$"
+      },
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "object",
+            "required": [
+              "text"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "text": {
+                "type": "string"
+              },
+              "source_hash": {
+                "description": "16 primeiros caracteres hex do SHA-256 do texto-fonte normalizado (Data Model §9).",
+                "type": "string",
+                "pattern": "^[0-9a-f]{16}$"
+              },
+              "status": {
+                "enum": [
+                  "draft",
+                  "reviewed"
+                ],
+                "description": "'desatualizada' não é gravado: o Studio calcula pelo source_hash (Req §9)."
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

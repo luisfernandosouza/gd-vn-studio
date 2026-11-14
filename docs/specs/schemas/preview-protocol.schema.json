@@ -1,0 +1,2520 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.vnstudio.dev/1/preview-protocol.schema.json",
+  "title": "Mensagem do protocolo do Preview",
+  "description": "Uma mensagem JSON-RPC 2.0 trocada entre o Studio e o runtime no Preview (spec 07). Os resultados de cada método estão em $defs/<Método>_result; a resposta em si só é validada na forma.",
+  "oneOf": [
+    {
+      "title": "Requisição (Studio → Runtime)",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "id",
+            "method"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "id": {
+              "type": [
+                "integer",
+                "string"
+              ]
+            },
+            "method": {
+              "const": "session.hello"
+            },
+            "params": {
+              "$ref": "#/$defs/Session_hello_params"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "id",
+            "method"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "id": {
+              "type": [
+                "integer",
+                "string"
+              ]
+            },
+            "method": {
+              "const": "preview.load"
+            },
+            "params": {
+              "$ref": "#/$defs/Preview_load_params"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "id",
+            "method"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "id": {
+              "type": [
+                "integer",
+                "string"
+              ]
+            },
+            "method": {
+              "const": "preview.start"
+            },
+            "params": {
+              "$ref": "#/$defs/Preview_start_params"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "id",
+            "method"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "id": {
+              "type": [
+                "integer",
+                "string"
+              ]
+            },
+            "method": {
+              "const": "preview.stop"
+            },
+            "params": {
+              "$ref": "#/$defs/Preview_stop_params"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "id",
+            "method"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "id": {
+              "type": [
+                "integer",
+                "string"
+              ]
+            },
+            "method": {
+              "const": "preview.pause"
+            },
+            "params": {
+              "$ref": "#/$defs/Preview_pause_params"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "id",
+            "method"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "id": {
+              "type": [
+                "integer",
+                "string"
+              ]
+            },
+            "method": {
+              "const": "preview.resume"
+            },
+            "params": {
+              "$ref": "#/$defs/Preview_resume_params"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "id",
+            "method"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "id": {
+              "type": [
+                "integer",
+                "string"
+              ]
+            },
+            "method": {
+              "const": "preview.step"
+            },
+            "params": {
+              "$ref": "#/$defs/Preview_step_params"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "id",
+            "method"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "id": {
+              "type": [
+                "integer",
+                "string"
+              ]
+            },
+            "method": {
+              "const": "preview.input"
+            },
+            "params": {
+              "$ref": "#/$defs/Preview_input_params"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "id",
+            "method"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "id": {
+              "type": [
+                "integer",
+                "string"
+              ]
+            },
+            "method": {
+              "const": "preview.set_variables"
+            },
+            "params": {
+              "$ref": "#/$defs/Preview_set_variables_params"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "id",
+            "method"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "id": {
+              "type": [
+                "integer",
+                "string"
+              ]
+            },
+            "method": {
+              "const": "preview.get_state"
+            },
+            "params": {
+              "$ref": "#/$defs/Preview_get_state_params"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "id",
+            "method"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "id": {
+              "type": [
+                "integer",
+                "string"
+              ]
+            },
+            "method": {
+              "const": "preview.explain_selection"
+            },
+            "params": {
+              "$ref": "#/$defs/Preview_explain_selection_params"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "id",
+            "method"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "id": {
+              "type": [
+                "integer",
+                "string"
+              ]
+            },
+            "method": {
+              "const": "preview.reload"
+            },
+            "params": {
+              "$ref": "#/$defs/Preview_reload_params"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "id",
+            "method"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "id": {
+              "type": [
+                "integer",
+                "string"
+              ]
+            },
+            "method": {
+              "const": "preview.reload_plugins"
+            },
+            "params": {
+              "$ref": "#/$defs/Preview_reload_plugins_params"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "id",
+            "method"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "id": {
+              "type": [
+                "integer",
+                "string"
+              ]
+            },
+            "method": {
+              "const": "preview.show_screen"
+            },
+            "params": {
+              "$ref": "#/$defs/Preview_show_screen_params"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "id",
+            "method"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "id": {
+              "type": [
+                "integer",
+                "string"
+              ]
+            },
+            "method": {
+              "const": "preview.set_locale"
+            },
+            "params": {
+              "$ref": "#/$defs/Preview_set_locale_params"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "title": "Notificação (Runtime → Studio)",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "method",
+            "params"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "method": {
+              "const": "session.closing"
+            },
+            "params": {
+              "$ref": "#/$defs/Notify_session_closing"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "method",
+            "params"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "method": {
+              "const": "chapter.started"
+            },
+            "params": {
+              "$ref": "#/$defs/Notify_chapter_started"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "method",
+            "params"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "method": {
+              "const": "chapter.ended"
+            },
+            "params": {
+              "$ref": "#/$defs/Notify_chapter_ended"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "method",
+            "params"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "method": {
+              "const": "scene.started"
+            },
+            "params": {
+              "$ref": "#/$defs/Notify_scene_started"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "method",
+            "params"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "method": {
+              "const": "scene.ended"
+            },
+            "params": {
+              "$ref": "#/$defs/Notify_scene_ended"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "method",
+            "params"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "method": {
+              "const": "node.entered"
+            },
+            "params": {
+              "$ref": "#/$defs/Notify_node_entered"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "method",
+            "params"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "method": {
+              "const": "state.changed"
+            },
+            "params": {
+              "$ref": "#/$defs/Notify_state_changed"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "method",
+            "params"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "method": {
+              "const": "event.emitted"
+            },
+            "params": {
+              "$ref": "#/$defs/Notify_event_emitted"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "method",
+            "params"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "method": {
+              "const": "scheduler.evaluated"
+            },
+            "params": {
+              "$ref": "#/$defs/Notify_scheduler_evaluated"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "method",
+            "params"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "method": {
+              "const": "activity.started"
+            },
+            "params": {
+              "$ref": "#/$defs/Notify_activity_started"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "method",
+            "params"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "method": {
+              "const": "activity.ended"
+            },
+            "params": {
+              "$ref": "#/$defs/Notify_activity_ended"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "method",
+            "params"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "method": {
+              "const": "game.ended"
+            },
+            "params": {
+              "$ref": "#/$defs/Notify_game_ended"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "method",
+            "params"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "method": {
+              "const": "log"
+            },
+            "params": {
+              "$ref": "#/$defs/Notify_log"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "method",
+            "params"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "method": {
+              "const": "error"
+            },
+            "params": {
+              "$ref": "#/$defs/Notify_error"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "method",
+            "params"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "method": {
+              "const": "plugin.log"
+            },
+            "params": {
+              "$ref": "#/$defs/Notify_plugin_log"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "method",
+            "params"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "method": {
+              "const": "plugin.permission_denied"
+            },
+            "params": {
+              "$ref": "#/$defs/Notify_plugin_permission_denied"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "method",
+            "params"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "method": {
+              "const": "plugin.faulted"
+            },
+            "params": {
+              "$ref": "#/$defs/Notify_plugin_faulted"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "title": "Resposta",
+      "type": "object",
+      "required": [
+        "jsonrpc",
+        "id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0"
+        },
+        "id": {
+          "type": [
+            "integer",
+            "string",
+            "null"
+          ]
+        },
+        "result": {},
+        "error": {
+          "$ref": "#/$defs/ErrorObject"
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "result"
+          ]
+        },
+        {
+          "required": [
+            "error"
+          ]
+        }
+      ]
+    }
+  ],
+  "$defs": {
+    "VariableValues": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "common.schema.json#/$defs/VariableRef"
+      },
+      "additionalProperties": {
+        "type": [
+          "boolean",
+          "number",
+          "string"
+        ]
+      }
+    },
+    "Changes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "variable": {
+            "type": "string"
+          },
+          "old": {},
+          "new": {}
+        },
+        "additionalProperties": false,
+        "required": [
+          "variable",
+          "old",
+          "new"
+        ]
+      }
+    },
+    "SchedulerEvaluation": {
+      "type": "object",
+      "required": [
+        "selection_count",
+        "chapter",
+        "action",
+        "chosen",
+        "reason",
+        "candidates"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "selection_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "chapter": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        "action": {
+          "enum": [
+            "start_scene",
+            "exit_chapter",
+            "end_game"
+          ]
+        },
+        "chosen": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/EntityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "enum": [
+            "request",
+            "plugin_request",
+            "priority",
+            "tie_break",
+            "fallback",
+            "completion",
+            "exhausted"
+          ]
+        },
+        "candidates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "scene": {
+                "$ref": "common.schema.json#/$defs/EntityId"
+              },
+              "eligible": {
+                "type": "boolean"
+              },
+              "blocked_by": {
+                "enum": [
+                  "mode_manual",
+                  "max_plays",
+                  "cooldown",
+                  "exclusive_group",
+                  "conditions",
+                  "lower_priority",
+                  "tie_break"
+                ]
+              },
+              "detail": {
+                "type": "object"
+              },
+              "failed": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "path": {
+                      "type": "string"
+                    },
+                    "variable": {
+                      "type": "string"
+                    },
+                    "operator": {
+                      "type": "string"
+                    },
+                    "expected": {},
+                    "actual": {},
+                    "event": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "required": [
+                    "path"
+                  ]
+                }
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "scene",
+              "eligible"
+            ]
+          }
+        },
+        "request_refused": {
+          "type": "object",
+          "properties": {
+            "scene": {
+              "$ref": "common.schema.json#/$defs/EntityId"
+            },
+            "by": {
+              "enum": [
+                "content",
+                "plugin"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "scene",
+            "by"
+          ]
+        }
+      }
+    },
+    "GameState": {
+      "type": "object",
+      "properties": {
+        "phase": {
+          "enum": [
+            "BOOT",
+            "TITLE",
+            "NEW_GAME",
+            "LOAD_GAME",
+            "CHAPTER_ENTER",
+            "SELECTION_POINT",
+            "SCENE_RUNNING",
+            "ACTIVITY",
+            "SCENE_END",
+            "CHAPTER_EXIT",
+            "GAME_END"
+          ]
+        },
+        "preview": {
+          "enum": [
+            "RUNNING",
+            "PAUSED"
+          ]
+        },
+        "chapter": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/EntityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scene": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/EntityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "node": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/EntityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "variables": {
+          "$ref": "#/$defs/VariableValues"
+        },
+        "history": {
+          "$ref": "save.schema.json#/properties/state/properties/history"
+        },
+        "stage": {
+          "$ref": "save.schema.json#/$defs/Stage"
+        },
+        "backlog": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "type": "object",
+            "properties": {
+              "speaker": {
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "text": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "text"
+            ]
+          }
+        },
+        "plugins": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "faulted": {
+                "type": "boolean"
+              },
+              "activity": {
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "enabled",
+              "faulted"
+            ]
+          }
+        },
+        "rng": {
+          "type": "object",
+          "properties": {
+            "seed": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{16}$"
+            },
+            "state": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{16}$"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "seed",
+            "state"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "phase",
+        "preview",
+        "chapter",
+        "scene",
+        "node"
+      ]
+    },
+    "ErrorObject": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "enum": [
+                "UNAUTHENTICATED",
+                "UNSUPPORTED_VERSION",
+                "INVALID_PREVIEW_STATE",
+                "BUNDLE_INVALID",
+                "NOT_FOUND",
+                "STATE_REJECTED",
+                "BUSY",
+                "INTERNAL"
+              ]
+            },
+            "vn_code": {
+              "type": "string"
+            },
+            "state": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            },
+            "detail": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message"
+      ]
+    },
+    "Session_hello_params": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "protocol": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+$"
+        },
+        "studio_version": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "token",
+        "protocol"
+      ]
+    },
+    "Session_hello_result": {
+      "type": "object",
+      "properties": {
+        "runtime_version": {
+          "type": "string"
+        },
+        "godot_version": {
+          "type": "string"
+        },
+        "protocol": {
+          "type": "string"
+        },
+        "platform": {
+          "enum": [
+            "windows",
+            "macos",
+            "linux"
+          ]
+        },
+        "features": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "runtime_version",
+        "godot_version",
+        "protocol",
+        "platform",
+        "features"
+      ]
+    },
+    "Preview_load_params": {
+      "type": "object",
+      "properties": {
+        "bundle_path": {
+          "type": "string"
+        },
+        "locale": {
+          "$ref": "common.schema.json#/$defs/Locale"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "bundle_path"
+      ]
+    },
+    "Preview_load_result": {
+      "type": "object",
+      "properties": {
+        "content_hash": {
+          "type": "string"
+        },
+        "format_version": {
+          "type": "string"
+        },
+        "chapters": {
+          "type": "integer"
+        },
+        "scenes": {
+          "type": "integer"
+        },
+        "plugins": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "content_hash",
+        "format_version",
+        "chapters",
+        "scenes",
+        "plugins"
+      ]
+    },
+    "Preview_start_params": {
+      "type": "object",
+      "properties": {
+        "chapter": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        "scene": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        "node": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        "variables": {
+          "$ref": "#/$defs/VariableValues"
+        },
+        "profile": {
+          "$ref": "save.schema.json#/$defs/Profile"
+        },
+        "seed": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{16}$"
+        },
+        "paused": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Preview_start_result": {
+      "$ref": "#/$defs/GameState"
+    },
+    "Preview_stop_params": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "Preview_stop_result": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "Preview_pause_params": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "Preview_pause_result": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/EntityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "node"
+      ]
+    },
+    "Preview_resume_params": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "Preview_resume_result": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/EntityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "node"
+      ]
+    },
+    "Preview_step_params": {
+      "type": "object",
+      "properties": {
+        "until": {
+          "enum": [
+            "node",
+            "blocking",
+            "scene_end",
+            "selection"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "Preview_step_result": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/EntityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "phase": {
+          "enum": [
+            "BOOT",
+            "TITLE",
+            "NEW_GAME",
+            "LOAD_GAME",
+            "CHAPTER_ENTER",
+            "SELECTION_POINT",
+            "SCENE_RUNNING",
+            "ACTIVITY",
+            "SCENE_END",
+            "CHAPTER_EXIT",
+            "GAME_END"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "node",
+        "phase"
+      ]
+    },
+    "Preview_input_params": {
+      "type": "object",
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "advance",
+            "choose",
+            "click",
+            "skip_activity",
+            "cancel_activity"
+          ]
+        },
+        "option": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        "hotspot": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "choose"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "option"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "click"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "hotspot"
+            ]
+          }
+        }
+      ]
+    },
+    "Preview_input_result": {
+      "type": "object",
+      "properties": {
+        "accepted": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "accepted"
+      ]
+    },
+    "Preview_set_variables_params": {
+      "type": "object",
+      "properties": {
+        "variables": {
+          "$ref": "#/$defs/VariableValues"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "variables"
+      ]
+    },
+    "Preview_set_variables_result": {
+      "type": "object",
+      "properties": {
+        "changes": {
+          "$ref": "#/$defs/Changes"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "changes"
+      ]
+    },
+    "Preview_get_state_params": {
+      "type": "object",
+      "properties": {
+        "include": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "variables",
+              "history",
+              "stage",
+              "backlog",
+              "plugins"
+            ]
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "Preview_get_state_result": {
+      "$ref": "#/$defs/GameState"
+    },
+    "Preview_explain_selection_params": {
+      "type": "object",
+      "properties": {
+        "scene": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Preview_explain_selection_result": {
+      "$ref": "#/$defs/SchedulerEvaluation"
+    },
+    "Preview_reload_params": {
+      "type": "object",
+      "properties": {
+        "bundle_path": {
+          "type": "string"
+        },
+        "changed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "bundle_path",
+        "changed"
+      ]
+    },
+    "Preview_reload_result": {
+      "type": "object",
+      "properties": {
+        "content_hash": {
+          "type": "string"
+        },
+        "resumed": {
+          "enum": [
+            "node",
+            "scene_restarted",
+            "selection_point",
+            "ui_only",
+            "not_running"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "content_hash",
+        "resumed"
+      ]
+    },
+    "Preview_reload_plugins_params": {
+      "type": "object",
+      "properties": {
+        "ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "ids"
+      ]
+    },
+    "Preview_reload_plugins_result": {
+      "type": "object",
+      "properties": {
+        "reloaded": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "activity_restarted": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "reloaded",
+        "activity_restarted"
+      ]
+    },
+    "Preview_show_screen_params": {
+      "type": "object",
+      "properties": {
+        "screen": {
+          "$ref": "common.schema.json#/$defs/Id"
+        },
+        "simulate": {
+          "type": "object",
+          "properties": {
+            "has_save": {
+              "type": "boolean"
+            },
+            "in_game": {
+              "type": "boolean"
+            },
+            "platform": {
+              "enum": [
+                "windows",
+                "linux",
+                "macos",
+                "web"
+              ]
+            },
+            "endings": {
+              "type": "array",
+              "items": {
+                "$ref": "common.schema.json#/$defs/Id"
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "screen"
+      ]
+    },
+    "Preview_show_screen_result": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "Preview_set_locale_params": {
+      "type": "object",
+      "properties": {
+        "locale": {
+          "$ref": "common.schema.json#/$defs/Locale"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "locale"
+      ]
+    },
+    "Preview_set_locale_result": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "Notify_session_closing": {
+      "type": "object",
+      "required": [
+        "seq",
+        "phase",
+        "reason"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "phase": {
+          "enum": [
+            "BOOT",
+            "TITLE",
+            "NEW_GAME",
+            "LOAD_GAME",
+            "CHAPTER_ENTER",
+            "SELECTION_POINT",
+            "SCENE_RUNNING",
+            "ACTIVITY",
+            "SCENE_END",
+            "CHAPTER_EXIT",
+            "GAME_END"
+          ]
+        },
+        "batch": {
+          "type": "array"
+        },
+        "reason": {
+          "enum": [
+            "window_closed",
+            "stop",
+            "error"
+          ]
+        }
+      }
+    },
+    "Notify_chapter_started": {
+      "type": "object",
+      "required": [
+        "seq",
+        "phase",
+        "chapter"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "phase": {
+          "enum": [
+            "BOOT",
+            "TITLE",
+            "NEW_GAME",
+            "LOAD_GAME",
+            "CHAPTER_ENTER",
+            "SELECTION_POINT",
+            "SCENE_RUNNING",
+            "ACTIVITY",
+            "SCENE_END",
+            "CHAPTER_EXIT",
+            "GAME_END"
+          ]
+        },
+        "batch": {
+          "type": "array"
+        },
+        "chapter": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        }
+      }
+    },
+    "Notify_chapter_ended": {
+      "type": "object",
+      "required": [
+        "seq",
+        "phase",
+        "chapter"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "phase": {
+          "enum": [
+            "BOOT",
+            "TITLE",
+            "NEW_GAME",
+            "LOAD_GAME",
+            "CHAPTER_ENTER",
+            "SELECTION_POINT",
+            "SCENE_RUNNING",
+            "ACTIVITY",
+            "SCENE_END",
+            "CHAPTER_EXIT",
+            "GAME_END"
+          ]
+        },
+        "batch": {
+          "type": "array"
+        },
+        "chapter": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        }
+      }
+    },
+    "Notify_scene_started": {
+      "type": "object",
+      "required": [
+        "seq",
+        "phase",
+        "scene",
+        "chapter",
+        "selection_count",
+        "reason"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "phase": {
+          "enum": [
+            "BOOT",
+            "TITLE",
+            "NEW_GAME",
+            "LOAD_GAME",
+            "CHAPTER_ENTER",
+            "SELECTION_POINT",
+            "SCENE_RUNNING",
+            "ACTIVITY",
+            "SCENE_END",
+            "CHAPTER_EXIT",
+            "GAME_END"
+          ]
+        },
+        "batch": {
+          "type": "array"
+        },
+        "scene": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        "chapter": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/EntityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "selection_count": {
+          "type": "integer"
+        },
+        "reason": {
+          "enum": [
+            "request",
+            "plugin_request",
+            "priority",
+            "tie_break",
+            "fallback",
+            "entry",
+            "start"
+          ]
+        }
+      }
+    },
+    "Notify_scene_ended": {
+      "type": "object",
+      "required": [
+        "seq",
+        "phase",
+        "scene",
+        "then"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "phase": {
+          "enum": [
+            "BOOT",
+            "TITLE",
+            "NEW_GAME",
+            "LOAD_GAME",
+            "CHAPTER_ENTER",
+            "SELECTION_POINT",
+            "SCENE_RUNNING",
+            "ACTIVITY",
+            "SCENE_END",
+            "CHAPTER_EXIT",
+            "GAME_END"
+          ]
+        },
+        "batch": {
+          "type": "array"
+        },
+        "scene": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        "then": {}
+      }
+    },
+    "Notify_node_entered": {
+      "type": "object",
+      "required": [
+        "seq",
+        "phase",
+        "scene",
+        "node",
+        "type"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "phase": {
+          "enum": [
+            "BOOT",
+            "TITLE",
+            "NEW_GAME",
+            "LOAD_GAME",
+            "CHAPTER_ENTER",
+            "SELECTION_POINT",
+            "SCENE_RUNNING",
+            "ACTIVITY",
+            "SCENE_END",
+            "CHAPTER_EXIT",
+            "GAME_END"
+          ]
+        },
+        "batch": {
+          "type": "array"
+        },
+        "scene": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        "node": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        "type": {
+          "type": "string"
+        }
+      }
+    },
+    "Notify_state_changed": {
+      "type": "object",
+      "required": [
+        "seq",
+        "phase",
+        "changes",
+        "source"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "phase": {
+          "enum": [
+            "BOOT",
+            "TITLE",
+            "NEW_GAME",
+            "LOAD_GAME",
+            "CHAPTER_ENTER",
+            "SELECTION_POINT",
+            "SCENE_RUNNING",
+            "ACTIVITY",
+            "SCENE_END",
+            "CHAPTER_EXIT",
+            "GAME_END"
+          ]
+        },
+        "batch": {
+          "type": "array"
+        },
+        "changes": {
+          "$ref": "#/$defs/Changes"
+        },
+        "source": {
+          "type": "string",
+          "pattern": "^(scene|choice|ui|preview|system|plugin:.+)$"
+        }
+      }
+    },
+    "Notify_event_emitted": {
+      "type": "object",
+      "required": [
+        "seq",
+        "phase",
+        "name",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "phase": {
+          "enum": [
+            "BOOT",
+            "TITLE",
+            "NEW_GAME",
+            "LOAD_GAME",
+            "CHAPTER_ENTER",
+            "SELECTION_POINT",
+            "SCENE_RUNNING",
+            "ACTIVITY",
+            "SCENE_END",
+            "CHAPTER_EXIT",
+            "GAME_END"
+          ]
+        },
+        "batch": {
+          "type": "array"
+        },
+        "name": {
+          "$ref": "common.schema.json#/$defs/EventName"
+        },
+        "payload": {},
+        "source": {
+          "type": "string"
+        }
+      }
+    },
+    "Notify_scheduler_evaluated": {
+      "type": "object",
+      "required": [
+        "selection_count",
+        "chapter",
+        "action",
+        "chosen",
+        "reason",
+        "candidates",
+        "seq",
+        "phase"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "selection_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "chapter": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        "action": {
+          "enum": [
+            "start_scene",
+            "exit_chapter",
+            "end_game"
+          ]
+        },
+        "chosen": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/EntityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "enum": [
+            "request",
+            "plugin_request",
+            "priority",
+            "tie_break",
+            "fallback",
+            "completion",
+            "exhausted"
+          ]
+        },
+        "candidates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "scene": {
+                "$ref": "common.schema.json#/$defs/EntityId"
+              },
+              "eligible": {
+                "type": "boolean"
+              },
+              "blocked_by": {
+                "enum": [
+                  "mode_manual",
+                  "max_plays",
+                  "cooldown",
+                  "exclusive_group",
+                  "conditions",
+                  "lower_priority",
+                  "tie_break"
+                ]
+              },
+              "detail": {
+                "type": "object"
+              },
+              "failed": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "path": {
+                      "type": "string"
+                    },
+                    "variable": {
+                      "type": "string"
+                    },
+                    "operator": {
+                      "type": "string"
+                    },
+                    "expected": {},
+                    "actual": {},
+                    "event": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "required": [
+                    "path"
+                  ]
+                }
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "scene",
+              "eligible"
+            ]
+          }
+        },
+        "request_refused": {
+          "type": "object",
+          "properties": {
+            "scene": {
+              "$ref": "common.schema.json#/$defs/EntityId"
+            },
+            "by": {
+              "enum": [
+                "content",
+                "plugin"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "scene",
+            "by"
+          ]
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "phase": {
+          "enum": [
+            "BOOT",
+            "TITLE",
+            "NEW_GAME",
+            "LOAD_GAME",
+            "CHAPTER_ENTER",
+            "SELECTION_POINT",
+            "SCENE_RUNNING",
+            "ACTIVITY",
+            "SCENE_END",
+            "CHAPTER_EXIT",
+            "GAME_END"
+          ]
+        }
+      }
+    },
+    "Notify_activity_started": {
+      "type": "object",
+      "required": [
+        "seq",
+        "phase",
+        "activity",
+        "scene",
+        "node"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "phase": {
+          "enum": [
+            "BOOT",
+            "TITLE",
+            "NEW_GAME",
+            "LOAD_GAME",
+            "CHAPTER_ENTER",
+            "SELECTION_POINT",
+            "SCENE_RUNNING",
+            "ACTIVITY",
+            "SCENE_END",
+            "CHAPTER_EXIT",
+            "GAME_END"
+          ]
+        },
+        "batch": {
+          "type": "array"
+        },
+        "activity": {
+          "type": "string"
+        },
+        "scene": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        "node": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        }
+      }
+    },
+    "Notify_activity_ended": {
+      "type": "object",
+      "required": [
+        "seq",
+        "phase",
+        "activity",
+        "scene",
+        "node",
+        "outcome",
+        "skipped",
+        "failed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "phase": {
+          "enum": [
+            "BOOT",
+            "TITLE",
+            "NEW_GAME",
+            "LOAD_GAME",
+            "CHAPTER_ENTER",
+            "SELECTION_POINT",
+            "SCENE_RUNNING",
+            "ACTIVITY",
+            "SCENE_END",
+            "CHAPTER_EXIT",
+            "GAME_END"
+          ]
+        },
+        "batch": {
+          "type": "array"
+        },
+        "activity": {
+          "type": "string"
+        },
+        "scene": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        "node": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        "outcome": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "skipped": {
+          "type": "boolean"
+        },
+        "failed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "Notify_game_ended": {
+      "type": "object",
+      "required": [
+        "seq",
+        "phase",
+        "ending"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "phase": {
+          "enum": [
+            "BOOT",
+            "TITLE",
+            "NEW_GAME",
+            "LOAD_GAME",
+            "CHAPTER_ENTER",
+            "SELECTION_POINT",
+            "SCENE_RUNNING",
+            "ACTIVITY",
+            "SCENE_END",
+            "CHAPTER_EXIT",
+            "GAME_END"
+          ]
+        },
+        "batch": {
+          "type": "array"
+        },
+        "ending": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "Notify_log": {
+      "type": "object",
+      "required": [
+        "seq",
+        "phase",
+        "level",
+        "message"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "phase": {
+          "enum": [
+            "BOOT",
+            "TITLE",
+            "NEW_GAME",
+            "LOAD_GAME",
+            "CHAPTER_ENTER",
+            "SELECTION_POINT",
+            "SCENE_RUNNING",
+            "ACTIVITY",
+            "SCENE_END",
+            "CHAPTER_EXIT",
+            "GAME_END"
+          ]
+        },
+        "batch": {
+          "type": "array"
+        },
+        "level": {
+          "enum": [
+            "debug",
+            "info",
+            "warning",
+            "error"
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "scene": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        "node": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        }
+      }
+    },
+    "Notify_error": {
+      "type": "object",
+      "required": [
+        "seq",
+        "phase",
+        "code",
+        "message"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "phase": {
+          "enum": [
+            "BOOT",
+            "TITLE",
+            "NEW_GAME",
+            "LOAD_GAME",
+            "CHAPTER_ENTER",
+            "SELECTION_POINT",
+            "SCENE_RUNNING",
+            "ACTIVITY",
+            "SCENE_END",
+            "CHAPTER_EXIT",
+            "GAME_END"
+          ]
+        },
+        "batch": {
+          "type": "array"
+        },
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "scene": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        "node": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        "variable": {
+          "type": "string"
+        }
+      }
+    },
+    "Notify_plugin_log": {
+      "type": "object",
+      "required": [
+        "seq",
+        "phase",
+        "plugin",
+        "level",
+        "message"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "phase": {
+          "enum": [
+            "BOOT",
+            "TITLE",
+            "NEW_GAME",
+            "LOAD_GAME",
+            "CHAPTER_ENTER",
+            "SELECTION_POINT",
+            "SCENE_RUNNING",
+            "ACTIVITY",
+            "SCENE_END",
+            "CHAPTER_EXIT",
+            "GAME_END"
+          ]
+        },
+        "batch": {
+          "type": "array"
+        },
+        "plugin": {
+          "type": "string"
+        },
+        "level": {
+          "enum": [
+            "debug",
+            "info",
+            "warning",
+            "error"
+          ]
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "Notify_plugin_permission_denied": {
+      "type": "object",
+      "required": [
+        "seq",
+        "phase",
+        "plugin",
+        "capability",
+        "call"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "phase": {
+          "enum": [
+            "BOOT",
+            "TITLE",
+            "NEW_GAME",
+            "LOAD_GAME",
+            "CHAPTER_ENTER",
+            "SELECTION_POINT",
+            "SCENE_RUNNING",
+            "ACTIVITY",
+            "SCENE_END",
+            "CHAPTER_EXIT",
+            "GAME_END"
+          ]
+        },
+        "batch": {
+          "type": "array"
+        },
+        "plugin": {
+          "type": "string"
+        },
+        "capability": {
+          "type": "string"
+        },
+        "call": {
+          "type": "string"
+        }
+      }
+    },
+    "Notify_plugin_faulted": {
+      "type": "object",
+      "required": [
+        "seq",
+        "phase",
+        "plugin",
+        "error"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "phase": {
+          "enum": [
+            "BOOT",
+            "TITLE",
+            "NEW_GAME",
+            "LOAD_GAME",
+            "CHAPTER_ENTER",
+            "SELECTION_POINT",
+            "SCENE_RUNNING",
+            "ACTIVITY",
+            "SCENE_END",
+            "CHAPTER_EXIT",
+            "GAME_END"
+          ]
+        },
+        "batch": {
+          "type": "array"
+        },
+        "plugin": {
+          "type": "string"
+        },
+        "error": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

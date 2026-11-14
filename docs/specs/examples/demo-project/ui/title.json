@@ -1,0 +1,248 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/1/ui-screen.schema.json",
+  "id": "title",
+  "kind": "title",
+  "set": "beach_title",
+  "music": "music/waves",
+  "transition": {
+    "kind": "fade",
+    "duration": 0.6
+  },
+  "focus_start": "btn_new_game",
+  "elements": [
+    {
+      "id": "logo",
+      "type": "image",
+      "asset": "ui/logo",
+      "position": [
+        0.27,
+        0.22
+      ],
+      "appear": {
+        "kind": "fade",
+        "duration": 0.8
+      }
+    },
+    {
+      "id": "menu",
+      "type": "container",
+      "position": [
+        0.2,
+        0.62
+      ],
+      "layout": "column",
+      "spacing": 14,
+      "children": [
+        {
+          "id": "btn_continue",
+          "type": "button",
+          "text": "Continuar",
+          "style": "gold",
+          "visible_if": [
+            {
+              "variable": "sys.ui.has_save",
+              "operator": "equals",
+              "value": true
+            }
+          ],
+          "actions": [
+            {
+              "do": "continue"
+            }
+          ],
+          "appear": {
+            "kind": "slide",
+            "from": "left",
+            "duration": 0.4,
+            "delay": 0.1
+          }
+        },
+        {
+          "id": "btn_new_game",
+          "type": "button",
+          "text": "Novo jogo",
+          "style": "gold",
+          "actions": [
+            {
+              "do": "new_game"
+            }
+          ],
+          "appear": {
+            "kind": "slide",
+            "from": "left",
+            "duration": 0.4,
+            "delay": 0.2
+          }
+        },
+        {
+          "id": "btn_load",
+          "type": "button",
+          "text": "Carregar",
+          "enabled_if": [
+            {
+              "variable": "sys.ui.has_save",
+              "operator": "equals",
+              "value": true
+            }
+          ],
+          "actions": [
+            {
+              "do": "open_screen",
+              "screen": "load"
+            }
+          ],
+          "appear": {
+            "kind": "slide",
+            "from": "left",
+            "duration": 0.4,
+            "delay": 0.3
+          }
+        },
+        {
+          "id": "btn_gallery",
+          "type": "button",
+          "text": "Galeria",
+          "actions": [
+            {
+              "do": "open_screen",
+              "screen": "gallery"
+            }
+          ],
+          "appear": {
+            "kind": "slide",
+            "from": "left",
+            "duration": 0.4,
+            "delay": 0.4
+          }
+        },
+        {
+          "id": "btn_extras",
+          "type": "button",
+          "text": "Minijogos",
+          "visible_if": [
+            {
+              "variable": "sys.endings.festival_ending",
+              "operator": "equals",
+              "value": true
+            }
+          ],
+          "actions": [
+            {
+              "do": "open_screen",
+              "screen": "extras"
+            }
+          ],
+          "appear": {
+            "kind": "slide",
+            "from": "left",
+            "duration": 0.4,
+            "delay": 0.45
+          }
+        },
+        {
+          "id": "btn_settings",
+          "type": "button",
+          "text": "Configurações",
+          "actions": [
+            {
+              "do": "open_screen",
+              "screen": "settings"
+            }
+          ],
+          "appear": {
+            "kind": "slide",
+            "from": "left",
+            "duration": 0.4,
+            "delay": 0.5
+          }
+        },
+        {
+          "id": "btn_quit",
+          "type": "button",
+          "text": "Sair",
+          "visible_if": [
+            {
+              "variable": "sys.ui.platform",
+              "operator": "not_equals",
+              "value": "web"
+            }
+          ],
+          "actions": [
+            {
+              "do": "quit",
+              "confirm": true
+            }
+          ],
+          "appear": {
+            "kind": "slide",
+            "from": "left",
+            "duration": 0.4,
+            "delay": 0.6
+          }
+        }
+      ]
+    },
+    {
+      "id": "btn_credits",
+      "type": "button",
+      "icon": "ui/icon_info",
+      "style": "icon_round",
+      "tooltip": "Créditos",
+      "position": [
+        0.96,
+        0.94
+      ],
+      "anchor": "edge",
+      "actions": [
+        {
+          "do": "open_screen",
+          "screen": "credits"
+        }
+      ]
+    },
+    {
+      "id": "shell",
+      "type": "hotspot",
+      "area": {
+        "rect": [
+          0.55,
+          0.82,
+          0.05,
+          0.05
+        ]
+      },
+      "cursor": "look",
+      "highlight": "glow",
+      "label": "Concha",
+      "actions": [
+        {
+          "do": "play_animation",
+          "target": "set:shell",
+          "animation": {
+            "kind": "shake",
+            "amount": 4,
+            "duration": 0.4
+          }
+        },
+        {
+          "do": "play_sfx",
+          "asset": "sfx/shell"
+        }
+      ]
+    }
+  ],
+  "on_open": [
+    {
+      "do": "set_state",
+      "target": "set:sky",
+      "state": "night",
+      "if": [
+        {
+          "variable": "sys.endings.festival_ending",
+          "operator": "equals",
+          "value": true
+        }
+      ]
+    }
+  ]
+}

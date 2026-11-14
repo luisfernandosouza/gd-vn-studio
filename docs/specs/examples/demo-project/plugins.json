@@ -1,0 +1,29 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/1/plugins.schema.json",
+  "plugins": {
+    "vnstudio.fishing": {
+      "version": "^1.0.0",
+      "source": "catalog:official",
+      "enabled": true,
+      "grants": {
+        "capabilities": [
+          "runtime:events.emit",
+          "runtime:save.data",
+          "runtime:audio.play",
+          "runtime:ui.overlay",
+          "runtime:input.capture",
+          "editor:preview"
+        ],
+        "variables": {
+          "read": [],
+          "write": []
+        },
+        "scenes": []
+      },
+      "config": {
+        "show_tutorial": true,
+        "rare_fish_chance": 0.05
+      }
+    }
+  }
+}

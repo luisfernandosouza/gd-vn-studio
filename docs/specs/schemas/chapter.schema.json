@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.vnstudio.dev/1/chapter.schema.json",
+  "title": "chapters/<id>.json",
+  "type": "object",
+  "required": [
+    "id",
+    "title"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/EntityId"
+    },
+    "title": {
+      "$ref": "common.schema.json#/$defs/LocalizedText"
+    },
+    "variables": {
+      "description": "Variáveis de capítulo (chapter.<key>). Reiniciadas ao entrar no capítulo e descartadas ao sair.",
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/VariableDefinition"
+      }
+    },
+    "entry_scene": {
+      "description": "Cena executada ao entrar no capítulo, sem passar pelo Scheduler e sem checar max_plays nem conditions. Deve ser deste capítulo ou global (R014). Opcional.",
+      "$ref": "common.schema.json#/$defs/EntityId"
+    },
+    "scheduler": {
+      "$ref": "#/$defs/SchedulerSettings"
+    },
+    "exclusive_groups": {
+      "description": "Grupos de exclusividade com tempo de vida do capítulo. Não podem repetir um id dos grupos do projeto (R015).",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ExclusiveGroup"
+      }
+    },
+    "completion": {
+      "description": "Quando o capítulo termina. O capítulo é verificado em cada ponto de seleção.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "conditions": {
+          "description": "Se presente e verdadeira em um ponto de seleção, o capítulo termina (antes de selecionar cena).",
+          "$ref": "common.schema.json#/$defs/ConditionList"
+        },
+        "on_exhausted": {
+          "description": "O que fazer quando nenhuma cena é elegível. advance (padrão): termina o capítulo. scene: executa 'fallback_scene'. end_game: termina o jogo.",
+          "enum": [
+            "advance",
+            "scene",
+            "end_game"
+          ]
+        },
+        "fallback_scene": {
+          "$ref": "common.schema.json#/$defs/EntityId",
+          "description": "Cena da rede de segurança. Deve ser deste capítulo ou global (R014) e DEVERIA alterar alguma variável usada em completion.conditions (W010)."
+        }
+      },
+      "if": {
+        "properties": {
+          "on_exhausted": {
+            "const": "scene"
+          }
+        },
+        "required": [
+          "on_exhausted"
+        ]
+      },
+      "then": {
+        "required": [
+          "fallback_scene"
+        ]
+      }
+    },
+    "next": {
+      "description": "Capítulos candidatos ao terminar. Mesmo algoritmo do Scheduler (condições → prioridade → ordem do project.json). As condições são avaliadas antes de descartar as variáveis chapter.*, então podem usá-las. Pode apontar para um capítulo já visitado. Vazio ou nenhum elegível = fim de jogo.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "chapter"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "chapter": {
+            "$ref": "common.schema.json#/$defs/EntityId"
+          },
+          "conditions": {
+            "$ref": "common.schema.json#/$defs/ConditionList"
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000,
+            "default": 100
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "SchedulerSettings": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tie_breaker": {
+          "description": "deterministic (padrão): menos execuções → executada há mais tempo → ordem de autoria → id. weighted_random: sorteio ponderado por 'weight' entre as empatadas; reproduzível (e salvo no save) só com settings.reproducible_rng (Runtime Spec §12.2).",
+          "enum": [
+            "deterministic",
+            "weighted_random"
+          ]
+        },
+        "include_global_scenes": {
+          "description": "Se cenas sem capítulo (chapter: null) entram na lista de candidatas. Padrão: true.",
+          "type": "boolean"
+        }
+      }
+    },
+    "ExclusiveGroup": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/Id"
+        },
+        "description": {
+          "type": "string"
+        },
+        "max_plays": {
+          "description": "Quantas cenas distintas do grupo podem ser executadas no tempo de vida do grupo. Padrão: 1.",
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  }
+}

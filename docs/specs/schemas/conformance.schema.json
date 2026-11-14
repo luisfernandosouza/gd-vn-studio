@@ -1,0 +1,610 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.vnstudio.dev/1/conformance.schema.json",
+  "title": "conformance/<grupo>.json",
+  "description": "Arquivo de vetores de conformidade (spec 08). Cada caso tem entradas e o resultado esperado; os dois interpretadores DEVEM produzir exatamente o expect.",
+  "type": "object",
+  "required": [
+    "title",
+    "covers",
+    "cases"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "covers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/Case"
+      }
+    }
+  },
+  "$defs": {
+    "TypedVar": {
+      "type": "object",
+      "required": [
+        "type",
+        "value"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": [
+            "boolean",
+            "integer",
+            "number",
+            "string",
+            "enum"
+          ]
+        },
+        "value": {
+          "type": [
+            "boolean",
+            "number",
+            "string"
+          ]
+        },
+        "default": {
+          "type": [
+            "boolean",
+            "number",
+            "string"
+          ]
+        },
+        "constraints": {
+          "$ref": "common.schema.json#/$defs/VariableConstraints"
+        }
+      }
+    },
+    "Variables": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "common.schema.json#/$defs/VariableRef"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/TypedVar"
+      }
+    },
+    "Hex64": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}$"
+    },
+    "Error": {
+      "type": "object",
+      "required": [
+        "error"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "enum": [
+            "VARIABLE_NOT_FOUND",
+            "TYPE_MISMATCH",
+            "OUT_OF_RANGE",
+            "CONSTRAINT_VIOLATION"
+          ]
+        }
+      }
+    },
+    "Base": {
+      "type": "object",
+      "required": [
+        "id",
+        "description",
+        "kind",
+        "expect"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_]+$"
+        },
+        "description": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        }
+      }
+    },
+    "Case": {
+      "oneOf": [
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Base"
+            }
+          ],
+          "required": [
+            "expr"
+          ],
+          "properties": {
+            "kind": {
+              "const": "expression"
+            },
+            "expr": {
+              "$ref": "common.schema.json#/$defs/ValueExpr"
+            },
+            "variables": {
+              "$ref": "#/$defs/Variables"
+            },
+            "rng_state": {
+              "$ref": "#/$defs/Hex64"
+            },
+            "expect": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/Error"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "value"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "boolean",
+                        "integer",
+                        "number",
+                        "string"
+                      ]
+                    },
+                    "value": {
+                      "type": [
+                        "boolean",
+                        "number",
+                        "string"
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "unevaluatedProperties": false
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Base"
+            }
+          ],
+          "required": [
+            "conditions",
+            "variables"
+          ],
+          "properties": {
+            "kind": {
+              "const": "condition"
+            },
+            "conditions": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "variables": {
+              "$ref": "#/$defs/Variables"
+            },
+            "events": {
+              "type": "array",
+              "items": {
+                "$ref": "common.schema.json#/$defs/EventName"
+              }
+            },
+            "expect": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/Error"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "value"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "unevaluatedProperties": false
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Base"
+            }
+          ],
+          "required": [
+            "effects",
+            "variables"
+          ],
+          "properties": {
+            "kind": {
+              "const": "effects"
+            },
+            "effects": {
+              "$ref": "common.schema.json#/$defs/EffectList"
+            },
+            "variables": {
+              "$ref": "#/$defs/Variables"
+            },
+            "rng_state": {
+              "$ref": "#/$defs/Hex64"
+            },
+            "expect": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/Error"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "changes"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "changes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "variable",
+                          "old",
+                          "new"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "variable": {
+                            "type": "string"
+                          },
+                          "old": {},
+                          "new": {}
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "unevaluatedProperties": false
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Base"
+            }
+          ],
+          "required": [
+            "mode",
+            "value"
+          ],
+          "properties": {
+            "kind": {
+              "const": "text"
+            },
+            "mode": {
+              "enum": [
+                "concat",
+                "interpolation"
+              ]
+            },
+            "locale": {
+              "$ref": "common.schema.json#/$defs/Locale"
+            },
+            "value": {
+              "oneOf": [
+                {
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "value"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "type": {
+                      "const": "number"
+                    },
+                    "value": {
+                      "type": "number"
+                    }
+                  },
+                  "description": "Força number para valores sem parte fracionária (JSON não distingue 2 de 2.0)."
+                }
+              ]
+            },
+            "expect": {
+              "type": "object",
+              "required": [
+                "text"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "unevaluatedProperties": false
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Base"
+            }
+          ],
+          "required": [
+            "op",
+            "seed"
+          ],
+          "properties": {
+            "kind": {
+              "const": "rng"
+            },
+            "op": {
+              "enum": [
+                "sequence",
+                "random_int",
+                "activity_seed",
+                "plugin_seed"
+              ]
+            },
+            "seed": {
+              "$ref": "#/$defs/Hex64"
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "min": {
+              "type": "integer"
+            },
+            "max": {
+              "type": "integer"
+            },
+            "selection_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "node": {
+              "$ref": "common.schema.json#/$defs/EntityId"
+            },
+            "activity_index": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "namespace": {
+              "$ref": "common.schema.json#/$defs/Namespace"
+            },
+            "expect": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "values": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                "state_after": {
+                  "$ref": "#/$defs/Hex64"
+                },
+                "seed": {
+                  "$ref": "#/$defs/Hex64"
+                }
+              }
+            }
+          },
+          "unevaluatedProperties": false
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Base"
+            }
+          ],
+          "required": [
+            "chapter",
+            "scenes"
+          ],
+          "properties": {
+            "kind": {
+              "const": "selection"
+            },
+            "chapter": {
+              "type": "object",
+              "description": "Subconjunto de chapter.schema.json: id, scheduler, exclusive_groups, completion, include_global_scenes."
+            },
+            "scenes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "chapter"
+                ],
+                "properties": {
+                  "id": {
+                    "$ref": "common.schema.json#/$defs/EntityId"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "chapter": {
+                    "oneOf": [
+                      {
+                        "$ref": "common.schema.json#/$defs/EntityId"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "scheduling": {
+                    "$ref": "scene.schema.json#/$defs/Scheduling"
+                  }
+                }
+              }
+            },
+            "project_groups": {
+              "type": "array"
+            },
+            "state": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "variables": {
+                  "$ref": "#/$defs/Variables"
+                },
+                "history": {
+                  "type": "object",
+                  "description": "Mesmo formato de save.schema.json → state.history."
+                },
+                "rng_state": {
+                  "$ref": "#/$defs/Hex64"
+                }
+              }
+            },
+            "content_request": {
+              "$ref": "common.schema.json#/$defs/EntityId"
+            },
+            "expect": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/Error"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "action",
+                    "chosen",
+                    "reason",
+                    "candidates",
+                    "selection_count_after",
+                    "fallback_streak_after"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "action": {
+                      "enum": [
+                        "start_scene",
+                        "exit_chapter",
+                        "end_game"
+                      ]
+                    },
+                    "chosen": {
+                      "oneOf": [
+                        {
+                          "$ref": "common.schema.json#/$defs/EntityId"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "reason": {
+                      "enum": [
+                        "request",
+                        "plugin_request",
+                        "priority",
+                        "tie_break",
+                        "fallback",
+                        "completion",
+                        "exhausted"
+                      ]
+                    },
+                    "candidates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "scene",
+                          "eligible"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "scene": {
+                            "type": "string"
+                          },
+                          "eligible": {
+                            "type": "boolean"
+                          },
+                          "blocked_by": {
+                            "enum": [
+                              "conditions",
+                              "max_plays",
+                              "cooldown",
+                              "exclusive_group",
+                              "mode_manual",
+                              "lower_priority",
+                              "tie_break"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "request_refused": {
+                      "type": "object",
+                      "required": [
+                        "scene",
+                        "by"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "scene": {
+                          "type": "string"
+                        },
+                        "by": {
+                          "enum": [
+                            "content",
+                            "plugin"
+                          ]
+                        }
+                      }
+                    },
+                    "selection_count_after": {
+                      "type": "integer"
+                    },
+                    "fallback_streak_after": {
+                      "type": "integer"
+                    },
+                    "rng_state_after": {
+                      "$ref": "#/$defs/Hex64"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "unevaluatedProperties": false
+        }
+      ]
+    }
+  }
+}
