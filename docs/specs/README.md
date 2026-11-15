@@ -274,7 +274,7 @@ Aplicam os achados A-01, A-02, A-03, A-04 e M-02 da auditoria de 2026-11-14.
 
 O Preview no Studio deixa de ter um interpretador próprio em TypeScript. O Studio roda o **próprio runtime**, exportado para Web, num painel do webview; o runtime nativo, numa janela, continua para o modo desenvolvedor e para plugins sem `web`. Assim o autor vê exatamente o jogo do jogador e não há um segundo interpretador para manter igual.
 
-A decisão saiu do teste do export Web dentro dos webviews do Tauri (pasta `spikes/preview-web/`, branch `claude/preview-web-spike`), com um bundle grande (405 cenas, 20 mil falas, 3,55 MB) e o template oficial:
+A decisão saiu do teste do export Web dentro dos webviews do Tauri ([`spikes/preview-web/`](../../spikes/preview-web/README.md), pasta temporária, apagada quando o projeto do Studio começar), com um bundle grande (405 cenas, 20 mil falas, 3,55 MB) e o template oficial:
 
 | Motor (máquina) | Primeira abertura | Recarga incremental, p95 | Reler o bundle inteiro, p95 |
 |---|---|---|---|
