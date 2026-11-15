@@ -7,7 +7,7 @@
 //   - salto para uma cena com variáveis (preview.start);
 //   - início do minijogo de pesca com o GDScript real.
 //
-// Uso: node tools/bench.mjs [--edits 20] [--templates web,web-lean] [--browser chromium|webkit] [--gpu] [--out build/results.json]
+// Uso: node tools/bench.mjs [--edits 20] [--templates web,web-lean] [--browser chromium|webkit] [--channel msedge] [--gpu] [--out build/results.json]
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -55,8 +55,8 @@ const stats = xs => {
 const BROWSER = args.browser || 'chromium';
 const GPU = 'gpu' in args;
 const launchArgs = BROWSER === 'chromium' ? (GPU ? ['--ignore-gpu-blocklist', '--enable-gpu'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist']) : [];
-const browser = await pw[BROWSER].launch({ args: launchArgs, headless: !GPU || BROWSER !== 'chromium' ? true : false });
-const results = { machine: { cpus: os.cpus().length, cpu: os.cpus()[0].model, platform: os.platform(), arch: os.arch() }, browser: BROWSER, gpu: GPU, edits: EDITS, templates: {} };
+const browser = await pw[BROWSER].launch({ args: launchArgs, headless: !GPU || BROWSER !== 'chromium', ...(args.channel ? { channel: args.channel } : {}) });
+const results = { machine: { cpus: os.cpus().length, cpu: os.cpus()[0].model, platform: os.platform(), arch: os.arch() }, browser: BROWSER, channel: args.channel || null, gpu: GPU, edits: EDITS, templates: {} };
 
 for (const tpl of TEMPLATES) {
   const r = results.templates[tpl] = { wasm_mb: +(fs.statSync(path.join(ROOT, 'build', tpl, 'index.wasm')).size / 1e6).toFixed(1) };
