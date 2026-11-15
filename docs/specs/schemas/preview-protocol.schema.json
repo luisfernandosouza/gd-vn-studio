@@ -1151,7 +1151,8 @@
       "properties": {
         "token": {
           "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "Obrigatório na janela (WebSocket); ausente no painel (Preview Protocol §1)."
         },
         "protocol": {
           "type": "string",
@@ -1163,7 +1164,6 @@
       },
       "additionalProperties": false,
       "required": [
-        "token",
         "protocol"
       ]
     },
@@ -1183,7 +1183,8 @@
           "enum": [
             "windows",
             "macos",
-            "linux"
+            "linux",
+            "web"
           ]
         },
         "features": {
@@ -1208,13 +1209,27 @@
         "bundle_path": {
           "type": "string"
         },
+        "bundle_url": {
+          "type": "string",
+          "pattern": "^vnpreview://",
+          "description": "Painel (runtime Web): URL da pasta do bundle."
+        },
         "locale": {
           "$ref": "common.schema.json#/$defs/Locale"
         }
       },
       "additionalProperties": false,
-      "required": [
-        "bundle_path"
+      "oneOf": [
+        {
+          "required": [
+            "bundle_path"
+          ]
+        },
+        {
+          "required": [
+            "bundle_url"
+          ]
+        }
       ]
     },
     "Preview_load_result": {
@@ -1399,7 +1414,8 @@
             "choose",
             "click",
             "skip_activity",
-            "cancel_activity"
+            "cancel_activity",
+            "complete_activity"
           ]
         },
         "option": {
@@ -1407,6 +1423,12 @@
         },
         "hotspot": {
           "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        "outcome": {
+          "type": "string"
+        },
+        "payload": {
+          "type": "object"
         }
       },
       "allOf": [
@@ -1435,6 +1457,20 @@
           "then": {
             "required": [
               "hotspot"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "complete_activity"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "outcome"
             ]
           }
         }
@@ -1513,8 +1549,36 @@
     "Preview_reload_params": {
       "type": "object",
       "properties": {
+        "patch": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Recarga incremental (Preview Protocol §3).",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "file",
+              "pointer"
+            ],
+            "properties": {
+              "file": {
+                "type": "string",
+                "pattern": "^(bundle\\.json|locales/[A-Za-z0-9-]+\\.json)$"
+              },
+              "pointer": {
+                "type": "string",
+                "pattern": "^(/[^/]+)+$"
+              },
+              "value": {}
+            }
+          }
+        },
         "bundle_path": {
           "type": "string"
+        },
+        "bundle_url": {
+          "type": "string",
+          "pattern": "^vnpreview://"
         },
         "changed": {
           "type": "array",
@@ -1524,9 +1588,71 @@
         }
       },
       "additionalProperties": false,
-      "required": [
-        "bundle_path",
-        "changed"
+      "oneOf": [
+        {
+          "required": [
+            "patch"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "bundle_path"
+                ]
+              },
+              {
+                "required": [
+                  "bundle_url"
+                ]
+              },
+              {
+                "required": [
+                  "changed"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "required": [
+            "bundle_path",
+            "changed"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "patch"
+                ]
+              },
+              {
+                "required": [
+                  "bundle_url"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "required": [
+            "bundle_url",
+            "changed"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "patch"
+                ]
+              },
+              {
+                "required": [
+                  "bundle_path"
+                ]
+              }
+            ]
+          }
+        }
       ]
     },
     "Preview_reload_result": {
@@ -1547,7 +1673,6 @@
       },
       "additionalProperties": false,
       "required": [
-        "content_hash",
         "resumed"
       ]
     },

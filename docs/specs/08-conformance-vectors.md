@@ -6,7 +6,7 @@
 - **Casos:** [`conformance/`](conformance/)
 - **Referência:** [`tools/conformance.py`](tools/conformance.py)
 
-O jogo roda em dois interpretadores: o Runtime em GDScript, dentro do Godot, e o interpretador do Preview no Studio, em TypeScript. Os dois DEVEM tomar exatamente as mesmas decisões. Senão o autor testa uma história no Studio e o jogador vê outra. Este documento define o formato dos casos que garantem isso, o conjunto inicial e como cada implementação os executa.
+O jogo roda em um só interpretador, o Runtime em GDScript: no jogo exportado e no Preview do Studio, que é o mesmo runtime exportado para Web (RT §11). Os vetores garantem que ele toma as decisões da especificação, conferidas por uma implementação de referência independente em Python, e que o build nativo e o Web decidem igual. Este documento define o formato dos casos, o conjunto inicial e como cada implementação os executa.
 
 As palavras **DEVE**, **DEVERIA** e **PODE** seguem a RFC 2119.
 
@@ -114,8 +114,8 @@ Estas regras estavam implícitas ou ambíguas; os casos as fixam, e o RT foi aju
 ## 4. Como cada implementação roda os casos
 
 - **Runtime Godot:** `godot --headless -- --vn-test conformance/` (RT §12). O runner carrega cada arquivo, monta o estado mínimo pedido pelo caso (sem bundle completo) e chama diretamente o Condition Evaluator, o State Manager, o formatador de texto, o PCG32 e o Scene Scheduler.
-- **Studio:** a suíte de testes do interpretador do Preview (TypeScript) lê os mesmos arquivos.
-- **CI:** os dois runners e `tools/conformance.py` DEVEM passar em toda mudança no Runtime, no Studio ou nos casos. Um caso novo só entra junto com a correção dos três.
+- **Runtime Web:** o mesmo runner, no export Web do runtime, roda num navegador headless (Chromium do Playwright) e lê os mesmos arquivos. Pega diferenças do WebAssembly e da ponte JavaScript (números, texto, ordem de chaves).
+- **CI:** o runner nativo, o runner Web e `tools/conformance.py` DEVEM passar em toda mudança no Runtime ou nos casos. Um caso novo só entra junto com a correção dos três.
 
 A saída de cada runner é uma linha por caso com falha, no formato `FALHOU <arquivo>#<id>`, com o esperado e o obtido, e um resumo `N/M`.
 

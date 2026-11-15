@@ -4,11 +4,22 @@
 - **Base:** Runtime Spec §11; Plugin SDK §12.3; Requisitos de autoria §4; UI Spec §9
 - **Schema:** [`schemas/preview-protocol.schema.json`](schemas/preview-protocol.schema.json)
 
-O Studio mostra o jogo rodando de verdade, no Runtime Godot embutido, enquanto o autor edita. Este documento define a conversa entre os dois: como o Studio abre o runtime, os métodos que pode chamar, as notificações que recebe e os erros. Ele detalha o RT §11, que fica como resumo.
+O Studio mostra o jogo rodando de verdade, no próprio Runtime Godot, enquanto o autor edita. Não existe outro interpretador: o Preview é o runtime, exportado para Web no **painel** do Studio ou nativo numa **janela** (RT §11). Este documento define a conversa entre os dois: como o Studio abre o runtime, os métodos que pode chamar, as notificações que recebe e os erros. Ele detalha o RT §11, que fica como resumo.
 
 As palavras **DEVE**, **DEVERIA** e **PODE** seguem a RFC 2119.
 
 ## 1. Transporte e sessão
+
+As mensagens são as mesmas nos dois modos; muda só o transporte.
+
+### 1.1. Painel (runtime Web)
+
+1. O Studio carrega o export Web do runtime (os arquivos `.wasm`, `.js` e `.pck` do template da versão fixada do Godot, sem threads, BS §7.3) numa página isolada do webview, servida pelo protocolo próprio do Tauri (`vnpreview://`), sem servidor HTTP.
+2. O runtime expõe na página, via `JavaScriptBridge`, a função `vnPreview.send(text)`, por onde o Studio manda cada requisição, e entrega respostas e notificações chamando `vnPreview.onmessage(text)`, que o Studio registra antes de iniciar o motor. Cada chamada leva **uma** mensagem JSON-RPC 2.0 em texto. Lotes não são aceitos.
+3. O `session.hello` vem sem `token`: a página só é acessível ao Studio. As regras de 5 segundos e de mensagem antes do `hello` valem como na janela, com o erro `UNAUTHENTICATED` no lugar do fechamento.
+4. O Studio mantém a página viva entre edições: abrir o motor e o bundle custa de 1 a 5 segundos (teste de 2026-11-15), e cada edição depois disso vai por recarga incremental (§3). Fechar o painel descarta a página; não há processo para encerrar.
+
+### 1.2. Janela (runtime nativo)
 
 1. O Studio escolhe uma porta livre em `127.0.0.1` e gera um token aleatório de 32 bytes (hex).
 2. O Studio abre o runtime com `--vn-preview-port <porta> --vn-preview-token <token>` (e `--remote-debug tcp://127.0.0.1:<porta>` no modo desenvolvedor, Plugin SDK §12.3).
@@ -41,17 +52,17 @@ O estado do motor (RT §3: `TITLE`, `SCENE_RUNNING`, `ACTIVITY`…) vem em `prev
 
 | Método | Estados | Parâmetros | Resultado |
 |---|---|---|---|
-| `session.hello` | `CONNECTED` | `token`, `protocol`, `studio_version` | `runtime_version`, `godot_version`, `protocol`, `platform`, `features` |
-| `preview.load` | `READY`, `LOADED` | `bundle_path` (pasta com a forma canônica, RT §2), `locale`? | `content_hash`, `format_version`, `chapters`, `scenes`, `plugins` |
+| `session.hello` | `CONNECTED` | `token` (só na janela), `protocol`, `studio_version` | `runtime_version`, `godot_version`, `protocol`, `platform`, `features` |
+| `preview.load` | `READY`, `LOADED` | `bundle_path` (janela) ou `bundle_url` (painel, URL `vnpreview://`): a pasta com a forma canônica (RT §2); `locale`? | `content_hash`, `format_version`, `chapters`, `scenes`, `plugins` |
 | `preview.start` | `LOADED` | `chapter`?, `scene`?, `node`?, `variables`?, `profile`?, `seed`?, `paused`? | `GameState` |
 | `preview.stop` | `RUNNING`, `PAUSED` | — | `{}` (volta a `LOADED`) |
 | `preview.pause` / `preview.resume` | `RUNNING` / `PAUSED` | — | `{ node }` |
 | `preview.step` | `PAUSED` | `until`: `node` (padrão), `blocking`, `scene_end`, `selection` | `{ node, phase }` (continua `PAUSED`) |
-| `preview.input` | `RUNNING`, `PAUSED` | `action`: `advance`, `choose` (`option`), `click` (`hotspot`), `skip_activity`, `cancel_activity` | `{ accepted }` |
+| `preview.input` | `RUNNING`, `PAUSED` | `action`: `advance`, `choose` (`option`), `click` (`hotspot`), `skip_activity`, `cancel_activity`, `complete_activity` (`outcome`, `payload`?) | `{ accepted }` |
 | `preview.set_variables` | `PAUSED`, ou `RUNNING` fora de `ACTIVITY` | `variables`: `{ id qualificado → valor }` | `{ changes }` |
 | `preview.get_state` | qualquer depois de `load` | `include`: lista de `variables`, `history`, `stage`, `backlog`, `plugins` (padrão: todos) | `GameState` |
 | `preview.explain_selection` | `RUNNING`, `PAUSED` | `scene`? | `SchedulerEvaluation` (§4.3), sem alterar o estado |
-| `preview.reload` | depois de `load` | `bundle_path`, `changed` (caminhos do projeto que mudaram) | `{ content_hash, resumed }` |
+| `preview.reload` | depois de `load` | `patch` (incremental) ou `bundle_path`/`bundle_url` com `changed` (completa) | `{ content_hash?, resumed }` |
 | `preview.reload_plugins` | depois de `load` | `ids` | `{ reloaded, activity_restarted }` |
 | `preview.show_screen` | `LOADED`, `RUNNING`, `PAUSED` | `screen` (id de `ui/`), `simulate`? (`has_save`, `in_game`, `platform`, `endings`) | `{}` |
 | `preview.set_locale` | depois de `load` | `locale` | `{}` |
@@ -60,8 +71,13 @@ Detalhes:
 
 - **`preview.start`.** Sem `scene`, começa um jogo novo (RT §3.1) no `chapter` dado ou no `start_chapter`. Com `scene`, entra no capítulo da cena sem rodar a `entry_scene` e começa a cena; com `node`, começa nesse nó, depois de instanciar `scene.*`. `variables` sobrescreve valores depois dos defaults e do perfil (é o "começar daqui com estas variáveis" do Studio). `profile` substitui o `profile.json` só nesta sessão (para testar NG+ e finais vistos). Com `settings.reproducible_rng`, `seed` (16 hex) semeia o PCG32; sem ela, semeia o RNG comum do motor, o que ajuda a reproduzir um bug mas não garante o mesmo traço (RT §12.2). `paused: true` para no primeiro nó.
 - **`preview.set_variables`** passa pelo State Manager como uma transação com origem `preview`: as mesmas validações do RT §6.2, menos a de permissão. Variáveis `sys.*` e derivadas dão `READ_ONLY`. A resposta e a notificação `state.changed` trazem as mudanças.
-- **`preview.input`** é o que a automação de testes e o "repetir a partir daqui" do Studio usam. `choose` e `click` recebem o UUID da opção ou do hotspot; uma opção invisível ou desabilitada dá `accepted: false`.
-- **`preview.reload`.** O runtime troca o bundle e tenta continuar na mesma cena e no mesmo nó (`resumed: "node"`). Se o nó sumiu, reinicia a cena (`"scene_restarted"`); se a cena sumiu, volta ao ponto de seleção (`"selection_point"`). Valores de variáveis são mantidos e passam pelas regras do RT §8.4. Mudanças só em `ui/`, `sets/` ou `theme.json` redesenham a tela sem mexer no jogo (`"ui_only"`).
+- **`preview.input`** é o que a automação de testes e o "repetir a partir daqui" do Studio usam. `choose` e `click` recebem o UUID da opção ou do hotspot; uma opção invisível ou desabilitada dá `accepted: false`. `complete_activity` conclui a atividade em curso com `outcome` (um dos `outcomes` declarados) e `payload` (validado contra o `result_schema`), como se o plugin chamasse `complete` (Plugin SDK §6): é o que o painel usa para plugins sem `web` (Plugin SDK §10.6).
+- **`preview.reload`.** Tem duas formas:
+  - **Incremental** (`patch`): uma lista de trocas `{ file, pointer, value? }` sobre a forma canônica (RT §2). `file` é `bundle.json` ou `locales/<idioma>.json`. `pointer` é um JSON Pointer (RFC 6901) até uma entidade inteira: em `bundle.json`, `/scenes/<uuid>`, `/chapters/<uuid>`, `/characters/<uuid>`, `/ui/<id>`, `/sets/<id>`, `/assets/<id>` ou `/theme`; nos idiomas, `/strings/<caminho de texto>`, com cada `/` do caminho escrito `~1`, como manda a RFC. Com `value`, a entidade é criada ou substituída; sem `value`, é removida. O Studio já manda as entidades compiladas, com defaults resolvidos, como o Build System as gravaria. O runtime aplica a lista inteira na memória e revalida só o que depende dela, sem reler o bundle nem recalcular o `content_hash` (o resultado vem sem ele). É o que o Studio manda a cada edição, e DEVERIA levar menos de 50 ms num projeto grande. No teste de 2026-11-15 (bundle de 3,55 MB, 405 cenas; README das specs), o p95 ficou em 4,6 ms no motor do WebView2 (Windows, com GPU), 18 ms na WKWebView (macOS), 20 ms no Chromium e 40 ms no WebKitGTK (Linux, sem GPU); reler o bundle inteiro levava de 1 a 2,4 s, quase tudo para buscar o arquivo e calcular o hash. Trocas em `/project`, `/variables` e `/aliases`, e mudanças em `plugins.json`, exigem a forma completa (`BUNDLE_INVALID` com `data.detail: "full_reload_required"`), porque mudam a estrutura do estado.
+  - **Completa** (`bundle_path` ou `bundle_url`, e `changed` com os caminhos do projeto que mudaram): relê o bundle e recalcula o `content_hash`. O Studio usa ao mudar o projeto, as variáveis ou os plugins, quando uma recarga incremental falha e a cada 50 recargas incrementais, para conferir que o estado na memória bate com o disco.
+
+  Nas duas formas, o runtime tenta continuar na mesma cena e no mesmo nó (`resumed: "node"`). Se o nó sumiu, reinicia a cena (`"scene_restarted"`); se a cena sumiu, volta ao ponto de seleção (`"selection_point"`). Valores de variáveis são mantidos e passam pelas regras do RT §8.4. Mudanças só em `ui/`, `sets/` ou `theme.json` redesenham a tela sem mexer no jogo (`"ui_only"`). Uma troca de `patch` com erro de schema dá `BUNDLE_INVALID` (`data.path` aponta a troca) e nada é aplicado.
+- **`preview.reload_plugins`.** Na janela, recarrega scripts e cenas do disco (Plugin SDK §12.3). No painel, o Studio reempacota o plugin como `.pck` e o runtime o carrega de novo com `ProjectSettings.load_resource_pack`, substituindo os recursos em cache (Plugin SDK §10.6).
 - **`preview.show_screen`** abre uma tela de `ui/` por cima de tudo, para o Menu Editor (UI Spec §9). `simulate` finge os valores de `sys.ui.*` e `sys.endings.*`, para o autor ver o título "depois do final" sem jogar.
 
 ## 4. Notificações (Runtime → Studio)
@@ -150,9 +166,9 @@ Erros de conteúdo durante o jogo (RT §9) não são respostas: saem como a noti
 
 ## 7. Segurança
 
-- Só `127.0.0.1`; o runtime nunca escuta em outras interfaces.
-- O token é de uso único por processo e não vai para logs.
-- `bundle_path` DEVE estar dentro da pasta de build temporária do Studio (`.vnstudio/preview/`); outro caminho dá `BUNDLE_INVALID`.
+- Na janela, só `127.0.0.1`; o runtime nunca escuta em outras interfaces. O token é de uso único por processo e não vai para logs.
+- No painel, a página do runtime só é servida ao webview do Studio, sem acesso à rede: a CSP limita `connect-src` ao protocolo `vnpreview:`.
+- `bundle_path` e `bundle_url` DEVEM apontar para a pasta de build temporária do Studio (`.vnstudio/preview/`); outro caminho dá `BUNDLE_INVALID`.
 - Os builds de release não incluem o servidor de Preview: as opções `--vn-preview-*` são ignoradas fora dos builds de debug e do runtime embutido no Studio (BS §4).
 
 ## 8. Exemplo
@@ -168,4 +184,8 @@ Erros de conteúdo durante o jogo (RT §9) não são respostas: saem como a noti
 ← {"jsonrpc":"2.0","method":"node.entered","params":{"seq":1,"phase":"SCENE_RUNNING","scene":"019a7a00-1388-…","node":"019a7a00-2ee0-…","type":"background"}}
 ← …
 ← {"jsonrpc":"2.0","id":4,"result":{"node":"019a7a00-3a98-…","phase":"SCENE_RUNNING"}}
+→ {"jsonrpc":"2.0","id":5,"method":"preview.reload","params":{"patch":[{"file":"bundle.json","pointer":"/scenes/019a7a00-1388-…","value":{…}}]}}
+← {"jsonrpc":"2.0","id":5,"result":{"resumed":"node"}}
 ```
+
+O exemplo é da janela; no painel, o `hello` vem sem `token` e o `load` usa `bundle_url`.

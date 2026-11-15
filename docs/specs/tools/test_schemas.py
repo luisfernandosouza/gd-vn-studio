@@ -28,6 +28,13 @@ def lock(pid):
     return "plugin-lock.schema.json", {"lock_version": 1, "plugins": {pid: entry}}
 
 
+def rpc(method, params):
+    return "preview-protocol.schema.json", {"jsonrpc": "2.0", "id": 1, "method": method, "params": params}
+
+
+SCENE = "019a7a00-1388-7f6b-b667-94bbd1305982"
+
+
 CASES = [
     # (aceita?, origem na spec, schema, documento)
     (True, "DM §9: rótulo de valor de enum (id qualificado tem ponto)", *locale("variable/global.mood/value/calm")),
@@ -44,6 +51,23 @@ CASES = [
     (True, "REPO §3.2 no lock", *lock("seaside_story.quiz")),
     (False, "id de plugin sem ponto", *plugins("seaside_story")),
     (False, "id de plugin com maiúscula", *plugins("Seaside.quiz")),
+    (True, "PP §1.1: hello no painel, sem token", *rpc("session.hello", {"protocol": "1.0"})),
+    (True, "PP §3: load no painel", *rpc("preview.load", {"bundle_url": "vnpreview://localhost/narrative"})),
+    (False, "PP §3: load com caminho e URL ao mesmo tempo",
+     *rpc("preview.load", {"bundle_path": ".vnstudio/preview/narrative", "bundle_url": "vnpreview://localhost/narrative"})),
+    (True, "PP §3: recarga incremental de uma cena",
+     *rpc("preview.reload", {"patch": [{"file": "bundle.json", "pointer": f"/scenes/{SCENE}", "value": {}}]})),
+    (True, "PP §3: recarga incremental de um texto (barra escrita ~1) e remoção",
+     *rpc("preview.reload", {"patch": [{"file": "locales/pt-BR.json", "pointer": "/strings/ui~1title~1btn_continue", "value": "Continuar"},
+                                       {"file": "bundle.json", "pointer": "/ui/extras"}]})),
+    (True, "PP §3: recarga completa na janela", *rpc("preview.reload", {"bundle_path": ".vnstudio/preview/narrative", "changed": ["ui/title.json"]})),
+    (False, "PP §3: patch misturado com recarga completa",
+     *rpc("preview.reload", {"patch": [{"file": "bundle.json", "pointer": "/theme", "value": {}}], "bundle_path": "x", "changed": []})),
+    (False, "PP §3: patch em arquivo fora da forma canônica",
+     *rpc("preview.reload", {"patch": [{"file": "scenes/x.json", "pointer": "/x", "value": {}}]})),
+    (True, "PP §3: concluir atividade pelo formulário do Studio",
+     *rpc("preview.input", {"action": "complete_activity", "outcome": "won", "payload": {"fish_count": 3}})),
+    (False, "PP §3: complete_activity sem outcome", *rpc("preview.input", {"action": "complete_activity"})),
 ]
 
 

@@ -59,7 +59,7 @@ A prioridade é exibida como "Mínima / Baixa / Normal / Alta / Muito alta" (10 
 ## 4. "Por que esta cena não apareceu?"
 
 - Em qualquer cena, o Studio DEVE oferecer o painel **Disponibilidade**, que mostra para o estado atual do preview se a cena pode ser escolhida e, se não, o motivo em frase: "Habilidade de pesca precisa ser pelo menos 10, mas está em 3", "Já tocou 1 de 1 vez", "Outra cena do grupo *Evento noturno* já aconteceu", "*O mestre pescador* tem prioridade maior".
-- Os dados vêm de `preview.explain_selection` e da notificação `scheduler.evaluated` (Runtime Spec §11), produzidos pelos dois previews.
+- Os dados vêm de `preview.explain_selection` e da notificação `scheduler.evaluated` (Runtime Spec §11), produzidos pelo runtime nos dois modos do Preview, painel e janela.
 - A linha do tempo do preview DEVERIA listar cada ponto de seleção com a cena escolhida e as candidatas descartadas, clicáveis.
 - Botão "Tornar esta cena disponível" ajusta as variáveis do preview para satisfazer as condições, quando possível, e reinicia daquele ponto.
 

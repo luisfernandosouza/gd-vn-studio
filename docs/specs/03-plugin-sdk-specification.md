@@ -61,7 +61,7 @@ fishing-plugin/                 # repositório Git = projeto Godot de desenvolvi
     └── docs/
 ```
 
-- **Caminho fixo.** No jogo exportado, no Preview no Runtime e no ambiente de desenvolvimento o plugin fica em `res://vn_plugins/<namespace>/`. Como o caminho é o mesmo nos três, cenas `.tscn` e `preload` funcionam sem ajuste, e o depurador do Godot acha os scripts (§12.3). Todo caminho `res://` do plugin DEVE começar com `res://vn_plugins/<namespace>/`, `res://vn_plugins/<namespace de uma dependência>/` ou `res://addons/vn_runtime_sdk/`; caminhos relativos são permitidos (P012).
+- **Caminho fixo.** No jogo exportado, no Preview (painel e janela, Runtime Spec §11) e no ambiente de desenvolvimento o plugin fica em `res://vn_plugins/<namespace>/`. Como o caminho é o mesmo nos três, cenas `.tscn` e `preload` funcionam sem ajuste, e o depurador do Godot acha os scripts (§12.3). Todo caminho `res://` do plugin DEVE começar com `res://vn_plugins/<namespace>/`, `res://vn_plugins/<namespace de uma dependência>/` ou `res://addons/vn_runtime_sdk/`; caminhos relativos são permitidos (P012).
 - **Sandbox.** `sandbox.tscn` usa a classe `VNSandbox` do SDK: carrega o plugin sobre uma NarrativeAPI em memória (a mesma do `VNTestHarness`, §12.1) com renderização e input reais, e mostra um painel lateral com o formulário dos `params`, as variáveis, os eventos emitidos, os logs e os botões Pular e Reiniciar. É onde o dev itera com breakpoints, sem abrir o Studio.
 - **Versão do Godot.** Cada versão do runtime fixa uma versão **exata** do Godot (a mesma embutida no Studio). `vnplugin doctor` mostra a versão do Studio instalado e a do Godot correspondente; `vnplugin godot install` baixa o editor oficial nessa versão (build padrão, sem .NET), confere o hash e guarda em `~/.vnstudio/godot/<versão>/`; `vnplugin godot open` abre o projeto com ele. `vnplugin test` usa o binário headless da mesma versão. O validador avisa se `compatibility.godot` não inclui a versão fixada pelo runtime de `compatibility.runtime`.
 - **Nomes globais do Godot.** `class_name`, grupos e ações de input criadas pelo plugin são globais no jogo. Por isso todo `class_name` DEVE começar com o namespace em PascalCase (`FishingGame` para `fishing`) e grupos e ações com `<namespace>_` (P011). O prefixo `VN` é reservado ao SDK. Plugins não registram autoloads nem alteram configurações do projeto; para input, usam as ações padrão do runtime (§5.7).
@@ -143,7 +143,7 @@ Variáveis do próprio namespace não precisam de capacidade.
 | `project.write` | Propor alterações ao conteúdo (sempre via comandos com undo, §10.4) |
 | `assets.read` / `assets.write` | Ler / importar assets |
 | `notifications` | Mostrar notificações |
-| `preview` | Controlar o preview e desenhar no Preview no Studio |
+| `preview` | Controlar o Preview e acompanhar o estado do jogo |
 | `network` | Acesso de rede (bloqueado por padrão; só oficiais no v1, P016) |
 
 ### 4.3. Confiança
@@ -224,7 +224,7 @@ func _vn_shutdown() -> void:
     pass
 ```
 
-Ordem garantida: `_vn_init` (todos os plugins, em ordem topológica de dependências; plugins sem dependência entre si seguem a ordem lexicográfica do id, a mesma nos dois interpretadores) → `_vn_ready` (todos) → `_vn_game_started` → … → `_vn_game_ended` → `_vn_shutdown`. Ao carregar save (Runtime Spec §8.3): `_vn_game_ended()` se havia jogo em andamento → `_vn_game_started(false)` → `_vn_migrate_save_data` (se preciso) → `_vn_load(data)`. Se o save não tem dados do plugin, `_vn_load(null)` é chamado mesmo assim, e o plugin DEVE voltar ao estado inicial.
+Ordem garantida: `_vn_init` (todos os plugins, em ordem topológica de dependências; plugins sem dependência entre si seguem a ordem lexicográfica do id, a mesma em todas as plataformas) → `_vn_ready` (todos) → `_vn_game_started` → … → `_vn_game_ended` → `_vn_shutdown`. Ao carregar save (Runtime Spec §8.3): `_vn_game_ended()` se havia jogo em andamento → `_vn_game_started(false)` → `_vn_migrate_save_data` (se preciso) → `_vn_load(data)`. Se o save não tem dados do plugin, `_vn_load(null)` é chamado mesmo assim, e o plugin DEVE voltar ao estado inicial.
 
 ### 5.2. Contexto
 
@@ -518,12 +518,11 @@ interface PluginContext {
   preview: {
     start(opts: { scene?: string; node?: string; variables?: Record<string, unknown> }): Promise<void>;
     onStateChanged(cb: (changes: VariableChange[]) => void): Disposable;
-    renderActivityMock(activityId: string, render: (el: HTMLElement, params: unknown, done: (outcome: string, payload?: unknown) => void) => void | (() => void)): Disposable;
   };
 }
 ```
 
-`StudioEventName` inclui `project.opened`, `project.saved`, `scene.selected`, `node.selected`, `selection.changed`, `preview.started`, `preview.stopped`.
+`StudioEventName` inclui `project.opened`, `project.saved`, `scene.selected`, `node.selected`, `selection.changed`, `preview.started`, `preview.stopped`. `node.selected` traz `{ scene, node, type }`, com o `type` do nó (Data Model §4).
 
 ### 10.4. Edições e undo/redo
 
@@ -566,8 +565,9 @@ Chamado pelo Studio ao atualizar o plugin quando a `config` salva foi criada com
 
 ### 10.6. Preview
 
-- No **Preview no Studio**, o interpretador TypeScript não executa GDScript. A atividade é representada por `renderActivityMock`: o plugin desenha um substituto simples (ex.: botões "Ganhou"/"Perdeu" com campos do payload) e chama `done(outcome, payload)` para concluir; a função devolvida, se houver, limpa o elemento. Sem mock, o Studio mostra um formulário gerado do `result_schema` e da lista de `outcomes`.
-- No **Preview no Runtime**, a atividade real roda no Godot (Runtime Spec §11).
+- O Preview é o próprio runtime (Runtime Spec §11): a atividade roda o GDScript real do plugin, no **painel** (runtime Web, dentro do Studio) e na **janela** (runtime nativo). O Editor SDK não tem mock de atividade.
+- No painel, o Studio inclui os plugins no export Web como pacotes de recursos (`.pck`, um por plugin). `preview.reload_plugins` troca o pacote do plugin alterado.
+- Um plugin que não declara `web` em `compatibility.platforms` não carrega no painel. Quando uma atividade dele começa, o painel mostra um formulário gerado do `result_schema` e da lista de `outcomes` e conclui a atividade com `preview.input` `complete_activity` (Preview Protocol §3), sem aplicar a lógica do plugin. O botão "Abrir em janela" roda a atividade real no runtime nativo.
 
 ## 11. Compatibilidade, versões e dependências
 
@@ -634,7 +634,7 @@ Os tempos de `VNScriptedInput` são segundos desde o início da atividade, no re
 ### 12.3. Depuração dentro de uma VN
 
 1. `vnplugin link <pasta-do-projeto-de-VN>` (ou "Vincular pasta de desenvolvimento" no Plugin Manager) instala o plugin como **vínculo**, gravado só em `.vnstudio/plugin-lock.local.json` (mesmo schema do lock, fora do Git): a entrada tem `resolved: "path:<pasta>/vn_plugins/<namespace>"`, `link: true`, `trust: local` e nenhum `integrity`, e sobrepõe a entrada de `plugin-lock.json` só naquela máquina. `plugins.json` e `plugin-lock.json`, que vão para o Git, não mudam, então colaboradores continuam com o pacote publicado. O Studio lê os arquivos direto da pasta do dev.
-2. Com o **modo desenvolvedor** ligado nas preferências do Studio, o Preview no Runtime inicia o Godot embutido com `--remote-debug tcp://127.0.0.1:<porta>` (padrão 6007). No editor do Godot do dev, com "Depurar → Manter servidor de depuração aberto" ativo, funcionam breakpoints, árvore de cena remota, inspetor e profiler, porque o plugin está no mesmo caminho `res://vn_plugins/<namespace>/` nos dois lados.
+2. Com o **modo desenvolvedor** ligado nas preferências do Studio, o Preview abre em **janela** (runtime nativo; o painel Web não aceita o depurador do Godot) e inicia o Godot embutido com `--remote-debug tcp://127.0.0.1:<porta>` (padrão 6007). No editor do Godot do dev, com "Depurar → Manter servidor de depuração aberto" ativo, funcionam breakpoints, árvore de cena remota, inspetor e profiler, porque o plugin está no mesmo caminho `res://vn_plugins/<namespace>/` nos dois lados.
 3. Ao salvar um arquivo de um plugin vinculado, o Studio envia `preview.reload_plugins([id])` (Runtime Spec §11). O runtime chama `_vn_shutdown`, recarrega os scripts e cenas, chama `_vn_init`/`_vn_ready` e, se uma atividade daquele plugin estava rodando, cancela e a reinicia com os mesmos `params`. Mudança no `plugin.json` que peça permissão nova abre o diálogo de permissão antes de recarregar.
 4. O painel **Plugins** do modo desenvolvedor mostra, por plugin, os logs de `ctx.log`, eventos emitidos, chamadas recusadas por permissão (com a capacidade que falta), o estado *faulted* com botão "Reativar" e o tempo gasto em cada atividade.
 5. Vínculos não vão para jogadores: o assistente de exportação recusa o build enquanto houver `link: true` em `.vnstudio/plugin-lock.local.json` (P013). Para distribuir, `vnplugin package` e instalar o `.vnplugin` gerado. "Desvincular" apaga a entrada local.
@@ -692,7 +692,7 @@ O manifesto em [`examples/fishing-plugin/plugin.json`](examples/fishing-plugin/p
 | Requisito | Onde |
 |---|---|
 | Manifesto | `plugin.json` |
-| Configuração visual no editor | `config_schema` e `params_schema` (formulários gerados) + mock no Preview ([`editor/src/index.ts`](examples/fishing-plugin/editor/src/index.ts)) |
+| Configuração visual no editor | `config_schema` e `params_schema` (formulários gerados) + comando "jogar a partir do nó" no Preview ([`editor/src/index.ts`](examples/fishing-plugin/editor/src/index.ts)) |
 | Schema de parâmetros | `activities[0].params_schema` |
 | Runtime Godot | [`runtime/src/fishing_plugin.gd`](examples/fishing-plugin/runtime/src/fishing_plugin.gd) e [`runtime/scenes/fishing_game.gd`](examples/fishing-plugin/runtime/scenes/fishing_game.gd) |
 | Comunicação com a Narrative API | Resultado da atividade + variáveis próprias (`~total_caught`, `~best_score`) |

@@ -3,21 +3,18 @@
 import type { PluginContext } from "@vnstudio/editor-sdk";
 
 export async function activate(ctx: PluginContext): Promise<void> {
-  // Substituto do minijogo no Preview no Studio, que não executa GDScript (§10.6).
-  ctx.preview.renderActivityMock("fishing_game", (el, params, done) => {
-    const target = (params as { target_fish?: number }).target_fish ?? 3;
-    el.innerHTML = `
-      <p>Fishing session (goal: ${target} fish)</p>
-      <label>Fish <input type="number" min="0" value="${target}" data-k="fish_count"></label>
-      <label>Score <input type="number" min="0" value="${target * 100}" data-k="score"></label>
-      <button data-outcome="won">Won</button> <button data-outcome="lost">Lost</button>`;
-    const read = (k: string) => Number((el.querySelector(`[data-k=${k}]`) as HTMLInputElement).value);
-    const onClick = (e: Event) => {
-      const outcome = (e.target as HTMLElement).dataset.outcome;
-      if (outcome) done(outcome, { won: outcome === "won", fish_count: read("fish_count"), score: read("score") });
-    };
-    el.addEventListener("click", onClick);
-    return () => el.removeEventListener("click", onClick);
+  // O Preview roda o minijogo real (§10.6). Este comando só abre o Preview
+  // direto no nó de pescaria selecionado, para testar o minijogo sem jogar a cena toda.
+  let selected: { scene: string; node: string; type?: string } | undefined;
+  ctx.events.on("node.selected", (payload) => {
+    selected = payload as typeof selected;
+  });
+  ctx.commands.register("play_fishing_here", async () => {
+    if (!selected || selected.type !== "activity") {
+      ctx.notifications.show("Select a fishing activity step first.", "info");
+      return;
+    }
+    await ctx.preview.start({ scene: selected.scene, node: selected.node });
   });
 }
 
