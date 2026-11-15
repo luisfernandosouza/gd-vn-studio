@@ -7,14 +7,14 @@
 //   - salto para uma cena com variáveis (preview.start);
 //   - início do minijogo de pesca com o GDScript real.
 //
-// Uso: node tools/bench.mjs [--edits 20] [--templates web,web-lean] [--out build/results.json]
+// Uso: node tools/bench.mjs [--edits 20] [--templates web,web-lean] [--browser chromium|webkit] [--gpu] [--out build/results.json]
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
-const { chromium } = createRequire(import.meta.url)('playwright');
+const pw = createRequire(import.meta.url)('playwright');
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const args = Object.fromEntries(process.argv.slice(2).reduce((a, v, i, all) => (v.startsWith('--') ? a.concat([[v.slice(2), all[i + 1]]]) : a), []));
@@ -51,8 +51,12 @@ const stats = xs => {
   return { n: s.length, p50: +q(0.5).toFixed(1), p95: +q(0.95).toFixed(1), max: +s[s.length - 1].toFixed(1) };
 };
 
-const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
-const results = { machine: { cpus: os.cpus().length, cpu: os.cpus()[0].model, gpu: 'SwiftShader (sem GPU)' }, edits: EDITS, templates: {} };
+// --browser chromium|webkit; --gpu usa a GPU da máquina (sem a flag, o Chromium desenha com SwiftShader, na CPU)
+const BROWSER = args.browser || 'chromium';
+const GPU = 'gpu' in args;
+const launchArgs = BROWSER === 'chromium' ? (GPU ? ['--ignore-gpu-blocklist', '--enable-gpu'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist']) : [];
+const browser = await pw[BROWSER].launch({ args: launchArgs, headless: !GPU || BROWSER !== 'chromium' ? true : false });
+const results = { machine: { cpus: os.cpus().length, cpu: os.cpus()[0].model, platform: os.platform(), arch: os.arch() }, browser: BROWSER, gpu: GPU, edits: EDITS, templates: {} };
 
 for (const tpl of TEMPLATES) {
   const r = results.templates[tpl] = { wasm_mb: +(fs.statSync(path.join(ROOT, 'build', tpl, 'index.wasm')).size / 1e6).toFixed(1) };
@@ -64,6 +68,12 @@ for (const tpl of TEMPLATES) {
   const page = await ctx.newPage();
   page.on('console', m => { if (m.type() === 'error') console.error('[página]', m.text()); });
   await page.goto(`${BASE}/harness/index.html`);
+  results.renderer = results.renderer || await page.evaluate(() => {
+    const gl = document.createElement('canvas').getContext('webgl2');
+    const ext = gl && gl.getExtension('WEBGL_debug_renderer_info');
+    return gl ? (ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)) : 'sem WebGL 2';
+  });
+  console.log('renderer', results.renderer);
   const cold = await page.evaluate(s => bench.open(s), src);
   const warm = [];
   for (let i = 0; i < 5; i++) warm.push((await page.evaluate(s => bench.open(s), src)).ms);
