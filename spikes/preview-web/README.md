@@ -37,6 +37,29 @@ Para onde vai o tempo no bundle grande, sem as otimizações 1 e 2: leitura do a
 
 O template enxuto (otimização 4) é o oficial compilado com `disable_3d=yes`, `optimize=size` e sem 33 módulos que uma VN não usa (física 3D, XR, GLTF, rede, compressão de texturas de GPU etc.). Ver `tools/build_lean_template.sh`.
 
+### WebKitGTK (motor do Tauri no Linux)
+
+WebKitGTK 2.52 (`webkit2gtk-4.1`, o mesmo do Tauri 2), sob Xvfb, desenho na CPU (Mesa llvmpipe), mesma máquina. Rodado por `tools/webkitgtk_bench.py`.
+
+| Caminho (acumulado) | Demo p50 / p95 | Bundle grande p50 / p95 |
+|---|---|---|
+| Motor sempre aberto | 187 / 263 ms | 2.293 / 2.437 ms |
+| + bundle em memória | 28 / 31 ms | 148 / 189 ms |
+| + recarga incremental | 29 / 31 ms | **32 / 40 ms** |
+
+| Medida | Template oficial | Template enxuto |
+|---|---|---|
+| Primeira abertura (processo novo) | 3.411 ms | 2.386 ms |
+| Abertura de novo no mesmo processo, p50 | 3.523 ms | 2.418 ms |
+
+O salto para uma cena com variáveis levou 33 ms (p95) e o minijogo de pesca abriu em 155 ms (p95). A recarga fica igual à do Chromium; a diferença está na abertura, 2 a 3 vezes mais lenta, porque o WebKit compila o WASM de novo a cada abertura (não guarda o código compilado em cache como o Chromium). Mesmo assim fica abaixo da meta de 5 s.
+
+Reiniciar o motor a cada edição fica muito pior no WebKitGTK (7 a 22 s), e a abertura piora a cada nova instância do motor no mesmo processo. É mais um motivo para o Preview nunca reiniciar o motor (otimização 3).
+
+### macOS
+
+Ainda não medido. `tools/wkwebview_bench.swift` roda a bancada numa WKWebView (o motor do Tauri no macOS), e o workflow `.github/workflows/preview-web-spike.yml` roda isso num runner macOS do GitHub, mas o job do macOS foi cancelado sem começar neste repositório privado (runners macOS dependem do plano de Actions da conta).
+
 ## O que isso significa para as specs
 
 1. **Um interpretador basta.** O Preview no Studio pode ser o próprio runtime exportado para Web. Sai o interpretador TypeScript, o `renderActivityMock` do SDK §10.6 e a obrigação de manter JCS, aritmética, formatação, RNG e Scheduler em duas linguagens.
@@ -45,8 +68,8 @@ O template enxuto (otimização 4) é o oficial compilado com `disable_3d=yes`, 
 
 ## Limites do teste
 
-- **Sem GPU.** SwiftShader desenha na CPU; numa máquina com GPU o desenho do quadro é mais rápido, então os tempos acima são pessimistas.
-- **Só Chromium.** O Studio em Tauri usa WebView2 (Chromium) no Windows, mas WKWebView no macOS e WebKitGTK no Linux. O desempenho de WASM e WebGL 2 nesses dois precisa de um teste próprio antes da decisão final.
+- **Sem GPU.** SwiftShader e llvmpipe desenham na CPU; numa máquina com GPU o desenho do quadro é mais rápido, então os tempos acima são pessimistas.
+- **Sem macOS.** Chromium (Windows) e WebKitGTK (Linux) estão medidos; falta a WKWebView do macOS.
 - **Sem assets.** O spike não carrega imagens, áudio nem vídeo. A proposta B (carregador `VNAssets`) precisa de um teste separado, inclusive de como os bytes chegam do Studio ao runtime Web.
 - **Runtime mínimo.** O runtime de verdade terá Scheduler, State Manager e UI completos; a parte medida aqui (parse, troca da cena e redesenho) é a que cresce com o tamanho do jogo.
 

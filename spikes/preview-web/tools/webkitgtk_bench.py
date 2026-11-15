@@ -5,7 +5,7 @@ Abre harness/index.html?autorun=1 numa WebView do WebKitGTK e espera a página
 gravar build/work/results-webkitgtk.json. Precisa de python3-gi,
 gir1.2-webkit2-4.1 e, sem tela, de Xvfb (xvfb-run).
 
-Uso: xvfb-run -a -s "-screen 0 1920x1080x24" tools/webkitgtk_bench.py [porta] [edições]
+Uso: xvfb-run -a -s "-screen 0 1920x1080x24" tools/webkitgtk_bench.py [porta] [edições] [parâmetros extras da página]
 """
 import os, subprocess, sys, time
 from pathlib import Path
@@ -18,6 +18,7 @@ from gi.repository import GLib, Gtk, WebKit2  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 port = int(sys.argv[1]) if len(sys.argv) > 1 else 8766
 edits = int(sys.argv[2]) if len(sys.argv) > 2 else 20
+extra = sys.argv[3] if len(sys.argv) > 3 else ""  # ex.: "&only=open&templates=web-lean"
 out = ROOT / "build" / "work" / "results-webkitgtk.json"
 out.unlink(missing_ok=True)
 
@@ -34,7 +35,7 @@ win = Gtk.Window()
 win.set_default_size(1300, 900)
 win.add(view)
 win.show_all()
-view.load_uri(f"http://127.0.0.1:{port}/harness/index.html?autorun=1&engine=webkitgtk&edits={edits}")
+view.load_uri(f"http://127.0.0.1:{port}/harness/index.html?autorun=1&engine=webkitgtk&edits={edits}{extra}")
 
 start = time.time()
 
