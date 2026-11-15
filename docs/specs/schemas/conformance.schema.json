@@ -876,6 +876,82 @@
             }
           },
           "unevaluatedProperties": false
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Base"
+            }
+          ],
+          "required": [
+            "json"
+          ],
+          "properties": {
+            "kind": {
+              "const": "canonical"
+            },
+            "json": {
+              "type": "string",
+              "description": "Texto JSON de entrada (qualquer formatação); a saída é o JCS (RFC 8785) e o sha256-SRI do texto canônico em UTF-8."
+            },
+            "expect": {
+              "type": "object",
+              "required": [
+                "text",
+                "hash"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "text": {
+                  "type": "string"
+                },
+                "hash": {
+                  "type": "string",
+                  "pattern": "^sha256-[A-Za-z0-9+/]{43}=$"
+                }
+              }
+            }
+          },
+          "unevaluatedProperties": false
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Base"
+            }
+          ],
+          "required": [
+            "json",
+            "key"
+          ],
+          "properties": {
+            "kind": {
+              "const": "hmac"
+            },
+            "json": {
+              "type": "string",
+              "description": "Texto JSON de um save ou perfil; o campo integrity, se presente, é ignorado no cálculo (BS §8.3)."
+            },
+            "key": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$",
+              "description": "Chave HMAC de 32 bytes em hexadecimal."
+            },
+            "expect": {
+              "type": "object",
+              "required": [
+                "integrity"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "integrity": {
+                  "type": "string",
+                  "pattern": "^hmac-sha256-[A-Za-z0-9+/]{43}=$"
+                }
+              }
+            }
+          },
+          "unevaluatedProperties": false
         }
       ]
     }

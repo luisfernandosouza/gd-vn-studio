@@ -1,0 +1,332 @@
+{
+  "engine": "webkitgtk",
+  "userAgent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/60.5 Safari/605.1.15",
+  "renderer": "Apple GPU",
+  "edits": 20,
+  "templates": {
+    "web": {
+      "first_open": {
+        "cold_ms": 2876,
+        "warm": {
+          "n": 5,
+          "p50": 3404,
+          "p95": 3701,
+          "max": 3701
+        },
+        "godot": "4.7.2-stable (official)"
+      },
+      "demo": {
+        "hash_ok": true,
+        "restart_engine": {
+          "total": {
+            "n": 20,
+            "p50": 7406,
+            "p95": 11412,
+            "max": 11654
+          },
+          "runtime": {
+            "n": 20,
+            "p50": 167,
+            "p95": 226,
+            "max": 238
+          },
+          "studio": {
+            "n": 20,
+            "p50": 19,
+            "p95": 31,
+            "max": 33
+          },
+          "detail": {
+            "fetch_ms": 202,
+            "hash_ms": 74,
+            "hash_ok": true,
+            "index": 1,
+            "parse_ms": 13,
+            "req": 41,
+            "resumed": "selection_point",
+            "runtime_ms": 157,
+            "scene": "019a7a00-0fa0-755e-a143-bcfdef94a367",
+            "scenes": 5,
+            "text": "O ônibus para em frente ao mar.",
+            "total_ms": 369
+          }
+        },
+        "engine_open": {
+          "total": {
+            "n": 20,
+            "p50": 187,
+            "p95": 263,
+            "max": 264
+          },
+          "runtime": {
+            "n": 20,
+            "p50": 18,
+            "p95": 22,
+            "max": 33
+          },
+          "studio": {
+            "n": 20,
+            "p50": 13,
+            "p95": 19,
+            "max": 20
+          },
+          "detail": {
+            "fetch_ms": 145,
+            "hash_ms": 7,
+            "hash_ok": true,
+            "index": 3,
+            "parse_ms": 1,
+            "req": 62,
+            "resumed": "node",
+            "runtime_ms": 18,
+            "scene": "019a7a00-1b58-719e-a5e5-9bc09a99b364",
+            "scenes": 5,
+            "text": "Edição 19: Uma concha bonita. Você guarda no bolso.",
+            "total_ms": 163
+          }
+        },
+        "in_memory": {
+          "total": {
+            "n": 20,
+            "p50": 28,
+            "p95": 31,
+            "max": 41
+          },
+          "runtime": {
+            "n": 20,
+            "p50": 27,
+            "p95": 30,
+            "max": 39
+          },
+          "studio": {
+            "n": 20,
+            "p50": 0,
+            "p95": 1,
+            "max": 1
+          },
+          "detail": {
+            "hash_ms": 0,
+            "index": 3,
+            "parse_ms": 0,
+            "req": 82,
+            "resumed": "node",
+            "runtime_ms": 28,
+            "scene": "019a7a00-1b58-719e-a5e5-9bc09a99b364",
+            "scenes": 5,
+            "text": "Edição 19: Uma concha bonita. Você guarda no bolso.",
+            "total_ms": 29
+          }
+        },
+        "incremental": {
+          "total": {
+            "n": 20,
+            "p50": 29,
+            "p95": 31,
+            "max": 35
+          },
+          "runtime": {
+            "n": 20,
+            "p50": 29,
+            "p95": 31,
+            "max": 35
+          },
+          "studio": {
+            "n": 20,
+            "p50": 0,
+            "p95": 0,
+            "max": 1
+          },
+          "detail": {
+            "index": 3,
+            "parse_ms": 0,
+            "req": 102,
+            "resumed": "node",
+            "runtime_ms": 29,
+            "scene": "019a7a00-1b58-719e-a5e5-9bc09a99b364",
+            "text": "Edição 19: Uma concha bonita. Você guarda no bolso.",
+            "total_ms": 29
+          }
+        },
+        "jump": {
+          "n": 20,
+          "p50": 35,
+          "p95": 42,
+          "max": 46
+        }
+      },
+      "big": {
+        "hash_ok": true,
+        "restart_engine": {
+          "total": {
+            "n": 20,
+            "p50": 17998,
+            "p95": 22020,
+            "max": 22487
+          },
+          "runtime": {
+            "n": 20,
+            "p50": 776,
+            "p95": 861,
+            "max": 938
+          },
+          "studio": {
+            "n": 20,
+            "p50": 212,
+            "p95": 257,
+            "max": 276
+          },
+          "detail": {
+            "fetch_ms": 1716,
+            "hash_ms": 571,
+            "hash_ok": true,
+            "index": 1,
+            "parse_ms": 117,
+            "req": 163,
+            "resumed": "selection_point",
+            "runtime_ms": 789,
+            "scene": "019a7a00-0fa0-755e-a143-bcfdef94a367",
+            "scenes": 405,
+            "text": "O ônibus para em frente ao mar.",
+            "total_ms": 2535
+          }
+        },
+        "engine_open": {
+          "total": {
+            "n": 20,
+            "p50": 2293,
+            "p95": 2437,
+            "max": 2453
+          },
+          "runtime": {
+            "n": 20,
+            "p50": 333,
+            "p95": 439,
+            "max": 488
+          },
+          "studio": {
+            "n": 20,
+            "p50": 196,
+            "p95": 233,
+            "max": 280
+          },
+          "detail": {
+            "fetch_ms": 1773,
+            "hash_ms": 275,
+            "hash_ok": true,
+            "index": 26,
+            "parse_ms": 65,
+            "req": 184,
+            "resumed": "node",
+            "runtime_ms": 360,
+            "scene": "019a7b00-0000-00ca-7000-800000000000",
+            "scenes": 405,
+            "text": "Edição 19: Lá fora chamava pelo nome de um amigo que não respondia o mar estava.",
+            "total_ms": 2134
+          }
+        },
+        "in_memory": {
+          "total": {
+            "n": 20,
+            "p50": 148,
+            "p95": 189,
+            "max": 200
+          },
+          "runtime": {
+            "n": 20,
+            "p50": 105,
+            "p95": 138,
+            "max": 148
+          },
+          "studio": {
+            "n": 20,
+            "p50": 15,
+            "p95": 22,
+            "max": 22
+          },
+          "detail": {
+            "hash_ms": 0,
+            "index": 26,
+            "parse_ms": 60,
+            "req": 204,
+            "resumed": "node",
+            "runtime_ms": 102,
+            "scene": "019a7b00-0000-00ca-7000-800000000000",
+            "scenes": 405,
+            "text": "Edição 19: Lá fora chamava pelo nome de um amigo que não respondia o mar estava.",
+            "total_ms": 121
+          }
+        },
+        "incremental": {
+          "total": {
+            "n": 20,
+            "p50": 32,
+            "p95": 40,
+            "max": 43
+          },
+          "runtime": {
+            "n": 20,
+            "p50": 31,
+            "p95": 39,
+            "max": 42
+          },
+          "studio": {
+            "n": 20,
+            "p50": 0,
+            "p95": 1,
+            "max": 1
+          },
+          "detail": {
+            "index": 26,
+            "parse_ms": 0,
+            "req": 224,
+            "resumed": "node",
+            "runtime_ms": 28,
+            "scene": "019a7b00-0000-00ca-7000-800000000000",
+            "text": "Edição 19: Lá fora chamava pelo nome de um amigo que não respondia o mar estava.",
+            "total_ms": 29
+          }
+        },
+        "jump": {
+          "n": 20,
+          "p50": 28,
+          "p95": 33,
+          "max": 33
+        }
+      },
+      "activity": {
+        "start": {
+          "n": 5,
+          "p50": 36,
+          "p95": 155,
+          "max": 155
+        },
+        "overlay_shown": true
+      }
+    },
+    "web-lean": {
+      "first_open": {
+        "cold_ms": 12902,
+        "warm": {
+          "n": 5,
+          "p50": 12856,
+          "p95": 13146,
+          "max": 13146
+        },
+        "godot": "4.7.2-stable (custom_build)"
+      }
+    }
+  },
+  "first_open_fresh_process": {
+    "web": {
+      "cold_ms": 3411,
+      "warm_p50": 3523,
+      "warm_p95": 3641
+    },
+    "web-lean": {
+      "cold_ms": 2386,
+      "warm_p50": 2418,
+      "warm_p95": 2633
+    },
+    "note": "Medido num processo novo por template. Na rodada completa a abertura piora a cada reabertura do iframe (40+ instâncias do motor no mesmo processo), por isso restart_engine e a abertura do web-lean ali não representam o uso real."
+  }
+}

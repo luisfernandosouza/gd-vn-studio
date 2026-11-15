@@ -46,6 +46,8 @@
       "profile.data"
     ],
     "editor": [
+      "commands",
+      "notifications",
       "preview"
     ]
   },

@@ -12,7 +12,7 @@ Marco da seção 16 do ADD: definir e congelar as três especificações que ser
 | 5 | [Build System](05-build-system-specification.md) | Pipeline de build, Build Staging, bundle `.vnb`, assets, presets por plataforma, PCK, proteção do conteúdo, manifesto, CLI `vnstudio build` |
 | 6 | [Menus, botões e interação](06-ui-menus-and-interaction-specification.md) | Telas montadas pelo autor (título, pausa, configurações…), ações de botões, estilos, cenários com objetos clicáveis, nó `interact`, configurações do jogador (FPS da VN × minijogos), ideias de personalização |
 | 7 | [Protocolo do Preview](07-preview-protocol.md) | Conversa Studio ↔ Runtime no Preview: sessão e token, métodos, notificações, `GameState`, `SchedulerEvaluation`, erros |
-| 8 | [Vetores de conformidade](08-conformance-vectors.md) | Formato dos casos que o Runtime e o Preview do Studio DEVEM reproduzir, conjunto de 130 casos (inclusive recordes, fluxo de cenas inteiras e modo stream) e implementação de referência |
+| 8 | [Vetores de conformidade](08-conformance-vectors.md) | Formato dos casos que o Runtime e o Preview do Studio DEVEM reproduzir, conjunto de 137 casos (inclusive recordes, fluxo de cenas inteiras e modo stream) e implementação de referência |
 | 9 | [Repositórios e organização do código](09-repositories-and-code-layout.md) | Onde cada coisa mora no Git: monorepo do produto, repositório de plugin avulso e repositório de um jogo (plugins do catálogo, guardados e embutidos), `.gitignore`, onde os dados dos minijogos ficam no computador do jogador |
 
 Artefatos:
@@ -20,10 +20,11 @@ Artefatos:
 - `schemas/` — 21 JSON Schemas (draft 2020-12): `common`, `project`, `variables`, `character`, `chapter`, `scene`, `assets`, `locale`, `save`, `plugin`, `plugins`, `plugin-lock`, `theme`, `ui-screen`, `set`, `preview-protocol`, `conformance`, `build-manifest` e os três do bundle compilado (`bundle`, `bundle-locale`, `bundle-plugins`). O domínio `schemas.vnstudio.dev` nos `$id` é provisório.
 - `examples/demo-project/` — dados de exemplo, só JSON e sem arte (o jogo jogável fica num repositório separado, spec 09 §1.1): projeto pequeno com 2 capítulos, 5 cenas, escolhas, branch, variável derivada, grupo de exclusividade, uso do Fishing Minigame, menu inicial com cenário clicável (`ui/title.json`, `sets/beach_title.json`), tela de configurações com FPS separado para VN e minijogos (`ui/settings.json`), créditos e um nó `interact`.
 - `presets/classic/` — preset de interface do v1: tema, as telas que o projeto não define (título, pausa, salvar, carregar, configurações, galeria, créditos, HUD, histórico e minijogos) e os textos traduzidos para os 9 idiomas do produto (UI Spec §2.1).
-- `examples/fishing-plugin/` — plugin de referência completo: manifesto, GDScript de runtime, cena, testes com `VNTestHarness`, mock de editor, README e CHANGELOG. Corresponde a `vn_plugins/fishing/` do projeto de desenvolvimento.
+- `examples/fishing-plugin/` — plugin de referência completo: manifesto, GDScript de runtime, cena, testes com `VNTestHarness`, comando de editor, README e CHANGELOG. Corresponde a `vn_plugins/fishing/` do projeto de desenvolvimento.
 - `examples/demo-save.json` — save válido, coerente com um caminho real do demo (chegada → praia → pescaria vencida) e assinado com uma chave de exemplo de 32 bytes zero.
 - `tools/validate.py` — validador de referência (schema + regras semânticas).
 - `tools/test_validate.py` — um projeto quebrado de propósito para cada código do validador.
+- `tools/test_schemas.py` — confere os padrões dos schemas (chaves de tradução, id de plugin, mensagens do Preview) contra os formatos que as specs mandam gravar.
 - `conformance/` e `tools/conformance.py` — vetores de conformidade e a implementação de referência que os confere.
 - `tools/compile_bundle.py` — compilador de referência do bundle narrativo (BS §5.1): transforma um projeto na forma que o runtime lê, sem precisar do Studio (RT §2.1).
 
@@ -34,8 +35,10 @@ python3 tools/validate.py examples/demo-project examples/fishing-plugin
 # --export aplica também as regras de exportação (P013, W013 vira erro)
 python3 tools/test_validate.py
 # um caso por código; todos devem passar
+python3 tools/test_schemas.py
+# padrões dos schemas contra os exemplos das specs
 python3 tools/conformance.py
-# 130/130 vetores conferem com a referência.
+# 137/137 vetores conferem com a referência.
 python3 tools/compile_bundle.py examples/demo-project /tmp/demo-bundle examples/fishing-plugin
 # grava bundle.json, locales/<lang>.json e plugins.json; --stage copia também assets e plugins;
 # --godot <projeto-godot> grava em vn_content/ e vn_plugins/ do projeto do runtime
@@ -103,7 +106,7 @@ A stack do ADD §2.1 foi revisada e mantida: **Tauri + React + TypeScript** no S
 | Binário do Godot | Distribuído como *sidecar* do Tauri, na versão exata exigida pelo runtime (`compatibility.godot`). Alternativa: download sob demanda no primeiro build, com verificação de hash, para reduzir o instalador |
 | Templates de exportação | Gerenciados pelo Studio, na mesma versão fixada do Godot |
 | Build | Godot headless chamado pelo Build Manager, sobre a cópia em Build Staging (ADD §7) |
-| Preview no Runtime | Usa o mesmo binário embutido, via WebSocket + JSON-RPC (RT §11) |
+| Preview | Um interpretador só, o runtime: no painel do Studio, o export Web do runtime; na janela, o binário embutido. Mesmo JSON-RPC nos dois (RT §11, decisão de 2026-11-15) |
 | Jogadores | Recebem o executável exportado, sem dependências |
 | Desenvolvedores de runtime plugins | Únicos que usam o editor do Godot, para escrever e testar GDScript |
 | Linguagem | Só GDScript nos plugins e no runtime. C# fica fora, porque o Godot 4 com C# não exporta para Web |
@@ -111,7 +114,7 @@ A stack do ADD §2.1 foi revisada e mantida: **Tauri + React + TypeScript** no S
 
 **Bibliotecas do Studio** (aceitas em 2026-11-14): React Flow, Zustand + Immer, Ajv, CodeMirror/Monaco.
 
-**Em aberto:** substituir o interpretador TypeScript do Preview no Studio pelo export Web (WASM) do runtime Godot, eliminando o segundo interpretador (RT §12). Próximo passo: um teste rápido do export Web dentro do Studio, medindo o tempo de recarga. Sandbox de runtime plugins não confiáveis (WASM ou Lua, v2).
+**Em aberto:** sandbox de runtime plugins não confiáveis (WASM ou Lua, v2).
 
 ## Decisões de 2026-11-12: jornada do autor sem programação
 
@@ -168,7 +171,7 @@ Saíram da revisão em [`../reviews/revisao-specs-2026-11-13.md`](../reviews/rev
 | Decisão | Onde |
 |---|---|
 | **RNG reproduzível é opcional** e vem desligado (`settings.reproducible_rng`). Ligado: PCG32 com estado em hex no save, fluxo de RNG separado por atividade. Desligado: RNG comum do motor, nada no save, sorteios fora dos vetores de conformidade | RT §12.2, DM §6.1.1, `project.schema.json`, `save.schema.json` |
-| Semântica de referência obrigatória para os dois interpretadores: tipos e resultados das funções, arredondamento, formatação numérica própria | DM §6.1.1, RT §12.1 |
+| Semântica de referência obrigatória para o runtime e a referência: tipos e resultados das funções, arredondamento, formatação numérica própria | DM §6.1.1, RT §12.1 |
 | Minijogo pulado não aplica `on_result.effects`; campo ausente no payload usa `{result, default}` ou o padrão do tipo | RT §5.3, SDK §6, T005 |
 | `choice` sem opção visível (e opção sem `goto`) segue `next`; opção ganha `value` para `record` | DM §8.2, `scene.schema.json`, R016 |
 | Pedidos de cena só para o mesmo capítulo ou cena global; mudar de capítulo é `end_chapter` + `next` | DM §7, RT §4.3, R014 |
@@ -195,7 +198,7 @@ Saíram de [`../reviews/revisao-specs-2026-11-14.md`](../reviews/revisao-specs-2
 | **Impressão digital da chave de saves no projeto** (`build.protection.save_key_id`, vai para o Git); a CLI nunca gera chave nova sozinha (`--new-save-key`) | BS §8.1, §11, `project.schema.json` |
 | Plugins de editor não editam `/plugins`, `access` de variáveis nem dados de exportação (`FORBIDDEN_PATH`) | SDK §10.4.1 |
 | RNG reproduzível (continua opcional): `handle.rng` por atividade, `ctx.rng` por plugin salvo em `rng.streams`, codificação da semente em bytes | RT §12.2, SDK §5.2 e §6, `save.schema.json` |
-| Inteiros em ±(2^53 − 1) nos dois interpretadores (`OUT_OF_RANGE`); regra de `concat`, arredondamento da interpolação, JCS próprio | RT §6.2, §12.1; BS §5.1 |
+| Inteiros em ±(2^53 − 1) (`OUT_OF_RANGE`); regra de `concat`, arredondamento da interpolação, JCS próprio | RT §6.2, §12.1; BS §5.1 |
 | Pedido do conteúdo (`then.scene`) vem antes do fim de capítulo; pedido de plugin depois, guardado em `pending_request` | RT §4.3, `save.schema.json` |
 | Ordem do load: plugins → `sys.game_started` → `sys.game_loaded` → retomar o nó | RT §8.3 |
 | Autosave antes de atividade sempre; `scene_start` e nó `plugin` como pontos de save definidos | RT §5.3, §8.1 |
@@ -254,6 +257,47 @@ Saíram de [`../reviews/revisao-specs-2026-11-14.md`](../reviews/revisao-specs-2
 
 **Ainda em aberto:** quem opera o catálogo, nome e domínio definitivos (D11, D13) e os documentos E4–E7 e E9–E15.
 
+## Decisões de 2026-11-15: correções da auditoria documental
+
+Aplicam os achados A-01, A-02, A-03, A-04 e M-02 da auditoria de 2026-11-14.
+
+| Decisão | Onde |
+|---|---|
+| **Escala com `stretch_aspect = expand`** em todo lugar: o BS §4.3 dizia `keep`, o RT §1.1 já dizia `expand` (A-01) | BS §4.3 |
+| **Ordem dos plugins no boot**: topológica de dependências, empate pela ordem lexicográfica do id; o RT §3.0 e §12.1 diziam "ordem das chaves" (A-02) | RT §3.0, §12.1, SDK §5.1 |
+| **Chaves de tradução aceitam ponto e maiúsculas depois do primeiro segmento**, para `variable/global.mood/value/calm` e `ui/<tela>/<elemento>/option/pt-BR` (A-03) | `locale.schema.json` |
+| **Id de plugin aceita `_`**, para o `<id do projeto>.<nome>` recomendado (`seaside_story.quiz`) (M-02) | `plugin.schema.json`, `plugins.schema.json`, `plugin-lock.schema.json` |
+| **Vetores de JCS e HMAC** (`canonical.json`, 7 casos); o JCS de referência fica só em `conformance.py` e o compilador o importa (A-04) | spec 08, BS §5.1, RT §12.1 |
+| `tools/test_schemas.py`: padrões dos schemas conferidos contra os exemplos das specs | este README |
+
+## Decisões de 2026-11-15: um interpretador só no Preview
+
+O Preview no Studio deixa de ter um interpretador próprio em TypeScript. O Studio roda o **próprio runtime**, exportado para Web, num painel do webview; o runtime nativo, numa janela, continua para o modo desenvolvedor e para plugins sem `web`. Assim o autor vê exatamente o jogo do jogador e não há um segundo interpretador para manter igual.
+
+A decisão saiu do teste do export Web dentro dos webviews do Tauri (pasta `spikes/preview-web/`, branch `claude/preview-web-spike`), com um bundle grande (405 cenas, 20 mil falas, 3,55 MB) e o template oficial:
+
+| Motor (máquina) | Primeira abertura | Recarga incremental, p95 | Reler o bundle inteiro, p95 |
+|---|---|---|---|
+| Edge, o motor do WebView2 (Windows, RTX 3060) | 4,7 s | 4,6 ms | 0,99 s |
+| WKWebView (macOS, runner do GitHub) | 3,6 s | 18 ms | 1,34 s |
+| WebKit (macOS) | 2,0 s | 24 ms | 1,31 s |
+| Chromium (macOS) | 3,0 s | 18 ms | 1,44 s |
+| Chromium (Linux, sem GPU) | 1,2 s | 20 ms | 2,06 s |
+| WebKitGTK 4.1 (Linux, sem GPU) | 3,4 s | 40 ms | 2,44 s |
+
+A primeira abertura é sem cache; com o motor já compilado em cache, cai para 0,3 a 1,1 s no Chromium, no Edge e no WebKit do macOS. O WebKitGTK recompila o WASM a cada abertura. O minijogo de pesca do exemplo rodou com o GDScript real, abrindo em 5 a 155 ms (p95).
+
+| Decisão | Onde |
+|---|---|
+| **Runtime como único interpretador.** Painel (export Web, padrão) e janela (nativo), com o mesmo JSON-RPC; a referência em Python só confere o runtime | RT intro, §11, §12; spec 08 |
+| **Ponte JavaScript no painel**: `vnPreview.send` / `vnPreview.onmessage`, sem token; WebSocket com token só na janela | PP §1 |
+| **Recarga incremental na memória**: `preview.reload({patch})` troca só as entidades compiladas que mudaram, sem reler o bundle nem recalcular o `content_hash`; a recarga completa fica para projeto, variáveis e plugins | PP §3, RT §11 |
+| **Sem mock de atividade**: sai `renderActivityMock` do Editor SDK; a atividade roda o GDScript real. Plugin sem `web` mostra um formulário do `result_schema` e conclui com `complete_activity`, ou abre em janela | SDK §10.3, §10.6; PP §3 |
+| **Vetores no runtime nativo e no Web**; sai a suíte do interpretador do Studio e a pasta `studio/interpreter/` | spec 08 §4, spec 09 |
+| O plugin de exemplo troca o mock por um comando que abre o Preview no nó de pescaria | `examples/fishing-plugin/` |
+
+**A conferir no primeiro protótipo:** recarregar um plugin no painel trocando o seu `.pck` (`ProjectSettings.load_resource_pack`), que o teste não cobriu; e o tempo de abrir o painel com o template enxuto (o teste indicou cerca de 30% menos).
+
 ## Decisões de 2026-11-15: modo stream (versão censurada)
 
 | Decisão | Onde |
@@ -275,3 +319,4 @@ Saíram de [`../reviews/revisao-specs-2026-11-14.md`](../reviews/revisao-specs-2
 5. **Nada de GDExtension em plugins no v1**, para manter a distribuição revisável por código-fonte.
 6. **Web entra como plataforma do v1** (exportação sem threads). O ADD §7.5 cita só Windows, Linux, macOS e Android. **Android fica fora do v1** (decisão de 2026-11-14).
 7. **Monorepo em vez de cinco repositórios.** O ADD §12 lista `visual-novel-studio`, `visual-novel-runtime`, `visual-novel-sdk`, `visual-novel-cli` e `official-plugins`; a spec 09 §1 junta tudo em `gd-vn-studio`, com tags por componente.
+8. **Os dois previews do ADD §3.3 são o mesmo runtime.** O "Preview no Studio" é o runtime exportado para Web num painel do Studio, e o "Preview no Runtime Godot" é o mesmo runtime nativo numa janela; não há interpretador próprio do Studio (decisão de 2026-11-15).

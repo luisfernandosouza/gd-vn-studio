@@ -1,0 +1,17 @@
+{
+  "note": "Runner macos-latest do GitHub Actions (Apple M2 Pro virtual, 5 CPUs, GPU Apple Paravirtual via Metal). Valores p50/p95 em ms, transcritos do log da execução 43749252308.",
+  "chromium_gpu": {
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple Paravirtual device)",
+    "first_open": {"cold_ms": 2977, "warm_p50": 335.5, "warm_p95": 484.3},
+    "demo": {"restart_engine": [465.4, 794.3], "engine_open": [99.8, 111.4], "in_memory": [16.4, 18.1], "incremental": [16.6, 18.7], "jump": [16.9, 18.0]},
+    "big": {"restart_engine": [1780.7, 2139.9], "engine_open": [1419.6, 1442.7], "in_memory": [127.7, 132.2], "incremental": [16.7, 18.4], "jump": [16.5, 16.9]},
+    "activity": [16.1, 16.9], "hash_ok": true
+  },
+  "webkit_playwright": {
+    "renderer": "Apple GPU",
+    "first_open": {"cold_ms": 1937, "warm_p50": 598, "warm_p95": 637},
+    "demo": {"restart_engine": [1326, 3841], "engine_open": [311, 321], "in_memory": [32, 37], "incremental": [16, 19], "jump": [17, 19]},
+    "big": {"initial_load_ms": 4958, "hash_ok": true, "note": "a rodada de reiniciar o motor a cada edição travou e o job atingiu o limite de 60 min; os outros caminhos do bundle grande não rodaram"}
+  },
+  "wkwebview": {"note": "sem resultado: a página não gravou o resultado em 25 min"}
+}

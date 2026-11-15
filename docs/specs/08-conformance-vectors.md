@@ -6,7 +6,7 @@
 - **Casos:** [`conformance/`](conformance/)
 - **Referência:** [`tools/conformance.py`](tools/conformance.py)
 
-O jogo roda em dois interpretadores: o Runtime em GDScript, dentro do Godot, e o interpretador do Preview no Studio, em TypeScript. Os dois DEVEM tomar exatamente as mesmas decisões. Senão o autor testa uma história no Studio e o jogador vê outra. Este documento define o formato dos casos que garantem isso, o conjunto inicial e como cada implementação os executa.
+O jogo roda em um só interpretador, o Runtime em GDScript: no jogo exportado e no Preview do Studio, que é o mesmo runtime exportado para Web (RT §11). Os vetores garantem que ele toma as decisões da especificação, conferidas por uma implementação de referência independente em Python, e que o build nativo e o Web decidem igual. Este documento define o formato dos casos, o conjunto inicial e como cada implementação os executa.
 
 As palavras **DEVE**, **DEVERIA** e **PODE** seguem a RFC 2119.
 
@@ -22,17 +22,18 @@ As palavras **DEVE**, **DEVERIA** e **PODE** seguem a RFC 2119.
 | Seleção de cena | `selection.json` | RT §4.2–§4.4 (elegibilidade, prioridade, desempate, pedidos, fim de capítulo, fallback) | 26 |
 | Recordes | `records.json` | SDK §9.1 (`submit_record`: ordem, `keep`, empate fica com a mais antiga, posição devolvida; exibição) | 6 |
 | Fluxo de cena | `flow.json` | RT §5.1–§5.5, §7.2 (falas com interpolação, escolhas, `on_fail`, `branch`/`jump`, ordem dos eventos, atividade com resultado, pulada e sem opção visível, fim do grafo sem `end`, modo stream ligado e desligado) | 11 |
+| JSON canônico e assinatura | `canonical.json` | BS §5.1 (JCS: números, ordem de chaves por UTF-16, escapes; `content_hash`), BS §8.3 (HMAC de save e perfil, inclusive `examples/demo-save.json`), RT §12.1 | 7 |
 
-São 130 casos no total. Todos conferem com a implementação de referência:
+São 137 casos no total. Todos conferem com a implementação de referência:
 
 ```bash
 python3 tools/conformance.py
-# 130/130 vetores conferem com a referência.
+# 137/137 vetores conferem com a referência.
 ```
 
 Os casos de RNG só valem para projetos com `settings.reproducible_rng` ligado (RT §12.2). Uma implementação PODE pular `rng.json` e o caso `weighted` de `selection.json` enquanto não implementa o RNG reproduzível, mas DEVE passar em todos os outros.
 
-**Ainda fora do conjunto:** o nó `interact`, a interpolação com marcação de estilo e o JCS (já coberto pelo `examples/demo-save.json`). Entram em casos `flow` e `text` novos quando o runtime chegar a eles.
+**Ainda fora do conjunto:** o nó `interact` e a interpolação com marcação de estilo. Entram em casos `flow` e `text` novos quando o runtime chegar a eles.
 
 ## 2. Formato
 
@@ -67,6 +68,8 @@ Nos resultados, `type` diz qual dos dois é. Um `number` com parte fracionária 
 | `selection` | `chapter`, `scenes`, `state` (`variables`, `history`, `rng_state`), `content_request`? | Decisão (§2.3) |
 | `text` com `mode: record` | `value` (a marca), `format` (`integer`, `number`, `time_ms`), `locale` | `{text}` |
 | `record` | `board` (`order`, `keep`, `format`), `entries` (as marcas atuais), `submit` (`score`, `at`, `meta`?) | `{rank, entries}` (`rank` 0 quando a marca não entra) |
+| `canonical` | `json` (texto JSON em qualquer formatação) | `{text, hash}`: o JCS do valor e o `sha256-` + base64 dos bytes UTF-8 desse texto |
+| `hmac` | `json` (um save ou perfil), `key` (32 bytes em hex) | `{integrity}`: `hmac-sha256-` + base64 do HMAC do JCS sem o campo `integrity` (BS §8.3) |
 | `flow` | `scene` (nós no formato de `scene.schema.json`), `variables`, `locale`, `content_filter`? (modo stream, RT §5.5), `inputs` (lista de `"advance"`, `{choose: <opção>}` ou `{activity: {outcome, payload, skipped?, failed?}}`) | `{trace}`: lista em ordem, cada item com uma chave só: `event` (evento `sys.*` ou do conteúdo), `node` (nó em que entrou), `text` (fala já interpolada), `options` (opções mostradas), `changes` (mudanças de uma transação), `waiting` (o caso acabou parado num nó bloqueante), `error` e `end` (o `then` da cena) |
 
 Um caso `text` aceita também `number_formats`, que simula `project.json → settings.number_formats`.
@@ -111,8 +114,8 @@ Estas regras estavam implícitas ou ambíguas; os casos as fixam, e o RT foi aju
 ## 4. Como cada implementação roda os casos
 
 - **Runtime Godot:** `godot --headless -- --vn-test conformance/` (RT §12). O runner carrega cada arquivo, monta o estado mínimo pedido pelo caso (sem bundle completo) e chama diretamente o Condition Evaluator, o State Manager, o formatador de texto, o PCG32 e o Scene Scheduler.
-- **Studio:** a suíte de testes do interpretador do Preview (TypeScript) lê os mesmos arquivos.
-- **CI:** os dois runners e `tools/conformance.py` DEVEM passar em toda mudança no Runtime, no Studio ou nos casos. Um caso novo só entra junto com a correção dos três.
+- **Runtime Web:** o mesmo runner, no export Web do runtime, roda num navegador headless (Chromium do Playwright) e lê os mesmos arquivos. Pega diferenças do WebAssembly e da ponte JavaScript (números, texto, ordem de chaves).
+- **CI:** o runner nativo, o runner Web e `tools/conformance.py` DEVEM passar em toda mudança no Runtime ou nos casos. Um caso novo só entra junto com a correção dos três.
 
 A saída de cada runner é uma linha por caso com falha, no formato `FALHOU <arquivo>#<id>`, com o esperado e o obtido, e um resumo `N/M`.
 

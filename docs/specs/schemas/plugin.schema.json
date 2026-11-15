@@ -28,7 +28,7 @@
     "id": {
       "description": "<publisher>.<nome>, globalmente único. O publisher 'vnstudio' é reservado a plugins oficiais.",
       "type": "string",
-      "pattern": "^[a-z][a-z0-9-]{1,38}\\.[a-z][a-z0-9-]{1,63}$"
+      "pattern": "^[a-z][a-z0-9_-]{1,38}\\.[a-z][a-z0-9_-]{1,63}$"
     },
     "namespace": {
       "description": "Prefixo de variáveis (plugin.<namespace>.*), eventos (<namespace>.*) e atividades. Único dentro de um projeto; conflito impede a instalação.",
@@ -521,7 +521,7 @@
       "description": "id do plugin → faixa semver.",
       "type": "object",
       "propertyNames": {
-        "pattern": "^[a-z][a-z0-9-]{1,38}\\.[a-z][a-z0-9-]{1,63}$"
+        "pattern": "^[a-z][a-z0-9_-]{1,38}\\.[a-z][a-z0-9_-]{1,63}$"
       },
       "additionalProperties": {
         "$ref": "common.schema.json#/$defs/SemVerRange"
@@ -530,7 +530,7 @@
     "optional_dependencies": {
       "type": "object",
       "propertyNames": {
-        "pattern": "^[a-z][a-z0-9-]{1,38}\\.[a-z][a-z0-9-]{1,63}$"
+        "pattern": "^[a-z][a-z0-9_-]{1,38}\\.[a-z][a-z0-9_-]{1,63}$"
       },
       "additionalProperties": {
         "$ref": "common.schema.json#/$defs/SemVerRange"

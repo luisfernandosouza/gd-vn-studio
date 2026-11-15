@@ -34,7 +34,7 @@ from pathlib import Path
 TOOLS = Path(__file__).resolve().parent
 sys.path.insert(0, str(TOOLS))
 import validate                                              # noqa: E402
-from conformance import js_number_to_string                  # noqa: E402
+from conformance import jcs                                   # noqa: E402
 
 PRESETS = TOOLS.parent / "presets"
 PRODUCT_LOCALES = ["en", "pt-BR", "es", "fr", "it", "de", "ja", "zh-Hans", "zh-Hant"]   # Req §9.1
@@ -47,22 +47,7 @@ PRESET_ASSETS = {                                            # ids reservados, f
 }
 
 
-# ------------------------------------------------------------------ JCS (RFC 8785)
-
-def jcs(v):
-    if v is None: return "null"
-    if v is True: return "true"
-    if v is False: return "false"
-    if isinstance(v, int): return str(v)
-    if isinstance(v, float):
-        if v != v or v in (float("inf"), float("-inf")): raise ValueError("número não finito no bundle")
-        return js_number_to_string(v)
-    if isinstance(v, str): return json.dumps(v, ensure_ascii=False)
-    if isinstance(v, list): return "[" + ",".join(jcs(x) for x in v) + "]"
-    if isinstance(v, dict):
-        keys = sorted(v, key=lambda k: k.encode("utf-16-be"))
-        return "{" + ",".join(json.dumps(k, ensure_ascii=False) + ":" + jcs(v[k]) for k in keys) + "}"
-    raise TypeError(type(v))
+# JCS (RFC 8785): implementação única em conformance.py, conferida pelos vetores canonical.json
 
 
 def sri(data: bytes): return "sha256-" + base64.b64encode(hashlib.sha256(data).digest()).decode()

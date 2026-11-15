@@ -104,7 +104,7 @@ staging/
     └── assets/...                # assets processados, mesma árvore de assets/ do projeto
 ```
 
-Os caminhos `res://vn_plugins/<namespace>/` e `res://addons/vn_runtime_sdk/` são os mesmos do ambiente de desenvolvimento e do Preview no Runtime (SDK §2.4). `assets.json` mapeia cada ID para `res://vn_content/assets/<path>` no bundle compilado.
+Os caminhos `res://vn_plugins/<namespace>/` e `res://addons/vn_runtime_sdk/` são os mesmos do ambiente de desenvolvimento e do Preview, no painel e na janela (SDK §2.4). `assets.json` mapeia cada ID para `res://vn_content/assets/<path>` no bundle compilado.
 
 ### 4.3. `project.godot` gerado
 
@@ -118,7 +118,7 @@ O Build System escreve o `project.godot` do zero a partir do template do runtime
 | `application/config/icon` | `build.icon` |
 | `application/boot_splash/image` | `build.splash`; ausente = cor de fundo do tema, sem logo do Godot |
 | `display/window/size/viewport_width/height` | `settings.resolution` |
-| `display/window/stretch/mode` / `aspect` | `canvas_items` / `keep` (fixos no v1) |
+| `display/window/stretch/mode` / `aspect` | `canvas_items` / `expand` (fixos no v1; a sobra de uma janela com outra proporção mostra o cenário estendido, RT §2) |
 | `autoload/*` | Somente os autoloads do runtime (`VNRuntime`, `VNStage`) |
 | `input/vn_*` | Ações padrão do runtime (SDK §5.7) |
 | `internationalization/locale/translations` | Vazio: o runtime traduz pelo bundle, não pelo sistema de traduções do Godot |
@@ -147,7 +147,7 @@ O compilador produz primeiro a forma canônica em JSON, exatamente como descrita
 
 **JSON canônico:** UTF-8, chaves ordenadas, sem espaços, números no formato mais curto que preserva o valor, strings com escape mínimo (RFC 8785, JCS). `content_hash` = SHA-256 do `bundle.json` canônico, como no RT §2. Ele independe da codificação final, então o mesmo conteúdo tem o mesmo hash no Preview e no jogo.
 
-**Serializador próprio.** O runtime (GDScript) e o Studio (TypeScript) DEVEM implementar o JCS, porque `JSON.stringify` do Godot formata números de outro jeito (e o do JavaScript não ordena chaves). O mesmo serializador é usado no `content_hash`, na assinatura de saves e perfil (§8.3) e no `build.json`. Os vetores de conformidade (RT §12) têm casos de JCS e de HMAC; `examples/demo-save.json` é o primeiro.
+**Serializador próprio.** O runtime (GDScript) e o Studio (TypeScript) DEVEM implementar o JCS, porque `JSON.stringify` do Godot formata números de outro jeito (e o do JavaScript não ordena chaves). O mesmo serializador é usado no `content_hash`, na assinatura de saves e perfil (§8.3) e no `build.json`. Os vetores de JCS e de HMAC estão em [`conformance/canonical.json`](conformance/canonical.json) (spec 08); o caso `demo_save` confere a assinatura de `examples/demo-save.json` com a chave de debug.
 
 **Representação de hashes.** Os mesmos 32 bytes aparecem de três formas, sempre convertidas assim: em JSON, `sha256-` + base64 padrão (formato SRI, `common.schema.json → Hash`); em texto curto (`build_id`, nomes de pasta), hex minúsculo; em binário (cabeçalho do `.vnb`), os bytes crus.
 

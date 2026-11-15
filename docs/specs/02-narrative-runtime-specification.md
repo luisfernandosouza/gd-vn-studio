@@ -4,7 +4,7 @@
 - **Base:** Architecture Design Document v0.1, seções 4, 6, 13.1 e 13.3; [Narrative Data Model](01-narrative-data-model.md)
 - **Schema relacionado:** [`schemas/save.schema.json`](schemas/save.schema.json) · exemplo [`examples/demo-save.json`](examples/demo-save.json)
 
-Este documento define **como o jogo executa** o conteúdo do Narrative Data Model: ciclo de vida do jogo, seleção de cenas, execução de nós, alteração de estado, eventos, saves e tratamento de erros. Ele vale para o Visual Novel Runtime (Godot/GDScript) e também para o Preview no Studio (TypeScript): **os dois interpretadores DEVEM produzir o mesmo resultado** para a mesma entrada (seção 12).
+Este documento define **como o jogo executa** o conteúdo do Narrative Data Model: ciclo de vida do jogo, seleção de cenas, execução de nós, alteração de estado, eventos, saves e tratamento de erros. Ele vale para o Visual Novel Runtime (Godot/GDScript), que é o **único interpretador**: o jogo exportado e o Preview do Studio rodam o mesmo código (no Studio, o runtime exportado para Web, §11). A implementação de referência em Python (`tools/conformance.py`) serve só para conferir o runtime (seção 12).
 
 ---
 
@@ -125,7 +125,7 @@ Na ordem; cada passo só começa depois do anterior.
 | 2 | Lê o bundle (`res://vn_content/` ou a pasta de `--vn-bundle`, §2.1), confere o `format_version` e recalcula o `content_hash` | Bundle ausente, `format_version` MAJOR não suportado ou hash diferente: erro fatal com a mensagem `runtime/message/g001` e o jogo fecha |
 | 3 | Carrega o idioma: `settings.locale`, senão o idioma do sistema se o projeto o tiver, senão `project.default_locale` | Idioma sem arquivo: usa `default_locale` |
 | 4 | Lê `user://profile.json` e confere a assinatura | Assinatura inválida: aplica a política de `flag`/`reject` (Build System §8.3); com `reject`, guarda o arquivo como `profile.rejected.json`, começa um perfil vazio e mostra `runtime/message/g006` no título. Arquivo ilegível: o mesmo, sem a mensagem |
-| 5 | Plugin Host: lê `plugins.json`, confere `integrity` e carrega cada plugin na ordem das chaves, chamando `_vn_init(ctx)` em todos e depois `_vn_ready()` em todos | Falha de um plugin: segue sem ele (§9) |
+| 5 | Plugin Host: lê `plugins.json`, confere `integrity` e carrega os plugins em ordem topológica de dependências, com empate desfeito pela ordem lexicográfica do id (SDK §5.1), chamando `_vn_init(ctx)` em todos e depois `_vn_ready()` em todos | Falha de um plugin: segue sem ele (§9) |
 | 6 | Calcula `sys.ui.*`. Se `project.content_filter.ask_on_first_launch` estiver ligado e `settings.json` ainda não tiver `content_filter` (primeira vez), pergunta se o jogador quer o modo stream (`runtime/content_filter/ask`, com `ask_yes`/`ask_no`) e grava a resposta (§5.5). Depois abre a tela `title` | — |
 
 Nada de narrativa roda antes do passo 6; plugins não recebem eventos `sys.*` antes de `_vn_ready`.
@@ -528,13 +528,16 @@ O runtime registra estas ações no `InputMap` ao iniciar, se o projeto Godot ai
 
 `vn_confirm` e `vn_advance` compartilham teclas: com uma tela ou escolha em foco vale `vn_confirm`, na caixa de texto vale `vn_advance`. Do mesmo modo, `vn_cancel` fecha a tela do topo da pilha e `vn_menu` só abre a pausa quando nenhuma tela está aberta. Durante uma atividade com `input.capture`, nenhuma dessas ações chega ao Narrative Engine (Plugin SDK §4.2).
 
-## 11. Comunicação com o Studio (Preview no Runtime)
+## 11. Comunicação com o Studio (Preview)
 
 Proposta para a pendência do ADD §3.3. O protocolo completo, com parâmetros, resultados, erros e schema, está em [07-preview-protocol.md](07-preview-protocol.md); esta seção é o resumo.
 
-- **Transporte:** WebSocket em `127.0.0.1`, porta escolhida pelo Studio, com token de uso único passado por argumento de linha de comando (`--vn-preview-port`, `--vn-preview-token`). O runtime recusa conexões sem o token.
-- **Protocolo:** JSON-RPC 2.0.
-- **Studio → Runtime:** `preview.load(bundle_path)`, `preview.start({chapter, scene?, node?, variables?, seed?})` (com `reproducible_rng`, `seed` é a semente do PCG32; sem ela, semeia o RNG comum do motor, o que ajuda a reproduzir um bug no Preview mas não garante traço idêntico), `preview.set_variables({...})`, `preview.get_state()`, `preview.step()`, `preview.pause()`, `preview.reload(changed_files)`.
+- **Um interpretador só** (decisão de 2026-11-15). O Preview é o próprio runtime, em dois modos com o mesmo protocolo:
+  - **Painel** (padrão): o runtime exportado para Web (sem threads, BS §7.3) roda dentro do webview do Studio, ao lado do editor. É o que o autor vê enquanto edita.
+  - **Janela:** o Godot embutido, nativo, numa janela própria. Serve ao modo desenvolvedor (depurador do Godot, Plugin SDK §12.3), a plugins que não declaram `web` em `compatibility.platforms` (Plugin SDK §10.6) e a conferir o jogo como no desktop.
+- **Transporte:** no painel, uma ponte JavaScript na mesma página (Preview Protocol §1.1). Na janela, WebSocket em `127.0.0.1`, porta escolhida pelo Studio, com token de uso único passado por argumento de linha de comando (`--vn-preview-port`, `--vn-preview-token`); o runtime recusa conexões sem o token.
+- **Protocolo:** JSON-RPC 2.0, igual nos dois transportes.
+- **Studio → Runtime:** `preview.load(bundle)`, `preview.start({chapter, scene?, node?, variables?, seed?})` (com `reproducible_rng`, `seed` é a semente do PCG32; sem ela, semeia o RNG comum do motor, o que ajuda a reproduzir um bug no Preview mas não garante traço idêntico), `preview.set_variables({...})`, `preview.get_state()`, `preview.step()`, `preview.pause()`, `preview.reload({patch})`.
 - **Studio → Runtime (diagnóstico):** `preview.explain_selection({scene?})` devolve, sem alterar o estado, a avaliação atual do Scheduler (formato abaixo).
 - **Runtime → Studio (notificações):** `state.changed`, `scene.started`, `node.entered`, `event.emitted`, `scheduler.evaluated`, `log`, `error`.
 - **Explicação da seleção:** em cada ponto de seleção, o runtime em modo preview emite `scheduler.evaluated` com cada cena candidata e o motivo da decisão (formato completo em Preview Protocol §4.3). É o que o Studio usa para responder "por que esta cena não apareceu?":
@@ -550,25 +553,25 @@ Proposta para a pendência do ADD §3.3. O protocolo completo, com parâmetros, 
     ] }
   ```
 
-  Cenas e capítulos aparecem sempre pelo UUID; o Studio mostra o título. `blocked_by` ∈ `conditions`, `max_plays`, `cooldown`, `exclusive_group`, `mode_manual`, `lower_priority`, `tie_break`. `reason` ∈ `request`, `plugin_request`, `priority`, `tie_break`, `fallback`, `completion`, `exhausted`. Um pedido recusado aparece em `request_refused: { scene, by }`. O interpretador do Preview no Studio produz o mesmo formato, e os vetores de conformidade (§12) incluem esse traço.
-- **Hot reload:** em `preview.reload`, o runtime recarrega o bundle e tenta permanecer na mesma cena e nó; se o nó sumiu, reinicia a cena.
+  Cenas e capítulos aparecem sempre pelo UUID; o Studio mostra o título. `blocked_by` ∈ `conditions`, `max_plays`, `cooldown`, `exclusive_group`, `mode_manual`, `lower_priority`, `tie_break`. `reason` ∈ `request`, `plugin_request`, `priority`, `tie_break`, `fallback`, `completion`, `exhausted`. Um pedido recusado aparece em `request_refused: { scene, by }`. Os vetores de conformidade (§12) incluem esse traço.
+- **Hot reload:** a cada edição, o Studio manda em `preview.reload` só as entidades do bundle que mudaram (cenas, telas, textos de um idioma…), já compiladas, e o runtime as troca na memória, sem reler o bundle do disco nem recalcular o `content_hash`; depois tenta permanecer na mesma cena e nó e, se o nó sumiu, reinicia a cena. No teste de 2026-11-15 (Preview Protocol §3), essa troca levou no máximo 40 ms (p95) num projeto grande em todos os webviews do Tauri; reler o bundle inteiro levava de 1 a 2,4 s.
 - **Plugins em desenvolvimento** (Plugin SDK §12.3): `preview.reload_plugins(ids)` recarrega os scripts e cenas dos plugins vinculados (`_vn_shutdown` → recarga → `_vn_init`/`_vn_ready`) e reinicia a atividade em curso com os mesmos `params`. No modo desenvolvedor, o Studio passa `--remote-debug tcp://127.0.0.1:<porta>` para o depurador do Godot do dev, e o runtime envia as notificações `plugin.log`, `plugin.permission_denied { plugin, capability, call }` e `plugin.faulted`.
-- **Caminho dos plugins:** no bundle e no jogo exportado, cada plugin fica em `res://vn_plugins/<namespace>/` (Plugin SDK §2.4).
+- **Caminho dos plugins:** no bundle, no jogo exportado e nos dois modos do Preview, cada plugin fica em `res://vn_plugins/<namespace>/` (Plugin SDK §2.4).
 
-Motivo: funciona igual em Windows, macOS e Linux, permite inspeção ao vivo e é trivial de consumir pelo React/Tauri.
+Motivo: o autor vê exatamente o jogo que o jogador vai ver, sem um segundo interpretador para manter igual ao runtime; o mesmo protocolo serve aos dois modos, funciona igual em Windows, macOS e Linux e é trivial de consumir pelo React/Tauri.
 
 ## 12. Conformidade e testes
 
-- **Vetores de conformidade:** um conjunto compartilhado de casos `entradas → resultado esperado`, definido em [08-conformance-vectors.md](08-conformance-vectors.md), com os casos em `conformance/` e a implementação de referência em `tools/conformance.py`. O Runtime Godot e o interpretador do Preview no Studio DEVEM passar no mesmo conjunto.
+- **Vetores de conformidade:** um conjunto compartilhado de casos `entradas → resultado esperado`, definido em [08-conformance-vectors.md](08-conformance-vectors.md), com os casos em `conformance/` e a implementação de referência em `tools/conformance.py`. O Runtime Godot DEVE passar no conjunto inteiro, no build nativo e no export Web.
 - **Tipos de vetor:** expressões, condições, efeitos, texto, RNG, seleção, recordes (`record`) e fluxo (`flow`, a execução de uma cena inteira com o traço de notificações da spec 07 §4.2). Os casos `flow` são o primeiro alvo do runtime, porque cobrem o caminho que a demo percorre.
-- **Runner headless:** `godot --headless -- --vn-test <casos>` executa os vetores sem renderizar.
-- **Determinismo:** com as mesmas entradas, o traço é idêntico nos dois interpretadores. Sorteios só entram nessa garantia com `settings.reproducible_rng` (§12.2); sem ela, os vetores de conformidade não podem depender de sorteios.
+- **Runner headless:** `godot --headless -- --vn-test <casos>` executa os vetores sem renderizar; o mesmo runner roda no export Web, num navegador headless (spec 08 §4).
+- **Determinismo:** com as mesmas entradas, o traço é idêntico no runtime nativo, no runtime Web e na referência. Sorteios só entram nessa garantia com `settings.reproducible_rng` (§12.2); sem ela, os vetores de conformidade não podem depender de sorteios.
 
 ### 12.1. Semântica de referência
 
-Para que os dois interpretadores produzam o mesmo traço, estas regras são normativas e cada linha tem casos nos vetores de conformidade:
+Para que o runtime (nativo e Web) e a referência produzam o mesmo traço, estas regras são normativas e cada linha tem casos nos vetores de conformidade:
 
-- **Números.** `number` é IEEE 754 de 64 bits. `integer` vale no intervalo **±(2^53 − 1)** nos dois interpretadores (o Godot guarda em int64, mas o limite é o mesmo do JavaScript). Resultado inteiro fora do intervalo, `number` não finito (infinito ou NaN), divisão ou `mod` por zero e conversão de `number` fora do intervalo para `integer` são erro de conteúdo nos dois (`OUT_OF_RANGE`, §6.2): a transação é abortada. Comparações e funções seguem a tabela do Data Model §6.1.1 (tipos de resultado, `div` sempre real, `mod` com o sinal do divisor, `round` meio-para-longe-do-zero). Comparar `integer` com `number` converte o inteiro para `number` (exato dentro do intervalo).
+- **Números.** `number` é IEEE 754 de 64 bits. `integer` vale no intervalo **±(2^53 − 1)** (o Godot guarda em int64, mas o limite é o mesmo do JavaScript, porque o Studio e a ponte do Preview trocam valores como JSON lido em JavaScript). Resultado inteiro fora do intervalo, `number` não finito (infinito ou NaN), divisão ou `mod` por zero e conversão de `number` fora do intervalo para `integer` são erro de conteúdo (`OUT_OF_RANGE`, §6.2): a transação é abortada. Comparações e funções seguem a tabela do Data Model §6.1.1 (tipos de resultado, `div` sempre real, `mod` com o sinal do divisor, `round` meio-para-longe-do-zero). Comparar `integer` com `number` converte o inteiro para `number` (exato dentro do intervalo).
 - **Conversão para texto** (`concat`). Inteiros sem casa decimal; `number` com parte fracionária zero também sem casa (`2.0` → `2`); os demais na menor representação que volta ao mesmo valor, como o `Number.prototype.toString` do JavaScript (`1/3` → `0.3333333333333333`), mas nunca em notação científica dentro do intervalo de inteiros.
 - **Formatação na interpolação.** O runtime traz uma tabela própria por idioma (separador decimal, separador de milhar, até 2 casas decimais sem zeros à direita, arredondando meio-para-longe-do-zero sobre a representação decimal mais curta, a mesma do `concat`: `1.005` → `1.01`; um negativo que arredonda para zero aparece sem sinal), sem depender de ICU ou `Intl`. Idioma fora da tabela usa a do inglês. A mesma formatação vale para os `args` de `ctx.i18n.text` (Plugin SDK §5.7).
 
@@ -580,8 +583,8 @@ Para que os dois interpretadores produzam o mesmo traço, estas regras são norm
   | `fr` | `,` | espaço fino inseparável (U+202F) | 1 234 567,5 |
 
   A tabela casa pela tag completa e depois pelo idioma (`pt-PT` → `pt`, que fica fora da tabela e usa o inglês até ser acrescentado). Um projeto PODE declarar o formato de qualquer idioma em `project.json → settings.number_formats.<lang>` (`decimal`, `group`, `min_grouping`, padrão 4), que tem precedência sobre a tabela; assim um jogo em coreano, russo ou polonês formata números certo sem mudar o runtime.
-- **JSON canônico.** Os dois implementam o JCS (Build System §5.1) para `content_hash` e assinaturas.
-- **Ordem.** Toda iteração sobre mapas (variáveis, cenas candidatas, plugins) segue a ordem lexicográfica das chaves.
+- **JSON canônico.** Os dois implementam o JCS (Build System §5.1) para `content_hash` e assinaturas, e conferem o resultado com os vetores de [`conformance/canonical.json`](conformance/canonical.json).
+- **Ordem.** Toda iteração sobre mapas (variáveis, cenas candidatas) segue a ordem lexicográfica das chaves. A exceção são os plugins, iniciados em ordem topológica de dependências, com empate desfeito pela ordem lexicográfica do id (SDK §5.1).
 
 ### 12.2. RNG reproduzível (opcional)
 
@@ -592,7 +595,7 @@ Para que os dois interpretadores produzam o mesmo traço, estas regras são norm
   - Algoritmo **PCG32** (XSH-RR, multiplicador 6364136223846793005, incremento 1442695040888963407). `seed` e `state` são gravados no save em hexadecimal de 16 dígitos, porque inteiros de 64 bits perdem precisão em JSON no JavaScript.
   - **Semeadura:** `state = 0`, avança um passo, `state += seed`, avança um passo. Cada saída de 32 bits usa o estado anterior ao passo (XSH-RR padrão).
   - `random_int(min, max)` usa rejeição para evitar viés: com `n = max − min + 1` até 2^32, sorteia `r = next_u32()` até que `r ≥ (2^32 − n) mod n` e devolve `min + r mod n`; com `n` maior, faz o mesmo com `next_u64() = (next_u32() << 32) | next_u32()` e 2^64. `weighted_pick` segue §4.3. Os vetores de conformidade (`conformance/rng.json`) fixam as saídas.
-  - **Fluxo separado por atividade.** O RNG de uma atividade é entregue em `handle.rng` (Plugin SDK §6): um PCG32 próprio, semeado com os 8 primeiros bytes (big-endian) de SHA-256(`seed` ‖ `selection_count` ‖ id do nó ‖ `activity_index`), onde `seed` são os 8 bytes big-endian da semente do jogo, `selection_count` é um uint64 big-endian, o id do nó são os 16 bytes do UUID e `activity_index` é um uint32 big-endian que conta as atividades já iniciadas na execução atual da cena (começa em 0; separa duas passagens pelo mesmo nó). Assim os sorteios do minijogo, que dependem do tempo de reação do jogador, não alteram o RNG da narrativa, e o traço continua reproduzível depois de qualquer atividade, inclusive entre o mock do Preview no Studio e o plugin real.
+  - **Fluxo separado por atividade.** O RNG de uma atividade é entregue em `handle.rng` (Plugin SDK §6): um PCG32 próprio, semeado com os 8 primeiros bytes (big-endian) de SHA-256(`seed` ‖ `selection_count` ‖ id do nó ‖ `activity_index`), onde `seed` são os 8 bytes big-endian da semente do jogo, `selection_count` é um uint64 big-endian, o id do nó são os 16 bytes do UUID e `activity_index` é um uint32 big-endian que conta as atividades já iniciadas na execução atual da cena (começa em 0; separa duas passagens pelo mesmo nó). Assim os sorteios do minijogo, que dependem do tempo de reação do jogador, não alteram o RNG da narrativa, e o traço continua reproduzível depois de qualquer atividade, inclusive quando o Studio conclui a atividade no lugar do plugin (`complete_activity`, Preview Protocol §3).
   - **Fluxo do plugin fora de atividades.** `ctx.rng` é um PCG32 por plugin, semeado com os 8 primeiros bytes de SHA-256(`seed` ‖ namespace em UTF-8). O estado dele vai no save em `rng.streams.<namespace>`, para que carregar um save não reinicie a sequência. `ctx.rng` nunca muda de fluxo durante a atividade; quem precisa do fluxo da atividade usa `handle.rng`.
   - O estado dentro de uma atividade não é salvo: não há save durante `ACTIVITY` (§8.1).
 
