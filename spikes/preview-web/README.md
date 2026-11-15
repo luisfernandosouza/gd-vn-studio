@@ -97,7 +97,7 @@ Os ~16 ms do caminho incremental são um quadro a 60 Hz: com GPU o tempo fica pr
 
 ## Limites do teste
 
-- **GPU só no Windows.** No Linux e na primeira rodada, SwiftShader e llvmpipe desenham na CPU; com GPU (Windows) tudo fica mais rápido.
+- **GPU só no Windows e no Mac.** No Linux, SwiftShader e llvmpipe desenham na CPU; com GPU tudo fica mais rápido.
 - **Mac virtual.** O macOS foi medido num runner do GitHub (M2 Pro virtual), não num Mac físico.
 - **Sem assets.** O spike não carrega imagens, áudio nem vídeo. A proposta B (carregador `VNAssets`) precisa de um teste separado, inclusive de como os bytes chegam do Studio ao runtime Web.
 - **Runtime mínimo.** O runtime de verdade terá Scheduler, State Manager e UI completos; a parte medida aqui (parse, troca da cena e redesenho) é a que cresce com o tamanho do jogo.
