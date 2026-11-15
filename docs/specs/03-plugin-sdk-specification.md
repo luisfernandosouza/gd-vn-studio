@@ -224,7 +224,7 @@ func _vn_shutdown() -> void:
     pass
 ```
 
-Ordem garantida: `_vn_init` (todos os plugins, em ordem topológica de dependências) → `_vn_ready` (todos) → `_vn_game_started` → … → `_vn_game_ended` → `_vn_shutdown`. Ao carregar save (Runtime Spec §8.3): `_vn_game_ended()` se havia jogo em andamento → `_vn_game_started(false)` → `_vn_migrate_save_data` (se preciso) → `_vn_load(data)`. Se o save não tem dados do plugin, `_vn_load(null)` é chamado mesmo assim, e o plugin DEVE voltar ao estado inicial.
+Ordem garantida: `_vn_init` (todos os plugins, em ordem topológica de dependências; plugins sem dependência entre si seguem a ordem lexicográfica do id, a mesma nos dois interpretadores) → `_vn_ready` (todos) → `_vn_game_started` → … → `_vn_game_ended` → `_vn_shutdown`. Ao carregar save (Runtime Spec §8.3): `_vn_game_ended()` se havia jogo em andamento → `_vn_game_started(false)` → `_vn_migrate_save_data` (se preciso) → `_vn_load(data)`. Se o save não tem dados do plugin, `_vn_load(null)` é chamado mesmo assim, e o plugin DEVE voltar ao estado inicial.
 
 ### 5.2. Contexto
 

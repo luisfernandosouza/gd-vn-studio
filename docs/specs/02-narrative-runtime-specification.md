@@ -125,7 +125,7 @@ Na ordem; cada passo só começa depois do anterior.
 | 2 | Lê o bundle (`res://vn_content/` ou a pasta de `--vn-bundle`, §2.1), confere o `format_version` e recalcula o `content_hash` | Bundle ausente, `format_version` MAJOR não suportado ou hash diferente: erro fatal com a mensagem `runtime/message/g001` e o jogo fecha |
 | 3 | Carrega o idioma: `settings.locale`, senão o idioma do sistema se o projeto o tiver, senão `project.default_locale` | Idioma sem arquivo: usa `default_locale` |
 | 4 | Lê `user://profile.json` e confere a assinatura | Assinatura inválida: aplica a política de `flag`/`reject` (Build System §8.3); com `reject`, guarda o arquivo como `profile.rejected.json`, começa um perfil vazio e mostra `runtime/message/g006` no título. Arquivo ilegível: o mesmo, sem a mensagem |
-| 5 | Plugin Host: lê `plugins.json`, confere `integrity` e carrega cada plugin na ordem das chaves, chamando `_vn_init(ctx)` em todos e depois `_vn_ready()` em todos | Falha de um plugin: segue sem ele (§9) |
+| 5 | Plugin Host: lê `plugins.json`, confere `integrity` e carrega os plugins em ordem topológica de dependências, com empate desfeito pela ordem lexicográfica do id (SDK §5.1), chamando `_vn_init(ctx)` em todos e depois `_vn_ready()` em todos | Falha de um plugin: segue sem ele (§9) |
 | 6 | Calcula `sys.ui.*`, e abre a tela `title` | — |
 
 Nada de narrativa roda antes do passo 6; plugins não recebem eventos `sys.*` antes de `_vn_ready`.
@@ -566,8 +566,8 @@ Para que os dois interpretadores produzam o mesmo traço, estas regras são norm
   | `fr` | `,` | espaço fino inseparável (U+202F) | 1 234 567,5 |
 
   A tabela casa pela tag completa e depois pelo idioma (`pt-PT` → `pt`, que fica fora da tabela e usa o inglês até ser acrescentado). Um projeto PODE declarar o formato de qualquer idioma em `project.json → settings.number_formats.<lang>` (`decimal`, `group`, `min_grouping`, padrão 4), que tem precedência sobre a tabela; assim um jogo em coreano, russo ou polonês formata números certo sem mudar o runtime.
-- **JSON canônico.** Os dois implementam o JCS (Build System §5.1) para `content_hash` e assinaturas.
-- **Ordem.** Toda iteração sobre mapas (variáveis, cenas candidatas, plugins) segue a ordem lexicográfica das chaves.
+- **JSON canônico.** Os dois implementam o JCS (Build System §5.1) para `content_hash` e assinaturas, e conferem o resultado com os vetores de [`conformance/canonical.json`](conformance/canonical.json).
+- **Ordem.** Toda iteração sobre mapas (variáveis, cenas candidatas) segue a ordem lexicográfica das chaves. A exceção são os plugins, iniciados em ordem topológica de dependências, com empate desfeito pela ordem lexicográfica do id (SDK §5.1).
 
 ### 12.2. RNG reproduzível (opcional)
 
