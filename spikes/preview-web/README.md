@@ -71,18 +71,23 @@ Abertura: 4,65 s na primeira vez (sem cache) e 0,93 s (p50) com cache. Salto par
 
 ### macOS (runner do GitHub, Apple M2 Pro virtual, GPU via Metal)
 
-Workflow `.github/workflows/preview-web-spike.yml`; números em `results-2026-11-15-macos.json`.
+Workflow `.github/workflows/preview-web-spike.yml`. A WKWebView é o motor do Tauri no macOS (`tools/wkwebview_bench.swift`); o WebKit é o do Playwright (motor do Safari). Números em `results-2026-11-15-macos*.json`.
 
-| Caminho, p50 / p95 | Chromium, demo | Chromium, bundle grande | Safari/WebKit, demo |
+| Caminho, bundle grande, p50 / p95 | WKWebView | WebKit | Chromium |
 |---|---|---|---|
-| Reinicia o motor | 465 / 794 ms | 1.781 / 2.140 ms | 1.326 / 3.841 ms |
-| Motor sempre aberto | 100 / 111 ms | 1.420 / 1.443 ms | 311 / 321 ms |
-| + bundle em memória | 16 / 18 ms | 128 / 132 ms | 32 / 37 ms |
-| + recarga incremental | 17 / 19 ms | **17 / 18 ms** | **16 / 19 ms** |
+| Reinicia o motor | não medido | travou | 1.781 / 2.140 ms |
+| Motor sempre aberto | 1.305 / 1.338 ms | 1.288 / 1.306 ms | 1.420 / 1.443 ms |
+| + bundle em memória | 78 / 82 ms | 71 / 82 ms | 128 / 132 ms |
+| + recarga incremental | **16 / 18 ms** | **16 / 24 ms** | **17 / 18 ms** |
 
-Abertura: Chromium 3,0 s sem cache e 0,34 s com cache; WebKit 1,9 s e 0,6 s. Os ~16 ms do caminho incremental são um quadro a 60 Hz: com GPU o tempo fica preso ao vsync.
+| Medida | WKWebView | WebKit | Chromium |
+|---|---|---|---|
+| Primeira abertura (sem cache) | 3.622 ms | 2.029 ms | 2.977 ms |
+| Abertura de novo, p50 | 1.101 ms | 653 ms | 336 ms |
+| Salto para uma cena, p95 | 17 ms | 20 ms | 17 ms |
+| Minijogo de pesca, p95 | 19 ms | 18 ms | 17 ms |
 
-O WebKit (motor do Safari) travou no bundle grande, na rodada que reinicia o motor 20 vezes, e o job bateu o limite de 60 min; os outros caminhos do bundle grande não rodaram no WebKit. A WKWebView (`tools/wkwebview_bench.swift`) não devolveu resultado em 25 min. Falta repetir essas duas sem a rodada de reinício.
+Os ~16 ms do caminho incremental são um quadro a 60 Hz: com GPU o tempo fica preso ao vsync. Na primeira rodada, o WebKit travou ao reiniciar o motor 20 vezes seguidas no bundle grande (o WebKitGTK também piora a cada reinício), por isso a segunda rodada pulou esse caminho; a WKWebView não tinha dado resultado porque a bancada esperava o template enxuto, que não existe no CI.
 
 ## O que isso significa para as specs
 
@@ -93,7 +98,7 @@ O WebKit (motor do Safari) travou no bundle grande, na rodada que reinicia o mot
 ## Limites do teste
 
 - **GPU só no Windows.** No Linux e na primeira rodada, SwiftShader e llvmpipe desenham na CPU; com GPU (Windows) tudo fica mais rápido.
-- **macOS incompleto.** Chromium e WebKit medidos no runner do GitHub; falta o bundle grande no WebKit e a WKWebView.
+- **Mac virtual.** O macOS foi medido num runner do GitHub (M2 Pro virtual), não num Mac físico.
 - **Sem assets.** O spike não carrega imagens, áudio nem vídeo. A proposta B (carregador `VNAssets`) precisa de um teste separado, inclusive de como os bytes chegam do Studio ao runtime Web.
 - **Runtime mínimo.** O runtime de verdade terá Scheduler, State Manager e UI completos; a parte medida aqui (parse, troca da cena e redesenho) é a que cresce com o tamanho do jogo.
 
