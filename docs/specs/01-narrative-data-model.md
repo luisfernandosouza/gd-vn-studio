@@ -262,7 +262,7 @@ Se o campo pedido em `{"result": …}` não existe no payload, ou tem tipo difer
 
 ### 6.1.1. Funções
 
-A semântica é a mesma nos dois interpretadores (Runtime Spec §12.1). "Inteiro" é um `integer`; "número" é `integer` ou `number`.
+A semântica é a mesma no runtime e na implementação de referência (Runtime Spec §12.1). "Inteiro" é um `integer`; "número" é `integer` ou `number`.
 
 | Função | Argumentos | Resultado |
 |---|---|---|
@@ -418,7 +418,7 @@ Campos comuns a todos os nós: `id`, `type`, `next`, `note` (comentário do auto
 
 ### 9.1. Marcação de texto
 
-Falas, opções, `prompt` e textos de telas (`label` e botões) aceitam um subconjunto pequeno de marcação, igual nos dois interpretadores. Nomes de personagem, títulos e descrições de finais **não** aceitam marcação (aparecem em menus e na galeria):
+Falas, opções, `prompt` e textos de telas (`label` e botões) aceitam um subconjunto pequeno de marcação, igual no runtime e na implementação de referência. Nomes de personagem, títulos e descrições de finais **não** aceitam marcação (aparecem em menus e na galeria):
 
 | Marca | Efeito |
 |---|---|

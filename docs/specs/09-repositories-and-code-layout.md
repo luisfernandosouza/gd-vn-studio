@@ -30,7 +30,7 @@ gd-vn-studio/
 ├── studio/                     # Studio: Tauri + React + TypeScript
 │   ├── src/                    # interface (React)
 │   ├── src-tauri/              # processo nativo (Rust): arquivos, Godot embutido, Git
-│   └── interpreter/            # interpretador do Preview no Studio (TypeScript)
+│   └── preview/                # painel do Preview: ponte com o runtime Web (Preview Protocol §1.1)
 ├── runtime/                    # Runtime: projeto Godot 4.7.2 + GDScript
 │   ├── project.godot
 │   ├── vn_runtime/             # Narrative Engine, Scheduler, State Manager, UI Manager…
@@ -50,7 +50,7 @@ gd-vn-studio/
 - **Fonte única dos schemas.** `docs/specs/schemas/` é a única cópia. O Studio, a CLI e o runtime os leem dali no build. Nenhum componente mantém uma cópia editada à mão.
 - **Presets.** `docs/specs/presets/` é a fonte; o build do runtime copia para `runtime/vn_runtime/presets/` e acrescenta as fontes (`preset/font_*`). Como os schemas, nenhuma cópia é editada à mão.
 - **Desenvolvimento do runtime sem o Studio.** `docs/specs/tools/compile_bundle.py <projeto> --godot runtime <pastas-de-plugins…>` compila um projeto de jogo para `runtime/vn_content/` e copia os plugins para `runtime/vn_plugins/<namespace>/`; as duas pastas ficam fora do Git. Depois é só abrir `runtime/` no editor do Godot (RT §2.1). Para a demo, a pasta do plugin é `plugins/fishing/vn_plugins/fishing` ou, enquanto o código não existe, `docs/specs/examples/fishing-plugin`.
-- **Vetores de conformidade.** A CI roda `docs/specs/tools/conformance.py`, a suíte do interpretador do Studio e o runner do runtime sobre `docs/specs/conformance/` em todo pull request (spec 08 §4).
+- **Vetores de conformidade.** A CI roda `docs/specs/tools/conformance.py` e o runner do runtime, nativo e Web, sobre `docs/specs/conformance/` em todo pull request (spec 08 §4).
 - **Exemplos.** `docs/specs/examples/` guarda só os dados que as specs e o validador usam (§1.1). `docs/specs/examples/fishing-plugin/` é o exemplo de plugin das specs. Quando o código começar, o plugin oficial passa a viver em `plugins/fishing/`, e o exemplo vira uma cópia gerada a partir dele pela CI, para não divergirem.
 - **Versões e tags.** Cada componente tem SemVer próprio (ADD §10) e uma tag com prefixo:
 

@@ -20,7 +20,9 @@ O plugin não altera nenhuma variável do projeto. Ele mantém duas variáveis p
 | `profile.data` | Quadro de recordes *High scores* do modo livre |
 | `events.emit` | Avisar a história com `fishing.completed` e `fishing.rare_fish_caught` |
 | `save.data` | Guardar o nível da vara e se o tutorial já foi visto |
-| `editor:preview` | Desenhar o substituto do minijogo no Preview no Studio |
+| `editor:commands` | Comando *Play fishing here*, que abre o Preview no nó de pescaria selecionado |
+| `editor:notifications` | Avisar quando nenhum nó de pescaria está selecionado |
+| `editor:preview` | Abrir o Preview a partir do nó selecionado |
 
 ## Desenvolvimento
 

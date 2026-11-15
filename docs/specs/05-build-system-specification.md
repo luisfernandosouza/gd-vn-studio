@@ -104,7 +104,7 @@ staging/
     └── assets/...                # assets processados, mesma árvore de assets/ do projeto
 ```
 
-Os caminhos `res://vn_plugins/<namespace>/` e `res://addons/vn_runtime_sdk/` são os mesmos do ambiente de desenvolvimento e do Preview no Runtime (SDK §2.4). `assets.json` mapeia cada ID para `res://vn_content/assets/<path>` no bundle compilado.
+Os caminhos `res://vn_plugins/<namespace>/` e `res://addons/vn_runtime_sdk/` são os mesmos do ambiente de desenvolvimento e do Preview, no painel e na janela (SDK §2.4). `assets.json` mapeia cada ID para `res://vn_content/assets/<path>` no bundle compilado.
 
 ### 4.3. `project.godot` gerado
 
