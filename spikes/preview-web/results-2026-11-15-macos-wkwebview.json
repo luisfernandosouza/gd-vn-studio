@@ -1,0 +1,239 @@
+{
+  "engine": "wkwebview",
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko)",
+  "renderer": "Apple GPU",
+  "edits": 20,
+  "templates": {
+    "web": {
+      "first_open": {
+        "cold_ms": 3622,
+        "warm": {
+          "n": 5,
+          "p50": 1101,
+          "p95": 1203,
+          "max": 1203
+        },
+        "godot": "4.7.2-stable (official)"
+      },
+      "demo": {
+        "hash_ok": true,
+        "engine_open": {
+          "total": {
+            "n": 20,
+            "p50": 114,
+            "p95": 207,
+            "max": 728
+          },
+          "runtime": {
+            "n": 20,
+            "p50": 6,
+            "p95": 9,
+            "max": 14
+          },
+          "studio": {
+            "n": 20,
+            "p50": 12,
+            "p95": 21,
+            "max": 48
+          },
+          "detail": {
+            "fetch_ms": 87,
+            "hash_ms": 3,
+            "hash_ok": true,
+            "index": 3,
+            "parse_ms": 1,
+            "req": 22,
+            "resumed": "node",
+            "runtime_ms": 5,
+            "scene": "019a7a00-1b58-719e-a5e5-9bc09a99b364",
+            "scenes": 5,
+            "text": "Edição 19: Uma concha bonita. Você guarda no bolso.",
+            "total_ms": 93
+          }
+        },
+        "in_memory": {
+          "total": {
+            "n": 20,
+            "p50": 16,
+            "p95": 18,
+            "max": 19
+          },
+          "runtime": {
+            "n": 20,
+            "p50": 16,
+            "p95": 17,
+            "max": 18
+          },
+          "studio": {
+            "n": 20,
+            "p50": 0,
+            "p95": 1,
+            "max": 1
+          },
+          "detail": {
+            "hash_ms": 0,
+            "index": 3,
+            "parse_ms": 1,
+            "req": 42,
+            "resumed": "node",
+            "runtime_ms": 15,
+            "scene": "019a7a00-1b58-719e-a5e5-9bc09a99b364",
+            "scenes": 5,
+            "text": "Edição 19: Uma concha bonita. Você guarda no bolso.",
+            "total_ms": 14.999999999998181
+          }
+        },
+        "incremental": {
+          "total": {
+            "n": 20,
+            "p50": 17,
+            "p95": 17,
+            "max": 18
+          },
+          "runtime": {
+            "n": 20,
+            "p50": 16,
+            "p95": 18,
+            "max": 18
+          },
+          "studio": {
+            "n": 20,
+            "p50": 0,
+            "p95": 0,
+            "max": 0
+          },
+          "detail": {
+            "index": 3,
+            "parse_ms": 0,
+            "req": 62,
+            "resumed": "node",
+            "runtime_ms": 16,
+            "scene": "019a7a00-1b58-719e-a5e5-9bc09a99b364",
+            "text": "Edição 19: Uma concha bonita. Você guarda no bolso.",
+            "total_ms": 17
+          }
+        },
+        "jump": {
+          "n": 20,
+          "p50": 17,
+          "p95": 18,
+          "max": 18
+        }
+      },
+      "big": {
+        "hash_ok": true,
+        "engine_open": {
+          "total": {
+            "n": 20,
+            "p50": 1305,
+            "p95": 1338,
+            "max": 1349
+          },
+          "runtime": {
+            "n": 20,
+            "p50": 235,
+            "p95": 257,
+            "max": 260
+          },
+          "studio": {
+            "n": 20,
+            "p50": 65,
+            "p95": 94,
+            "max": 96
+          },
+          "detail": {
+            "fetch_ms": 1003,
+            "hash_ms": 177,
+            "hash_ok": true,
+            "index": 26,
+            "parse_ms": 44,
+            "req": 104,
+            "resumed": "node",
+            "runtime_ms": 225,
+            "scene": "019a7b00-0000-00ca-7000-800000000000",
+            "scenes": 405,
+            "text": "Edição 19: Lá fora chamava pelo nome de um amigo que não respondia o mar estava.",
+            "total_ms": 1228.9999999999927
+          }
+        },
+        "in_memory": {
+          "total": {
+            "n": 20,
+            "p50": 78,
+            "p95": 82,
+            "max": 82
+          },
+          "runtime": {
+            "n": 20,
+            "p50": 50,
+            "p95": 53,
+            "max": 54
+          },
+          "studio": {
+            "n": 20,
+            "p50": 6,
+            "p95": 7,
+            "max": 7
+          },
+          "detail": {
+            "hash_ms": 0,
+            "index": 26,
+            "parse_ms": 46,
+            "req": 124,
+            "resumed": "node",
+            "runtime_ms": 54,
+            "scene": "019a7b00-0000-00ca-7000-800000000000",
+            "scenes": 405,
+            "text": "Edição 19: Lá fora chamava pelo nome de um amigo que não respondia o mar estava.",
+            "total_ms": 76
+          }
+        },
+        "incremental": {
+          "total": {
+            "n": 20,
+            "p50": 16,
+            "p95": 18,
+            "max": 19
+          },
+          "runtime": {
+            "n": 20,
+            "p50": 16,
+            "p95": 18,
+            "max": 18
+          },
+          "studio": {
+            "n": 20,
+            "p50": 0,
+            "p95": 0,
+            "max": 0
+          },
+          "detail": {
+            "index": 26,
+            "parse_ms": 0,
+            "req": 144,
+            "resumed": "node",
+            "runtime_ms": 18,
+            "scene": "019a7b00-0000-00ca-7000-800000000000",
+            "text": "Edição 19: Lá fora chamava pelo nome de um amigo que não respondia o mar estava.",
+            "total_ms": 18
+          }
+        },
+        "jump": {
+          "n": 20,
+          "p50": 17,
+          "p95": 17,
+          "max": 17
+        }
+      },
+      "activity": {
+        "start": {
+          "n": 5,
+          "p50": 17,
+          "p95": 19,
+          "max": 19
+        },
+        "overlay_shown": true
+      }
+    }
+  }
+}
