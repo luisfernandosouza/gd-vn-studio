@@ -56,6 +56,19 @@ O salto para uma cena com variáveis levou 33 ms (p95) e o minijogo de pesca abr
 
 Reiniciar o motor a cada edição fica muito pior no WebKitGTK (7 a 22 s), e a abertura piora a cada nova instância do motor no mesmo processo. É mais um motivo para o Preview nunca reiniciar o motor (otimização 3).
 
+### Windows com GPU (Edge, o motor do WebView2)
+
+Ryzen 5 5600G, NVIDIA RTX 3060 (ANGLE D3D11), Edge 157, export oficial. Rodado por `node tools/bench.mjs --browser chromium --channel msedge --gpu`.
+
+| Caminho (acumulado) | Demo p50 / p95 | Bundle grande p50 / p95 |
+|---|---|---|
+| Base: grava o bundle e reinicia o motor | 913 / 965 ms | 1.302 / 1.549 ms |
+| Motor sempre aberto | 34 / 41 ms | 886 / 990 ms |
+| + bundle em memória | 4,1 / 4,6 ms | 181 / 220 ms |
+| + recarga incremental | 4,1 / 4,6 ms | **4,0 / 4,6 ms** |
+
+Abertura: 4,65 s na primeira vez (sem cache) e 0,93 s (p50) com cache. Salto para uma cena: 4,8 ms (p95). Minijogo de pesca: 5,1 ms (p95). Com GPU, a recarga incremental fica 4 a 8 vezes mais rápida que sem GPU; a parte que depende de CPU (ler o arquivo, JCS, hash e parse do bundle inteiro) melhora pouco, então as otimizações 1 e 2 continuam necessárias. O Chromium do Playwright não abriu nesta máquina (erro de configuração lado a lado do Windows), mas o Edge é o mesmo motor do WebView2 que o Tauri usa no Windows.
+
 ### macOS
 
 Ainda não medido. `tools/wkwebview_bench.swift` roda a bancada numa WKWebView (o motor do Tauri no macOS), e o workflow `.github/workflows/preview-web-spike.yml` roda isso num runner macOS do GitHub, mas o job do macOS foi cancelado sem começar neste repositório privado (runners macOS dependem do plano de Actions da conta).
@@ -68,8 +81,8 @@ Ainda não medido. `tools/wkwebview_bench.swift` roda a bancada numa WKWebView (
 
 ## Limites do teste
 
-- **Sem GPU.** SwiftShader e llvmpipe desenham na CPU; numa máquina com GPU o desenho do quadro é mais rápido, então os tempos acima são pessimistas.
-- **Sem macOS.** Chromium (Windows) e WebKitGTK (Linux) estão medidos; falta a WKWebView do macOS.
+- **GPU só no Windows.** No Linux e na primeira rodada, SwiftShader e llvmpipe desenham na CPU; com GPU (Windows) tudo fica mais rápido.
+- **Sem macOS.** Edge/WebView2 (Windows) e WebKitGTK (Linux) estão medidos; falta a WKWebView do macOS.
 - **Sem assets.** O spike não carrega imagens, áudio nem vídeo. A proposta B (carregador `VNAssets`) precisa de um teste separado, inclusive de como os bytes chegam do Studio ao runtime Web.
 - **Runtime mínimo.** O runtime de verdade terá Scheduler, State Manager e UI completos; a parte medida aqui (parse, troca da cena e redesenho) é a que cresce com o tamanho do jogo.
 
