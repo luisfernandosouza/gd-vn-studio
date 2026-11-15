@@ -195,6 +195,13 @@
           "type": "toggle",
           "bind": "show_hotspots",
           "label": "Destacar objetos clicáveis"
+        },
+        {
+          "id": "tg_content_filter",
+          "type": "toggle",
+          "bind": "content_filter",
+          "label": "Modo stream (versão censurada)",
+          "tooltip": "Mostra a versão para todas as idades de imagens e falas. A história continua a mesma."
         }
       ]
     },

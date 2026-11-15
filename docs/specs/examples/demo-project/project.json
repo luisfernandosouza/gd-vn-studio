@@ -60,6 +60,10 @@
       "image": "bg/pier_sunset"
     }
   ],
+  "content_filter": {
+    "default": false,
+    "ask_on_first_launch": true
+  },
   "events": [
     {
       "name": "story.met_master",

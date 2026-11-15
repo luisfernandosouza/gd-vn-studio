@@ -235,6 +235,20 @@
           "type": "toggle",
           "bind": "show_hotspots",
           "label": "Highlight clickable objects"
+        },
+        {
+          "id": "tg_content_filter",
+          "type": "toggle",
+          "bind": "content_filter",
+          "label": "Stream mode (censored version)",
+          "tooltip": "Shows the all-ages version of images and lines. The story stays the same.",
+          "visible_if": [
+            {
+              "variable": "sys.ui.content_filter_available",
+              "operator": "equals",
+              "value": true
+            }
+          ]
         }
       ]
     },

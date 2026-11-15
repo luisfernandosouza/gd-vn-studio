@@ -156,6 +156,13 @@
               "type": "string"
             }
           }
+        },
+        "censor": {
+          "description": "Modo stream (Data Model §10.4): skip = o passo só acontece com o filtro desligado; only = só com o filtro ligado. Quando o passo não vale, o runtime segue 'next' (ou o nó seguinte) sem executá-lo. Só em passos de apresentação: line, background, show, hide, audio e wait (R023).",
+          "enum": [
+            "skip",
+            "only"
+          ]
         }
       }
     },
@@ -257,6 +264,10 @@
         },
         "voice": {
           "$ref": "common.schema.json#/$defs/AssetRef"
+        },
+        "censored_text": {
+          "description": "Modo stream: texto mostrado no lugar do original quando o filtro de conteúdo está ligado (Data Model §10.4). Mesma interpolação e marcação do original.",
+          "$ref": "common.schema.json#/$defs/LocalizedText"
         }
       },
       "unevaluatedProperties": false
@@ -326,9 +337,17 @@
               "goto": {
                 "$ref": "common.schema.json#/$defs/EntityId",
                 "description": "Próximo nó. Ausente = segue 'next' do nó de escolha (caso da importação de roteiro, Req §10)."
+              },
+              "censored_text": {
+                "description": "Modo stream: texto da opção mostrado no lugar do original quando o filtro de conteúdo está ligado (Data Model §10.4). Mesma interpolação e marcação do original.",
+                "$ref": "common.schema.json#/$defs/LocalizedText"
               }
             }
           }
+        },
+        "censored_prompt": {
+          "description": "Modo stream: pergunta mostrado no lugar do original quando o filtro de conteúdo está ligado (Data Model §10.4). Mesma interpolação e marcação do original.",
+          "$ref": "common.schema.json#/$defs/LocalizedText"
         }
       },
       "unevaluatedProperties": false
@@ -817,6 +836,10 @@
               "$ref": "common.schema.json#/$defs/Id"
             }
           }
+        },
+        "censored_prompt": {
+          "description": "Modo stream: pergunta mostrado no lugar do original quando o filtro de conteúdo está ligado (Data Model §10.4). Mesma interpolação e marcação do original.",
+          "$ref": "common.schema.json#/$defs/LocalizedText"
         }
       },
       "unevaluatedProperties": false

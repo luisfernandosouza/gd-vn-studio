@@ -182,7 +182,8 @@
       "type": "line",
       "speaker": "019a7a00-0bb8-7dc0-b468-e39508f1443d",
       "expression": "sad",
-      "text": "Não foi dessa vez..."
+      "text": "Não foi dessa vez...",
+      "censored_text": "Não foi dessa vez... (versão censurada)"
     },
     {
       "id": "019a7a00-6978-78c5-b869-10c564964502",

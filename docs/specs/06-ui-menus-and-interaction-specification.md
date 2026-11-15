@@ -108,8 +108,8 @@ Todo elemento tem `id` (legível, único na tela), `type` e uma **posição**:
 | `slider` | Controle deslizante ligado a uma configuração | `bind`, `min`, `max`, `step` |
 | `toggle` | Liga/desliga ligado a uma configuração | `bind` |
 | `select` | Lista de opções ligada a uma configuração | `bind`, `options` (ausente = opções do próprio `bind`) |
-| `slot_grid` | Grade de slots de save | `mode` (`save`/`load`), `columns`, `rows`, `slot_style` |
-| `gallery_grid` | Grade da galeria | `source` (`endings`, `images`, `music`), `columns`, `locked_asset`. `endings` lista `project.json → endings`; `images` e `music` listam os assets com `gallery: true` em `assets.json` (cenários e músicas), na ordem de `gallery_order` e depois do id. Itens ainda não vistos (`profile.seen_assets`, RT §5.2) aparecem com `locked_asset` e o texto `runtime/gallery/locked` |
+| `slot_grid` | Grade de slots de save | `mode` (`save`/`load`), `columns`, `rows`, `slot_style`. Com o modo stream ligado, miniaturas `thumbnail_sensitive` aparecem como `content_filter.placeholder` (RT §8.5) |
+| `gallery_grid` | Grade da galeria | `source` (`endings`, `images`, `music`), `columns`, `locked_asset`. `endings` lista `project.json → endings`; `images` e `music` listam os assets com `gallery: true` em `assets.json` (cenários e músicas), na ordem de `gallery_order` e depois do id. Itens ainda não vistos (`profile.seen_assets`, RT §5.2) aparecem com `locked_asset` e o texto `runtime/gallery/locked`. Com o modo stream ligado (§8), cada item mostra a substituta de `censored.replace_with`; um item com `censored.hide` aparece com o placeholder e o texto `runtime/content_filter/hidden`. Ver a versão censurada desbloqueia o item (RT §5.2) |
 | `backlog_list` | Histórico de falas | `max_items` |
 | `container` | Agrupa e alinha elementos | `layout` (`row`, `column`, `grid`), `spacing`, `children` |
 | `records_list` | Quadro de recordes de um minijogo (Plugin SDK §9.1) | `board` (`<namespace>.<quadro>`), `max_items`, `empty_text` |
@@ -128,6 +128,8 @@ No título ainda não existe partida, então `visible_if`, `enabled_if` e condi�
 | `sys.ui.has_minigames` | boolean | Existe ao menos uma atividade com `free_play` (botão "Minijogos") |
 | `sys.ui.last_activity_outcome` | string | Resultado da última atividade jogada no modo livre (`completed`, `cancelled`, `failed` ou o `outcome` declarado); vazio antes da primeira |
 | `sys.ui.last_record_rank` | integer | Posição do último recorde enviado no modo livre; 0 se não entrou no quadro |
+| `sys.ui.content_filter` | boolean | Modo stream ligado (ex.: um selo no HUD) |
+| `sys.ui.content_filter_available` | boolean | O jogador pode ligar e desligar o modo stream (há conteúdo marcado e o build não é a edição censurada); o preset esconde o controle quando é falso |
 
 Durante a partida (pausa, HUD, telas próprias abertas no jogo), valem também as variáveis globais e de personagem.
 
@@ -301,6 +303,7 @@ A tela `settings` liga controles (`slider`, `toggle`, `select`) a configuraçõe
 | `text_speed`, `auto_delay`, `skip_unread` | slider / toggle | RT §8.5 |
 | `locale` | select | Idiomas do build |
 | `text_scale`, `reduce_motion`, `subtitles`, `high_contrast`, `show_hotspots` | slider / toggle | Req §12 |
+| `content_filter` | toggle | Modo stream: mostra a versão censurada (Data Model §10.4, RT §5.5) |
 
 **FPS da novel × FPS dos minijogos.** Uma VN quase parada não precisa de 144 quadros por segundo (gasta bateria e esquenta notebook), mas um minijogo de ação precisa. O runtime aplica `fps_limit_vn` fora de atividades e troca para `fps_limit_activity` quando uma atividade de plugin começa, voltando ao terminar (RT §5.3). Uma atividade PODE declarar `min_fps` no manifesto (Plugin SDK §6). Se o limite vem do padrão do projeto e é menor que `min_fps`, o runtime usa `min_fps` durante aquela atividade. Se o próprio jogador gravou o limite em `settings.json` (por exemplo, para economizar bateria), vale a escolha dele, e a tela de configurações mostra um aviso ao lado do controle. No Web, o navegador controla a taxa; os dois controles ficam escondidos.
 
@@ -321,6 +324,9 @@ O autor escolhe quais controles aparecem e onde; um controle omitido usa o valor
 | `text_scale` | 1,0 |
 | `reduce_motion`, `high_contrast`, `show_hotspots` | `false` |
 | `subtitles` | `true` |
+| `content_filter` | `project.json → content_filter.default`, senão `false`; sempre `true` na edição censurada |
+
+**Modo stream.** O preset `classic` traz o controle "Modo stream (versão censurada)" na tela de configurações, visível só com `sys.ui.content_filter_available`. O autor PODE pôr o mesmo controle (ou uma ação `set_setting` de `content_filter`) na pausa ou no HUD, para o streamer ligar sem sair da cena; a mudança vale na hora (RT §5.5). Sem nenhum controle, `ask_on_first_launch` nem `default: true`, o validador avisa (W024). Na edição censurada (Build System §5.4), o runtime esconde todo controle e ignora `set_setting` de `content_filter`.
 
 Os mesmos valores estão como `default` em `save.schema.json → PlayerSettings`. O antigo campo `fullscreen` foi removido: o modo de tela é só `display_mode`.
 

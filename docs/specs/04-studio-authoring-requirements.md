@@ -198,6 +198,16 @@ O vento sopra do mar.
 
 O **Menu Editor** edita `theme.json`, as telas de `ui/` e os cenários de `sets/` (Data Model §10.3), com preview ao vivo de cada tela: título, caixa de diálogo com uma fala de exemplo, escolhas, pausa, salvar/carregar, configurações, galeria, créditos e HUD. A artista parte de um preset, arrasta botões para onde quiser, troca imagens arrastando arquivos, cria estilos de botão e torna objetos do cenário clicáveis. O comportamento completo está na UI Spec ([06-ui-menus-and-interaction-specification.md](06-ui-menus-and-interaction-specification.md)) §9. A galeria de finais usa `project.json → endings`.
 
+### 11.1. Modo stream (versão censurada)
+
+Decisão de 2026-11-15: o modo stream mostra a mesma cena com outra apresentação, e só a apresentação muda (Data Model §10.4). O Studio oferece, sem código:
+
+- **Asset Manager.** Em cada imagem, sprite ou som, o campo "Versão censurada": arrastar a substituta ou marcar "Esconder no modo stream". O asset ganha um selo, e a substituta é importada com o mesmo tipo e tamanho de tela. Marcar uma vez vale para todas as cenas, telas, galeria e minijogos.
+- **Editor de cenas.** Cada fala, pergunta e opção tem "Adicionar versão censurada", que abre um segundo campo de texto logo abaixo do original. Passos de apresentação (fala, cenário, personagem, áudio, pausa) podem ser marcados "Só sem censura" ou "Só com censura", um a um ou vários de uma vez; o passo ganha uma faixa colorida no roteiro e no grafo. Os outros tipos de passo nem mostram a opção, para o autor não precisar conhecer a regra R023.
+- **Painel "Modo stream".** Lista tudo que está marcado (assets, falas, passos), com atalho para cada um, e um interruptor "Ver como modo stream" que troca o roteiro, as miniaturas e o Menu Editor para a versão censurada. O botão do Preview que liga o modo no jogo em execução entra no Protocolo do Preview (spec 07) na próxima revisão dele.
+- **Tradução.** A planilha (§9) traz as versões censuradas como linhas próprias, logo abaixo do original, com a coluna "versão censurada" marcada.
+- **Exportação.** O assistente (§7.1) pergunta a edição: "Completa (o jogador escolhe)" ou "Só a versão censurada" (Build System §5.4), e pode gerar as duas de uma vez.
+
 ## 12. Acessibilidade
 
 Decisão de 2026-11-14: o v1 garante este mínimo no jogo exportado, sem trabalho do autor.

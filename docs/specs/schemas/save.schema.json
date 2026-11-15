@@ -50,6 +50,11 @@
       "type": "string",
       "description": "Caminho relativo da miniatura."
     },
+    "thumbnail_sensitive": {
+      "description": "A miniatura foi capturada com o filtro desligado e o palco mostrava algum asset com censored. Com o filtro ligado, a tela de saves mostra o placeholder no lugar dela (Runtime Spec §8.5).",
+      "type": "boolean",
+      "default": false
+    },
     "state": {
       "type": "object",
       "required": [
@@ -639,6 +644,11 @@
         },
         "show_hotspots": {
           "description": "Destaca todos os hotspots (acessibilidade).",
+          "type": "boolean",
+          "default": false
+        },
+        "content_filter": {
+          "description": "Modo stream: mostra as versões censuradas (Data Model §10.4). Padrão: project.json → content_filter.default, senão false. Na edição censurada é sempre true.",
           "type": "boolean",
           "default": false
         }

@@ -578,6 +578,7 @@ def run_flow(c):
         if changes: trace.append({"changes": changes})
         return None
     def nxt(i, n): return index[n["next"]] if n.get("next") else i + 1
+    cf = c.get("content_filter", False)                    # modo stream (Data Model §10.4)
     i = index[scene.get("start") or nodes[0]["id"]]; guard = 0
     trace.append({"event": "sys.scene_started"})
     while True:
@@ -586,9 +587,11 @@ def run_flow(c):
         if i >= len(nodes):
             trace.append({"event": "sys.scene_ended"}); trace.append({"end": "schedule"}); break
         n = nodes[i]; t = n["type"]
+        if n.get("censor") == ("skip" if cf else "only"):  # o passo não vale neste modo: segue sem executar
+            i = nxt(i, n); continue
         trace.append({"node": n["id"]})
         if t == "line":
-            trace.append({"text": interpolate(n["text"], env, locale)})
+            trace.append({"text": interpolate(n["censored_text"] if cf and "censored_text" in n else n["text"], env, locale)})
             inp = inputs.pop(0) if inputs else None
             if inp != "advance": return trace + [{"waiting": "line"}]
             i = nxt(i, n)

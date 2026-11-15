@@ -260,6 +260,27 @@
         }
       }
     },
+    "content_filter": {
+      "description": "Modo stream / filtro de conteúdo (Data Model §10.4, UI Spec §8). O jogador liga pela configuração content_filter; o conteúdo é marcado em assets.json (censored) e nas cenas (censored_text, censor).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "default": {
+          "description": "Valor inicial da configuração do jogador.",
+          "type": "boolean",
+          "default": false
+        },
+        "ask_on_first_launch": {
+          "description": "Na primeira vez que o jogo abre, antes do título, pergunta se o jogador quer ligar o modo stream (Runtime Spec §3.0).",
+          "type": "boolean",
+          "default": false
+        },
+        "placeholder": {
+          "description": "Imagem neutra mostrada no lugar de cenário ou imagem com censored.hide e nas miniaturas de save sensíveis. Ausente = cor de fundo do tema.",
+          "$ref": "common.schema.json#/$defs/AssetRef"
+        }
+      }
+    },
     "theme": {
       "description": "Caminho do arquivo de tema, relativo à raiz do projeto. Ausente = theme.json se existir, senão o preset 'classic'.",
       "type": "string",
@@ -359,6 +380,14 @@
           "description": "Permite a ação open_url nas telas (UI Spec §4). Padrão true; sempre pede confirmação.",
           "type": "boolean",
           "default": true
+        },
+        "edition": {
+          "description": "standard (padrão): o jogador liga e desliga o modo stream. censored: edição censurada, com o filtro sempre ligado, o controle oculto e sem os originais no pacote (Build System §5.4).",
+          "enum": [
+            "standard",
+            "censored"
+          ],
+          "default": "standard"
         }
       }
     }
