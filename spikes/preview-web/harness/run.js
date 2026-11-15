@@ -7,9 +7,10 @@
     const q = p => s[Math.min(s.length - 1, Math.ceil(p * s.length) - 1)];
     return { n: s.length, p50: +q(0.5).toFixed(1), p95: +q(0.95).toFixed(1), max: +s[s.length - 1].toFixed(1) };
   };
+  const progress = s => { window.__benchProgress = s; };
   const summarize = xs => ({ total: stats(xs.map(x => x.total)), runtime: stats(xs.map(x => x.runtime)), studio: stats(xs.map(x => x.studio)), detail: xs[xs.length - 1].detail });
 
-  async function editLoop(edits, step) {
+  async function editLoop(edits, step, label = '') {
     const out = [];
     for (let i = 0; i < edits; i++) {
       const node = _b.bundle.scenes[_b.scene].nodes.find(n => n.id === _b.node);
@@ -19,7 +20,7 @@
     return summarize(out);
   }
 
-  async function runBundle(name, src, edits) {
+  async function runBundle(name, src, edits, skipRestart) {
     const b = `/build/bundles/${name}`;
     await bench.open(src);
     const bundle = await (await fetch(b + '/bundle.json')).json();
@@ -31,7 +32,7 @@
     await bench.call('start', _b.scene, _b.node, '');
     const res = { hash_ok: first.hash_ok };
 
-    res.restart_engine = await editLoop(edits, async () => {
+    if (!skipRestart) res.restart_engine = await editLoop(edits, async () => {
       const t0 = performance.now();
       const studio = await bench.writeCanonical(_b.bundle, 'bundle.json');
       await bench.open(src);
@@ -69,7 +70,7 @@
     return res;
   }
 
-  window.runBench = async ({ engine, templates = ['web', 'web-lean'], edits = 20, onlyOpen = false }) => {
+  window.runBench = async ({ engine, templates = ['web', 'web-lean'], edits = 20, onlyOpen = false, skipRestart = false }) => {
     const gl = document.createElement('canvas').getContext('webgl2');
     const ext = gl && gl.getExtension('WEBGL_debug_renderer_info');
     const renderer = gl ? (ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)) : 'sem WebGL 2';
@@ -84,8 +85,8 @@
       bench.log(`${tpl} abertura ${JSON.stringify(r.first_open)}`);
       if (onlyOpen || tpl !== templates[0]) continue;
       for (const name of ['demo', 'big']) {
-        r[name] = await runBundle(name, src, edits);
-        bench.log(`${name} ${['restart_engine', 'engine_open', 'in_memory', 'incremental'].map(k => k + ' p95 ' + r[name][k].total.p95).join(' | ')} | salto p95 ${r[name].jump.p95}`);
+        r[name] = await runBundle(name, src, edits, skipRestart);
+        bench.log(`${name} ${['restart_engine', 'engine_open', 'in_memory', 'incremental'].filter(k => r[name][k]).map(k => k + ' p95 ' + r[name][k].total.p95).join(' | ')} | salto p95 ${r[name].jump.p95}`);
       }
       const act = [];
       for (let i = 0; i < 5; i++) {
@@ -104,7 +105,7 @@
       let out;
       try {
         out = await runBench({ engine: q.get('engine') || 'desconhecido', edits: Number(q.get('edits') || 20),
-          templates: (q.get('templates') || 'web,web-lean').split(','), onlyOpen: q.get('only') === 'open' });
+          templates: (q.get('templates') || 'web,web-lean').split(','), onlyOpen: q.get('only') === 'open', skipRestart: q.get('skip') === 'restart' });
       } catch (e) {
         out = { engine: q.get('engine'), error: String(e && e.stack || e) };
       }

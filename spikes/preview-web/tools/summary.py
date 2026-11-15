@@ -8,6 +8,6 @@ for f in sys.argv[1:]:
         print(" ", t, "abertura fria", v["first_open"]["cold_ms"], "ms, com cache p50/p95", v["first_open"]["warm"]["p50"], v["first_open"]["warm"]["p95"])
         for b in ("demo", "big"):
             if b in v:
-                print("   ", b, " | ".join(f"{k} {v[b][k]['total']['p50']}/{v[b][k]['total']['p95']}" for k in ("restart_engine", "engine_open", "in_memory", "incremental")), "| salto p95", v[b]["jump"]["p95"], "| hash", v[b]["hash_ok"])
+                print("   ", b, " | ".join(f"{k} {v[b][k]['total']['p50']}/{v[b][k]['total']['p95']}" for k in ("restart_engine", "engine_open", "in_memory", "incremental") if k in v[b]), "| salto p95", v[b]["jump"]["p95"], "| hash", v[b]["hash_ok"])
         if "activity" in v:
             print("    minijogo p95", v["activity"]["start"]["p95"], "overlay", v["activity"]["overlay_shown"])

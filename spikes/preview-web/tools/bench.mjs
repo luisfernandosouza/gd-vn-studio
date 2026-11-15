@@ -7,7 +7,7 @@
 //   - salto para uma cena com variáveis (preview.start);
 //   - início do minijogo de pesca com o GDScript real.
 //
-// Uso: node tools/bench.mjs [--edits 20] [--templates web,web-lean] [--browser chromium|webkit] [--channel msedge] [--gpu] [--out build/results.json]
+// Uso: node tools/bench.mjs [--edits 20] [--templates web,web-lean] [--browser chromium|webkit] [--channel msedge] [--gpu] [--skip-restart] [--out build/results.json]
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -109,7 +109,7 @@ for (const tpl of TEMPLATES) {
     const edit = `const node = _b.bundle.scenes[_b.scene].nodes.find(n => n.id === _b.node); node.text = 'Edição ' + i + ': ' + node.text.replace(/^Edição \\d+: /, '');`;
 
     // 0. Ingênuo: a cada edição, Studio grava o bundle canônico e o Preview reinicia o motor.
-    await run('restart_engine', new Function('{ b, src, edits }', `return (async () => { const out = [];
+    if (!('skip-restart' in args)) await run('restart_engine', new Function('{ b, src, edits }', `return (async () => { const out = [];
       for (let i = 0; i < edits; i++) { ${edit}
         const t0 = performance.now();
         const studio = await bench.writeCanonical(_b.bundle, 'bundle.json');

@@ -54,7 +54,7 @@
       const t0 = performance.now();
       const ready = new Promise(r => { readyResolve = r; });
       frame.src = src + (src.includes('?') ? '&' : '?') + 'n=' + Math.random();
-      const info = await ready;
+      const info = await Promise.race([ready, new Promise((_, rej) => setTimeout(() => rej(new Error('o runtime não abriu: ' + src)), 60000))]);
       return { ms: performance.now() - t0, godot: info.godot };
     },
     // Chama um método da ponte e espera o "done" do quadro desenhado.
