@@ -126,7 +126,7 @@ Na ordem; cada passo só começa depois do anterior.
 | 3 | Carrega o idioma: `settings.locale`, senão o idioma do sistema se o projeto o tiver, senão `project.default_locale` | Idioma sem arquivo: usa `default_locale` |
 | 4 | Lê `user://profile.json` e confere a assinatura | Assinatura inválida: aplica a política de `flag`/`reject` (Build System §8.3); com `reject`, guarda o arquivo como `profile.rejected.json`, começa um perfil vazio e mostra `runtime/message/g006` no título. Arquivo ilegível: o mesmo, sem a mensagem |
 | 5 | Plugin Host: lê `plugins.json`, confere `integrity` e carrega os plugins em ordem topológica de dependências, com empate desfeito pela ordem lexicográfica do id (SDK §5.1), chamando `_vn_init(ctx)` em todos e depois `_vn_ready()` em todos | Falha de um plugin: segue sem ele (§9) |
-| 6 | Calcula `sys.ui.*`, e abre a tela `title` | — |
+| 6 | Calcula `sys.ui.*`. Se `project.content_filter.ask_on_first_launch` estiver ligado e `settings.json` ainda não tiver `content_filter` (primeira vez), pergunta se o jogador quer o modo stream (`runtime/content_filter/ask`, com `ask_yes`/`ask_no`) e grava a resposta (§5.5). Depois abre a tela `title` | — |
 
 Nada de narrativa roda antes do passo 6; plugins não recebem eventos `sys.*` antes de `_vn_ready`.
 
@@ -294,7 +294,7 @@ O Narrative Engine executa um nó de cada vez. Cada nó é **instantâneo** (ava
 
 **Digitação.** O texto aparece a `text_speed` caracteres por segundo (`PlayerSettings`, padrão 40; `0` mostra a fala inteira de uma vez). Só contam os caracteres visíveis: a marcação de estilo (`[b]`, `[color]` etc.) aparece junto com o primeiro caractere que ela envolve. Não há pausa extra em pontuação no v1. O primeiro `vn_advance` durante a digitação completa a fala; o segundo avança. O modo automático conta `auto_delay` a partir do fim da digitação (mais o fim da voz, se houver).
 
-**Galeria.** Ao exibir um asset marcado com `gallery: true` em `assets.json` (cenário por `background`, música por `audio`), o runtime o acrescenta a `profile.seen_assets`, que alimenta a tela `gallery` (UI Spec §3.1).
+**Galeria.** Ao exibir um asset marcado com `gallery: true` em `assets.json` (cenário por `background`, música por `audio`), o runtime o acrescenta a `profile.seen_assets`, que alimenta a tela `gallery` (UI Spec §3.1). Com o modo stream ligado, quem fica marcado é o asset **original**, mesmo que a tela mostre a substituta (§5.5).
 
 Guarda contra laço infinito: mais de 10 000 nós instantâneos seguidos sem um bloqueante é erro de conteúdo (provável `jump` circular).
 
@@ -321,6 +321,17 @@ Durante uma atividade a cena está suspensa: nenhum nó avança e o Scheduler n�
 2. Emite `sys.scene_ended { scene, chapter }`.
 3. Descarta as variáveis `scene.*`.
 4. Conforme `then`: `schedule` → ponto de seleção; `{scene}` → ponto de seleção com pedido; `end_chapter` → saída de capítulo; `end_game` → fim de jogo.
+
+### 5.5. Modo stream
+
+O modo stream (Data Model §10.4) é a configuração do jogador `content_filter` (UI Spec §8). O runtime a lê no boot e sempre que ela muda; na edição censurada (Build System §5.4) ela vale sempre `true` e não aparece nas telas.
+
+- **Passos.** Ao chegar num nó, antes de qualquer outra coisa: se `censor` é `skip` e o modo está ligado, ou `only` e o modo está desligado, o Engine segue `next` (ou o nó seguinte) **sem executar o nó**: nada vai para o palco, o backlog ou `seen_text`, e nenhum evento sai. Como só passos de apresentação aceitam `censor` (R023), as variáveis, o Scheduler e os eventos narrativos são os mesmos nos dois modos.
+- **Textos.** `line`, `choice` e `interact` usam `censored_text`/`censored_prompt`, quando existem e o modo está ligado. A tradução vem do caminho `…/censored`; sem ela, o texto censurado do idioma-fonte (nunca o original traduzido).
+- **Assets.** O Stage, as telas, a galeria e o `VNAssetAPI` resolvem todo id de asset pelo `censored` dele no momento de desenhar ou tocar: `replace_with` usa a substituta (com âncora e escala dela); `hide` não desenha o sprite nem toca o som, e mostra `content_filter.placeholder` (ou a cor de fundo do tema) no lugar de cenário e imagem. O estado do palco guarda sempre os ids **originais** (§8.2).
+- **Mudança no meio do jogo.** Ligar ou desligar o modo vale na hora: o Stage redesenha o que está na tela com a nova resolução de assets (sem transição), a música e o ambiente que estão tocando passam para a substituta (ou silenciam, com `hide`) com um fade curto, começando do início da faixa, e a fala atual é mostrada de novo no novo modo, sem duplicar o backlog. Um passo `skip`/`only` que já passou não é refeito: a mudança vale a partir do próximo nó.
+- **Backlog e lidos.** O backlog guarda o caminho do texto (§8.2) e mostra a versão do modo atual. `seen_text` usa o caminho do texto original, então ler a versão censurada conta como lido nos dois modos.
+- Plugins sabem do modo por `ctx.content_filter` e pelo evento `sys.content_filter_changed` (§7.1, Plugin SDK §5.6).
 
 ## 6. State Manager e Variable Manager
 
@@ -399,6 +410,7 @@ Após cada operação ou transação aplicada, o State Manager emite **um** sina
 | `sys.game_loaded` | §8.3 passo 6, logo depois de `sys.game_started` | `{ slot }` |
 | `sys.game_ended` | §3.4 | `{ ending }` (`null` sem final) |
 | `sys.profile_reset` | Ação `reset_profile` concluída (§8.5) | `{}` |
+| `sys.content_filter_changed` | O jogador ligou ou desligou o modo stream (§5.5) | `{ enabled: bool }` |
 
 ### 7.2. Entrega
 
@@ -421,6 +433,8 @@ Após cada operação ou transação aplicada, o State Manager emite **um** sina
 ### 8.2. O que é salvo
 
 Ver [`save.schema.json`](schemas/save.schema.json): **todas** as variáveis `persistence: save` (inclusive as que estão no padrão e as `chapter.*`/`scene.*` ativas), capítulo e cena atuais (com o nó e o estado do Stage), histórico do Scheduler (inclusive `pending_request` e `fallback_streak`), estado do RNG (só com `settings.reproducible_rng`, §12.2, inclusive os fluxos dos plugins), dados opacos de cada plugin (`SaveAPI`) com `data_version`, e o backlog. Derivadas e `session` nunca vão para o save.
+
+O modo stream não entra no save (é uma configuração do jogador, §5.5), e o palco é salvo com os ids originais: um save feito num modo carrega no outro com o mesmo progresso e só a apresentação muda.
 
 Gravar também os valores iguais ao padrão é o que permite mudar um `default` numa atualização do jogo sem alterar o progresso de quem já jogava. O backlog guarda o caminho do texto e os valores interpolados, não o texto pronto, então trocar de idioma ou atualizar o jogo se reflete no histórico.
 
@@ -464,9 +478,9 @@ Todos os arquivos ficam em `user://` (no Web, IndexedDB).
 | `saves/quick.json` | Salvamento rápido (uma tecla, sem menu) |
 | `saves/auto_<n>.json` (n = 1 a 3) | Autosaves em rodízio (`settings.autosave` e antes de atividades) |
 | `profile.json` | Perfil (`save.schema.json → $defs/Profile`): variáveis `profile`, finais vistos, textos lidos e, por plugin, dados de perfil e recordes (Plugin SDK §9.1) |
-| `settings.json` | Preferências do jogador (`$defs/PlayerSettings`): idioma, velocidade do texto, espera do modo automático, pular só texto lido, modo de tela, resolução, VSync, limites de FPS da VN e dos minijogos, volumes por canal e acessibilidade. Sem assinatura. Só os campos que o jogador mudou são gravados; os demais vêm de `project.json → settings.display` e dos padrões do runtime (UI Spec §8) |
+| `settings.json` | Preferências do jogador (`$defs/PlayerSettings`): idioma, velocidade do texto, espera do modo automático, pular só texto lido, modo de tela, resolução, VSync, limites de FPS da VN e dos minijogos, volumes por canal, acessibilidade e modo stream (`content_filter`, §5.5). Sem assinatura. Só os campos que o jogador mudou são gravados; os demais vêm de `project.json → settings.display` e dos padrões do runtime (UI Spec §8) |
 
-- **Miniatura.** É o quadro do jogo sem nenhuma UI (só as camadas 0 a 20 do §1.1), capturado no momento em que o jogador abre o menu, antes de a tela aparecer. O salvamento rápido e o autosave capturam o quadro atual, também sem UI.
+- **Miniatura.** É o quadro do jogo sem nenhuma UI (só as camadas 0 a 20 do §1.1), capturado no momento em que o jogador abre o menu, antes de a tela aparecer. O salvamento rápido e o autosave capturam o quadro atual, também sem UI. Se o modo stream estava desligado e o palco mostrava algum asset com `censored`, o save leva `thumbnail_sensitive: true`; com o modo ligado, as telas de salvar e carregar mostram `content_filter.placeholder` (ou a cor de fundo do tema) no lugar dessa miniatura.
 - **Perfil recusado.** Ver §3.0, passo 4: o jogador vê `runtime/message/g006` e o arquivo antigo fica guardado como `profile.rejected.json`.
 - **Apagar o perfil.** A ação de tela `reset_profile` (UI Spec §4) pede confirmação, apaga `profile.json`, recria o perfil vazio, recalcula `sys.ui.*` e emite `sys.profile_reset`. Os saves não são apagados. Ela só é aceita fora de uma partida (U004).
 - **Continuar** abre o save mais recente entre todos os slots, rápido e autosaves.

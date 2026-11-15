@@ -12,7 +12,7 @@ Marco da seção 16 do ADD: definir e congelar as três especificações que ser
 | 5 | [Build System](05-build-system-specification.md) | Pipeline de build, Build Staging, bundle `.vnb`, assets, presets por plataforma, PCK, proteção do conteúdo, manifesto, CLI `vnstudio build` |
 | 6 | [Menus, botões e interação](06-ui-menus-and-interaction-specification.md) | Telas montadas pelo autor (título, pausa, configurações…), ações de botões, estilos, cenários com objetos clicáveis, nó `interact`, configurações do jogador (FPS da VN × minijogos), ideias de personalização |
 | 7 | [Protocolo do Preview](07-preview-protocol.md) | Conversa Studio ↔ Runtime no Preview: sessão e token, métodos, notificações, `GameState`, `SchedulerEvaluation`, erros |
-| 8 | [Vetores de conformidade](08-conformance-vectors.md) | Formato dos casos que o Runtime e o Preview do Studio DEVEM reproduzir, conjunto de 135 casos (inclusive recordes e fluxo de cenas inteiras) e implementação de referência |
+| 8 | [Vetores de conformidade](08-conformance-vectors.md) | Formato dos casos que o Runtime e o Preview do Studio DEVEM reproduzir, conjunto de 137 casos (inclusive recordes, fluxo de cenas inteiras e modo stream) e implementação de referência |
 | 9 | [Repositórios e organização do código](09-repositories-and-code-layout.md) | Onde cada coisa mora no Git: monorepo do produto, repositório de plugin avulso e repositório de um jogo (plugins do catálogo, guardados e embutidos), `.gitignore`, onde os dados dos minijogos ficam no computador do jogador |
 
 Artefatos:
@@ -38,7 +38,7 @@ python3 tools/test_validate.py
 python3 tools/test_schemas.py
 # padrões dos schemas contra os exemplos das specs
 python3 tools/conformance.py
-# 135/135 vetores conferem com a referência.
+# 137/137 vetores conferem com a referência.
 python3 tools/compile_bundle.py examples/demo-project /tmp/demo-bundle examples/fishing-plugin
 # grava bundle.json, locales/<lang>.json e plugins.json; --stage copia também assets e plugins;
 # --godot <projeto-godot> grava em vn_content/ e vn_plugins/ do projeto do runtime
@@ -297,6 +297,18 @@ A primeira abertura é sem cache; com o motor já compilado em cache, cai para 0
 | O plugin de exemplo troca o mock por um comando que abre o Preview no nó de pescaria | `examples/fishing-plugin/` |
 
 **A conferir no primeiro protótipo:** recarregar um plugin no painel trocando o seu `.pck` (`ProjectSettings.load_resource_pack`), que o teste não cobriu; e o tempo de abrir o painel com o template enxuto (o teste indicou cerca de 30% menos).
+
+## Decisões de 2026-11-15: modo stream (versão censurada)
+
+| Decisão | Onde |
+|---|---|
+| **Só a apresentação muda, nunca a história.** Com o modo ligado, a cena roda inteira com outras imagens, sons e falas; escolhas, efeitos, desvios, minijogos e fim são os mesmos. O modo liga e desliga a qualquer momento e os saves valem nos dois | DM §10.4, RT §5.5 |
+| **Três níveis de marcação:** asset (`censored.replace_with` ou `hide`, vale em todo lugar), texto (`censored_text`, `censored_prompt`, com tradução `…/censored`) e passo de apresentação (`censor: skip`/`only`) | DM §8.2, §9, §10.4, `assets.schema.json`, `scene.schema.json` |
+| **Configuração do jogador `content_filter`**, com controle no preset, `project.json → content_filter` (`default`, `ask_on_first_launch`, `placeholder`) e o evento `sys.content_filter_changed` | UI §8, RT §3.0, §7.1, `save.schema.json`, `project.schema.json` |
+| **Saves, galeria e backlog:** o palco é salvo com os ids originais; miniatura sensível vira placeholder; ver a versão censurada desbloqueia o item da galeria; ler a versão censurada conta como lido | RT §5.2, §5.5, §8.2, §8.5, UI §3.1 |
+| **Minijogos:** assets do projeto chegam filtrados ao plugin; para o conteúdo próprio, `ctx.content_filter` e `"content_filter": "supported"` no manifesto | SDK §5.2, §5.6, `plugin.schema.json` |
+| **Edição censurada** (`build.edition: censored`, `--edition censored`): filtro sempre ligado e originais fora do pacote | BS §5.4, §11, `tools/compile_bundle.py` |
+| Códigos R022–R024 e W024; 127 casos em `test_validate.py`; 2 vetores `flow` novos | DM §11, spec 08 |
 
 ## Desvios em relação ao ADD
 

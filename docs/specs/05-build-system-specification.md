@@ -143,7 +143,7 @@ Não entram no jogo: `editor/`, `tests/`, `docs/`, `README.md`, `CHANGELOG.md` (
 
 O compilador produz primeiro a forma canônica em JSON, exatamente como descrita no RT §2 (`bundle.json`, `locales/<lang>.json`, `plugins.json`): validada, com defaults resolvidos, variáveis de personagem instanciadas, aliases de `renamed_from` reunidos e o preset aplicado (UI Spec §2.1). Os três arquivos têm schema ([`bundle.schema.json`](schemas/bundle.schema.json), [`bundle-locale.schema.json`](schemas/bundle-locale.schema.json), [`bundle-plugins.schema.json`](schemas/bundle-plugins.schema.json)).
 
-**Compilador de referência.** [`tools/compile_bundle.py`](tools/compile_bundle.py) implementa esta seção em Python e é a primeira peça do Build System: `python3 tools/compile_bundle.py <projeto> <saída> [pastas-de-plugins…] [--stage]`. Ele roda o validador antes (para em erro) e grava a forma canônica com o `content_hash`. Com `--stage`, copia também os assets e os plugins; com `--godot <projeto-godot>`, grava tudo em `vn_content/` e `vn_plugins/` desse projeto, para rodar o jogo no editor do Godot sem o Studio (RT §2.1). O compilador do Studio DEVE gerar o mesmo `bundle.json`, byte a byte, para o mesmo projeto.
+**Compilador de referência.** [`tools/compile_bundle.py`](tools/compile_bundle.py) implementa esta seção em Python e é a primeira peça do Build System: `python3 tools/compile_bundle.py <projeto> <saída> [pastas-de-plugins…] [--stage] [--edition standard|censored]`. Ele roda o validador antes (para em erro) e grava a forma canônica com o `content_hash`. Com `--stage`, copia também os assets e os plugins; com `--godot <projeto-godot>`, grava tudo em `vn_content/` e `vn_plugins/` desse projeto, para rodar o jogo no editor do Godot sem o Studio (RT §2.1). O compilador do Studio DEVE gerar o mesmo `bundle.json`, byte a byte, para o mesmo projeto.
 
 **JSON canônico:** UTF-8, chaves ordenadas, sem espaços, números no formato mais curto que preserva o valor, strings com escape mínimo (RFC 8785, JCS). `content_hash` = SHA-256 do `bundle.json` canônico, como no RT §2. Ele independe da codificação final, então o mesmo conteúdo tem o mesmo hash no Preview e no jogo.
 
@@ -176,6 +176,24 @@ O runtime DEVE recusar `.vnb` com versão de formato desconhecida (G001, §13.1)
 ### 5.3. Idiomas
 
 Por padrão entram todos os idiomas de `project.json → locales`. `build.locales` limita a lista (por exemplo, para um build Web menor); precisa incluir o `default_locale` (regra R013 do validador). Um idioma por arquivo `.vnb`, carregado sob demanda quando o jogador troca de idioma.
+
+### 5.4. Edição censurada
+
+O modo stream (Data Model §10.4) funciona em dois jeitos de build:
+
+| `build.edition` | O que o jogador recebe |
+|---|---|
+| `standard` (padrão) | O jogo completo. O jogador liga e desliga o modo stream nas configurações (UI Spec §8) |
+| `censored` | A **edição censurada**: o modo fica sempre ligado, o controle some das telas e os originais nem entram no pacote. Útil para lojas, sites ou plataformas que exigem classificação livre, ou para uma versão Web de demonstração |
+
+Na edição censurada, o compilador aplica o filtro uma vez, no build:
+
+- `censored_text` e `censored_prompt` passam a ser o texto do nó, e as traduções `…/censored` ocupam o lugar das originais. Uma fala censurada sem tradução cai no texto censurado do idioma-fonte, nunca no original traduzido.
+- Passos `censor: skip` viram um desvio para o passo seguinte (mantêm o `id`, para saves e caminhos de texto continuarem válidos); passos `censor: only` perdem a marca e rodam sempre.
+- Um asset com `censored.replace_with` passa a apontar para o arquivo da substituta (com âncora, escala e import dela), mantendo o próprio lugar na galeria; um asset com `censored.hide` fica no bundle só como marca. Em nenhum dos dois casos o arquivo original é copiado para o staging (§6.1).
+- `bundle.json → project.content_filter` sai com `edition: censored` e `default: true`; o runtime ignora o `content_filter` de `settings.json` e a pergunta da primeira abertura.
+
+Os saves das duas edições têm `content_hash` diferentes e são tratados como save de outra versão do jogo (RT §8.4). Para lançar as duas, o autor gera dois builds (por exemplo, `vnstudio build --edition censored` para a loja que exige). O `build-manifest.json` registra a edição em `edition`.
 
 ## 6. Processamento de assets
 
@@ -308,6 +326,7 @@ Schema: [`build-manifest.schema.json`](schemas/build-manifest.schema.json). Grav
   "project": { "id": "seaside_story", "version": "0.1.0", "content_hash": "sha256-..." },
   "created_at": "2026-11-13T22:15:00Z",
   "type": "release",
+  "edition": "standard",
   "tools": { "studio": "1.0.0", "runtime": "1.0.0", "runtime_sdk": "1.0.0", "godot": "4.7.2", "godot_label": "4.7.2-stable" },
   "plugins": [
     { "id": "vnstudio.fishing", "version": "1.0.0", "integrity": "sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=" },
@@ -360,6 +379,7 @@ vnstudio build <pasta-do-projeto> \
   [--offline]                             # não consulta catálogo nem baixa nada; falha se faltar algo no cache
   [--json]                                # imprime o manifesto em stdout ao terminar
   [--new-save-key]                        # gera chave de saves nova mesmo com save_key_id (§8.1)
+  [--edition standard|censored]           # padrão: build.edition (§5.4)
 ```
 
 | Código de saída | Significado |

@@ -58,6 +58,14 @@
         "debug"
       ]
     },
+    "edition": {
+      "description": "project.json → build.edition (Build System §5.4).",
+      "enum": [
+        "standard",
+        "censored"
+      ],
+      "default": "standard"
+    },
     "tools": {
       "type": "object",
       "required": [

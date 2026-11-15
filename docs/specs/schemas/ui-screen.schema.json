@@ -410,7 +410,8 @@
                 "reduce_motion",
                 "subtitles",
                 "high_contrast",
-                "show_hotspots"
+                "show_hotspots",
+                "content_filter"
               ]
             },
             "value": {
@@ -1016,7 +1017,8 @@
             "reduce_motion",
             "subtitles",
             "high_contrast",
-            "show_hotspots"
+            "show_hotspots",
+            "content_filter"
           ]
         },
         "label": {
@@ -1068,7 +1070,8 @@
             "reduce_motion",
             "subtitles",
             "high_contrast",
-            "show_hotspots"
+            "show_hotspots",
+            "content_filter"
           ]
         },
         "label": {
@@ -1110,7 +1113,8 @@
             "reduce_motion",
             "subtitles",
             "high_contrast",
-            "show_hotspots"
+            "show_hotspots",
+            "content_filter"
           ]
         },
         "label": {

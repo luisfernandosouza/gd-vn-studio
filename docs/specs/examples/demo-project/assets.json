@@ -9,7 +9,14 @@
     "bg/pier_sunset": {
       "path": "backgrounds/pier_sunset.png",
       "type": "background",
-      "gallery": true
+      "gallery": true,
+      "censored": {
+        "replace_with": "bg/pier_sunset_safe"
+      }
+    },
+    "bg/pier_sunset_safe": {
+      "path": "backgrounds/pier_sunset_safe.png",
+      "type": "background"
     },
     "char/alice/neutral": {
       "path": "characters/alice/neutral.png",

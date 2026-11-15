@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compilador de bundle de referência (Build System §5.1, bundle.schema.json).
 
-Uso: python3 compile_bundle.py <pasta-do-projeto> <saída> [<pasta-de-plugin>...] [--stage]
+Uso: python3 compile_bundle.py <pasta-do-projeto> <saída> [<pasta-de-plugin>...] [--stage] [--edition standard|censored]
      python3 compile_bundle.py <pasta-do-projeto> --godot <projeto-godot> [<pasta-de-plugin>...]
 
 Valida o projeto (tools/validate.py, zero erros), resolve os padrões, aplica o
@@ -13,6 +13,11 @@ preset do tema e grava a forma canônica que o runtime lê:
 
 Com --stage, também copia os assets para <saída>/assets/ e cada plugin para
 <saída>/vn_plugins/<namespace>/.
+
+Com --edition censored (ou project.json → build.edition), gera a edição
+censurada do modo stream (Build System §5.4): o filtro fica sempre ligado, os
+textos censurados substituem os originais, os passos censor: skip viram desvios
+e os assets originais com versão censurada não entram no staging.
 
 Com --godot <projeto-godot>, grava o bundle e os assets em
 <projeto-godot>/vn_content/ e cada plugin em <projeto-godot>/vn_plugins/<namespace>/,
@@ -65,7 +70,7 @@ def deep_merge(base, over):
 
 # ------------------------------------------------------------------ compilação
 
-def compile_project(root, plugin_dirs=()):
+def compile_project(root, plugin_dirs=(), edition=None):
     root = Path(root)
     errs, _ = validate.run(root, plugin_dirs)
     if errs:
@@ -116,6 +121,13 @@ def compile_project(root, plugin_dirs=()):
                  "chapters": project.get("chapters") or sorted(chapters_src),
                  "exclusive_groups": [{"max_plays": 1, **g} for g in project.get("exclusive_groups", [])],
                  "endings": project.get("endings", []), "events": project.get("events", [])})
+    # modo stream (Data Model §10.4, Build System §5.4): edição da linha de comando > project.json → build.edition
+    edition = edition or project.get("build", {}).get("edition", "standard")
+    censored_ed = edition == "censored"
+    proj["content_filter"] = {"default": True if censored_ed else project.get("content_filter", {}).get("default", False),
+                              "ask_on_first_launch": False if censored_ed else project.get("content_filter", {}).get("ask_on_first_launch", False),
+                              **({"placeholder": project["content_filter"]["placeholder"]} if project.get("content_filter", {}).get("placeholder") else {}),
+                              "edition": edition}
 
     # --- variáveis de escopo de jogo
     def var(d, **extra):
@@ -161,6 +173,7 @@ def compile_project(root, plugin_dirs=()):
         s["start"] = s.get("start") or s["nodes"][0]["id"]
         s.setdefault("variables", [])
         for d in s["variables"]: d.setdefault("persistence", "save")
+        if censored_ed: s["nodes"] = censor_nodes(s["nodes"])
         scenes[sid] = s
 
     # --- preset: tema, telas e textos
@@ -197,6 +210,12 @@ def compile_project(root, plugin_dirs=()):
         for old in assets.get(aid, {}).get("renamed_from", []): aliases[old] = aid
     for aid, a in assets.items():
         for old in a.get("renamed_from", []): aliases[old] = aid
+    if censored_ed:                                          # o original não entra no pacote (Build System §5.4)
+        for aid, a in assets.items():
+            c = a.get("censored") or {}
+            if c.get("replace_with"):                        # arquivo e palco da substituta; lugar na galeria do original
+                rep = {k: v for k, v in bassets[c["replace_with"]].items() if k not in ("gallery", "gallery_order", "renamed_from")}
+                bassets[aid] = {**rep, **{k: a[k] for k in ("type", "gallery", "gallery_order", "renamed_from") if k in a}}
 
     bundle = {"bundle_version": 1, "format_version": project["format_version"], "project": proj,
               "variables": bvars, "aliases": aliases, "characters": chars, "chapters": chapters,
@@ -205,6 +224,10 @@ def compile_project(root, plugin_dirs=()):
     bundle["content_hash"] = sri(jcs(raw).encode("utf-8"))
 
     # --- traduções: preset (idiomas do produto) < plugins < projeto
+    censored_paths = {f"{sid}/{n['id']}" for sid, s in scenes_src.items() for n in s["nodes"]
+                      if n.get("censored_text") or n.get("censored_prompt")} | \
+                     {f"{sid}/{n['id']}/{o['id']}" for sid, s in scenes_src.items() for n in s["nodes"]
+                      for o in n.get("options", []) if o.get("censored_text")}
     out_locales = {}
     for lang in locales:
         strings = {}
@@ -224,6 +247,9 @@ def compile_project(root, plugin_dirs=()):
             for p in sorted((root / "locales" / lang).rglob("*.json")):
                 for k, v in load(p)["strings"].items():
                     strings[k] = v["text"] if isinstance(v, dict) else v
+        if censored_ed:                                      # o texto censurado ocupa o lugar do original
+            for k in censored_paths: strings.pop(k, None)    # sem tradução censurada, cai no texto-fonte censurado
+            for k in [k for k in strings if k.endswith("/censored")]: strings[k[:-len("/censored")]] = strings.pop(k)
         out_locales[lang] = {"locale": lang, "strings": strings}
 
     # --- plugins: permissão efetiva = pedido ∩ concessão (o aceite já foi conferido pelo validador)
@@ -246,6 +272,24 @@ def compile_project(root, plugin_dirs=()):
     return bundle, out_locales, {"plugins": bplugins}, plugin_roots
 
 
+def censor_nodes(nodes):
+    """Edição censurada: aplica o filtro uma vez, no build. Passos skip viram um desvio para o próximo
+    (o id fica, para saves e caminhos de texto continuarem válidos); o texto censurado substitui o original."""
+    out = []
+    for i, n in enumerate(nodes):
+        nxt = n.get("next") or (nodes[i + 1]["id"] if i + 1 < len(nodes) else None)
+        if n.get("censor") == "skip":
+            out.append({"id": n["id"], "type": "jump", "goto": nxt} if nxt else {"id": n["id"], "type": "end", "then": "schedule"})
+            continue
+        n = {k: v for k, v in n.items() if k != "censor"}
+        if "censored_text" in n: n["text"] = n.pop("censored_text")
+        if "censored_prompt" in n: n["prompt"] = n.pop("censored_prompt")
+        if "options" in n:
+            n["options"] = [{**{k: v for k, v in o.items() if k != "censored_text"}, **({"text": o["censored_text"]} if "censored_text" in o else {})} for o in n["options"]]
+        out.append(n)
+    return out
+
+
 def write(out, bundle, locales, plugins):
     out = Path(out); (out / "locales").mkdir(parents=True, exist_ok=True)
     (out / "bundle.json").write_text(jcs(bundle), encoding="utf-8")
@@ -255,8 +299,10 @@ def write(out, bundle, locales, plugins):
 
 def stage(root, out, bundle, plugin_roots, manifests_ids):
     root, out = Path(root), Path(out)
+    censored_ed = bundle["project"]["content_filter"]["edition"] == "censored"
     for aid, a in bundle["assets"].items():
         if not a["path"].startswith("res://vn_content/assets/"): continue
+        if censored_ed and a.get("censored", {}).get("hide"): continue   # nunca aparece nesta edição
         rel = a["path"][len("res://vn_content/assets/"):]
         src = root / "assets" / rel
         if src.exists():
@@ -272,6 +318,11 @@ if __name__ == "__main__":
     args = sys.argv[1:]
     do_stage = "--stage" in args
     if do_stage: args.remove("--stage")
+    edition = None
+    if "--edition" in args:
+        i = args.index("--edition")
+        if i + 1 >= len(args) or args[i + 1] not in ("standard", "censored"): raise SystemExit(__doc__)
+        edition = args[i + 1]; del args[i:i + 2]
     godot = None
     if "--godot" in args:
         i = args.index("--godot")
@@ -284,7 +335,7 @@ if __name__ == "__main__":
     if godot:                                                # recomeça do zero: nada velho fica no projeto
         for d in (out, godot / "vn_plugins"):
             if d.exists(): shutil.rmtree(d)
-    b, l, p, roots = compile_project(args[0], args[2:])
+    b, l, p, roots = compile_project(args[0], args[2:], edition)
     write(out, b, l, p)
     if do_stage or godot: stage(args[0], out, b, roots, list(p["plugins"]))
     if godot:

@@ -103,6 +103,35 @@
           "gallery_order": {
             "description": "Ordem na galeria; ausente = depois dos ordenados, pelo id.",
             "type": "integer"
+          },
+          "censored": {
+            "description": "Modo stream (Data Model §10.4): o que aparece no lugar deste asset quando o filtro de conteúdo está ligado. replace_with troca por outro asset do mesmo tipo em todo lugar onde este aparece (cena, expressão, tela, set, galeria, final, plugin); hide não desenha nem toca nada (cenário e imagem viram o placeholder de project.json → content_filter). A substituta não pode ter censored (R024).",
+            "oneOf": [
+              {
+                "type": "object",
+                "required": [
+                  "replace_with"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "replace_with": {
+                    "$ref": "common.schema.json#/$defs/AssetRef"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "hide"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "hide": {
+                    "const": true
+                  }
+                }
+              }
+            ]
           }
         }
       }

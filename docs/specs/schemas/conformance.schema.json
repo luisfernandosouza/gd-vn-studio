@@ -774,6 +774,11 @@
             "locale": {
               "$ref": "common.schema.json#/$defs/Locale"
             },
+            "content_filter": {
+              "description": "Modo stream ligado (Data Model §10.4): passos censor: skip não rodam, censor: only rodam e falas usam censored_text. Ausente = desligado.",
+              "type": "boolean",
+              "default": false
+            },
             "inputs": {
               "type": "array",
               "items": {

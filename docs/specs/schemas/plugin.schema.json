@@ -511,6 +511,12 @@
         }
       }
     },
+    "content_filter": {
+      "description": "Modo stream (SDK §5.6): supported = o plugin trata o próprio conteúdo adulto quando ctx.content_filter está ligado; o catálogo mostra o selo. Assets do projeto já chegam filtrados sem isso.",
+      "enum": [
+        "supported"
+      ]
+    },
     "dependencies": {
       "description": "id do plugin → faixa semver.",
       "type": "object",

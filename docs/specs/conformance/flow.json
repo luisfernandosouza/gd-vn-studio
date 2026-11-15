@@ -4,7 +4,8 @@
   "covers": [
     "Runtime Spec §5.1–§5.4",
     "Runtime Spec §7.2",
-    "Data Model §8"
+    "Data Model §8",
+    "Data Model §10.4"
   ],
   "cases": [
     {
@@ -1090,6 +1091,214 @@
           },
           {
             "text": "30"
+          },
+          {
+            "event": "sys.scene_ended"
+          },
+          {
+            "end": "schedule"
+          }
+        ]
+      }
+    },
+    {
+      "id": "modo_stream_desligado",
+      "description": "modo stream desligado: texto original, passos censor: only não rodam",
+      "kind": "flow",
+      "scene": {
+        "id": "019a7b00-c000-7000-8000-000000000000",
+        "nodes": [
+          {
+            "id": "019a7b00-c001-7000-8000-000000000000",
+            "type": "line",
+            "text": "Original {global.money}.",
+            "censored_text": "Censored {global.money}."
+          },
+          {
+            "id": "019a7b00-c002-7000-8000-000000000000",
+            "type": "background",
+            "asset": "bg/room",
+            "censor": "skip"
+          },
+          {
+            "id": "019a7b00-c003-7000-8000-000000000000",
+            "type": "line",
+            "text": "Only without the filter.",
+            "censor": "skip"
+          },
+          {
+            "id": "019a7b00-c004-7000-8000-000000000000",
+            "type": "line",
+            "text": "Only with the filter.",
+            "censor": "only"
+          },
+          {
+            "id": "019a7b00-c005-7000-8000-000000000000",
+            "type": "effects",
+            "effects": [
+              {
+                "op": "add",
+                "variable": "global.money",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "id": "019a7b00-c006-7000-8000-000000000000",
+            "type": "end",
+            "then": "schedule"
+          }
+        ]
+      },
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 1000,
+          "default": 0
+        }
+      },
+      "locale": "en",
+      "inputs": [
+        "advance",
+        "advance"
+      ],
+      "expect": {
+        "trace": [
+          {
+            "event": "sys.scene_started"
+          },
+          {
+            "node": "019a7b00-c001-7000-8000-000000000000"
+          },
+          {
+            "text": "Original 1,000."
+          },
+          {
+            "node": "019a7b00-c002-7000-8000-000000000000"
+          },
+          {
+            "node": "019a7b00-c003-7000-8000-000000000000"
+          },
+          {
+            "text": "Only without the filter."
+          },
+          {
+            "node": "019a7b00-c005-7000-8000-000000000000"
+          },
+          {
+            "changes": [
+              {
+                "variable": "global.money",
+                "old": 1000,
+                "new": 1001
+              }
+            ]
+          },
+          {
+            "node": "019a7b00-c006-7000-8000-000000000000"
+          },
+          {
+            "event": "sys.scene_ended"
+          },
+          {
+            "end": "schedule"
+          }
+        ]
+      }
+    },
+    {
+      "id": "modo_stream_ligado",
+      "description": "modo stream ligado: censored_text, passos censor: skip não rodam, mesmas mudanças de estado",
+      "kind": "flow",
+      "scene": {
+        "id": "019a7b00-c000-7000-8000-000000000000",
+        "nodes": [
+          {
+            "id": "019a7b00-c001-7000-8000-000000000000",
+            "type": "line",
+            "text": "Original {global.money}.",
+            "censored_text": "Censored {global.money}."
+          },
+          {
+            "id": "019a7b00-c002-7000-8000-000000000000",
+            "type": "background",
+            "asset": "bg/room",
+            "censor": "skip"
+          },
+          {
+            "id": "019a7b00-c003-7000-8000-000000000000",
+            "type": "line",
+            "text": "Only without the filter.",
+            "censor": "skip"
+          },
+          {
+            "id": "019a7b00-c004-7000-8000-000000000000",
+            "type": "line",
+            "text": "Only with the filter.",
+            "censor": "only"
+          },
+          {
+            "id": "019a7b00-c005-7000-8000-000000000000",
+            "type": "effects",
+            "effects": [
+              {
+                "op": "add",
+                "variable": "global.money",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "id": "019a7b00-c006-7000-8000-000000000000",
+            "type": "end",
+            "then": "schedule"
+          }
+        ]
+      },
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 1000,
+          "default": 0
+        }
+      },
+      "locale": "en",
+      "content_filter": true,
+      "inputs": [
+        "advance",
+        "advance"
+      ],
+      "expect": {
+        "trace": [
+          {
+            "event": "sys.scene_started"
+          },
+          {
+            "node": "019a7b00-c001-7000-8000-000000000000"
+          },
+          {
+            "text": "Censored 1,000."
+          },
+          {
+            "node": "019a7b00-c004-7000-8000-000000000000"
+          },
+          {
+            "text": "Only with the filter."
+          },
+          {
+            "node": "019a7b00-c005-7000-8000-000000000000"
+          },
+          {
+            "changes": [
+              {
+                "variable": "global.money",
+                "old": 1000,
+                "new": 1001
+              }
+            ]
+          },
+          {
+            "node": "019a7b00-c006-7000-8000-000000000000"
           },
           {
             "event": "sys.scene_ended"

@@ -48,8 +48,37 @@
         "scheduler",
         "exclusive_groups",
         "endings",
-        "events"
-      ]
+        "events",
+        "content_filter"
+      ],
+      "properties": {
+        "content_filter": {
+          "description": "Modo stream resolvido (Data Model §10.4, Build System §5.4): default, ask_on_first_launch, placeholder (se houver) e edition.",
+          "type": "object",
+          "required": [
+            "default",
+            "ask_on_first_launch",
+            "edition"
+          ],
+          "properties": {
+            "default": {
+              "type": "boolean"
+            },
+            "ask_on_first_launch": {
+              "type": "boolean"
+            },
+            "placeholder": {
+              "$ref": "common.schema.json#/$defs/AssetRef"
+            },
+            "edition": {
+              "enum": [
+                "standard",
+                "censored"
+              ]
+            }
+          }
+        }
+      }
     },
     "variables": {
       "description": "Variáveis de escopo de jogo, por id qualificado (global.*, character.<key>.*, plugin.<ns>.*), com default e persistence resolvidos. As de personagem já vêm instanciadas, com initial_values como default. chapter.* e scene.* ficam no capítulo e na cena.",

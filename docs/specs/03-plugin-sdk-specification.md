@@ -243,6 +243,7 @@ var profile: VNProfileAPI          # profile.data (§9.1)
 var rng: VNRandom                  # fluxo do plugin fora de atividades; reproduzível só com settings.reproducible_rng (Runtime Spec §12.2). Na atividade, use handle.rng
 var i18n: VNI18nAPI                # idioma do jogo e textos runtime/ do plugin (§5.7)
 var theme: VNThemeInfo             # aparência do projeto, somente leitura (§5.7)
+var content_filter: bool           # modo stream ligado (§5.6); sem capacidade, somente leitura
 var log: VNLogger
 ```
 
@@ -338,6 +339,8 @@ class_name VNRandom
 func randi_range(from: int, to: int) -> int
 func randf() -> float
 ```
+
+**Modo stream** (Data Model §10.4, Runtime Spec §5.5). Todo id de asset **do projeto** passa pelo filtro: com o modo ligado, `load_asset` e `play` (e os assets escolhidos pelo autor em campos `vn-asset` de `params` e `config`) devolvem a substituta de `censored.replace_with`, e um asset com `censored.hide` devolve `null` em `load_asset` e não toca em `play`, como um serviço sem capacidade. O plugin não precisa fazer nada para isso. Para o conteúdo **próprio** (recursos em `res://vn_plugins/<ns>/`), o plugin lê `ctx.content_filter` e, para reagir a uma mudança durante a atividade, assina `sys.content_filter_changed { enabled }` (capacidade `events.subscribe`). Um plugin com conteúdo adulto próprio DEVERIA declarar `"content_filter": "supported"` no manifesto quando trata o modo; o catálogo mostra o selo "funciona com o modo stream". Na edição censurada (Build System §5.4), `ctx.content_filter` é sempre `true`.
 
 ### 5.7. Idioma, aparência, input e tempo
 

@@ -164,6 +164,8 @@ Somente leitura, mantidas pelo runtime. Lista mínima do v1:
 | `sys.ui.has_minigames` | boolean | Existe ao menos uma atividade de plugin com `free_play` (UI Spec §3.2) |
 | `sys.ui.last_activity_outcome` | string | Resultado da última atividade jogada no modo livre (`completed`, `cancelled`, `failed` ou vazio) |
 | `sys.ui.last_record_rank` | integer | Posição do último recorde enviado no modo livre (0 se não entrou no quadro) |
+| `sys.ui.content_filter` | boolean | Modo stream ligado (§10.4). Só em telas e sets: cenas, capítulos e derivadas não podem ler (R022) |
+| `sys.ui.content_filter_available` | boolean | O jogador pode ligar e desligar o modo stream: o projeto tem conteúdo marcado e o build não é a edição censurada (§10.4) |
 | `sys.save_modified` | boolean | O save ou o perfil carregado tem assinatura inválida e a política é `flag` (Build System §8.3); `persistence: session` |
 
 Isso responde à necessidade de "cena X já aconteceu?" sem criar variáveis manuais: `{"variable": "sys.scenes.scene_beach.plays", "operator": "greater_than", "value": 0}`.
@@ -363,17 +365,17 @@ Estes campos respondem às pendências "cenas podem ser repetidas?" (`max_plays`
 
 O corpo da cena é uma **lista plana de nós**. O fluxo padrão é sequencial (cada nó segue para o próximo do array); `next`, `goto` e `else` criam desvios. O último nó sem destino termina a cena com `then: "schedule"`. Esse formato é simples de diffar, simples de editar como roteiro linear e ainda permite grafo arbitrário no editor visual.
 
-Campos comuns a todos os nós: `id`, `type`, `next`, `note` (comentário do autor), `editor` (posição no grafo e outros dados do Studio, ignorados pelo runtime) e `unresolved` (passo incompleto, ex.: vindo da importação de roteiro; aviso W013 e bloqueio na exportação).
+Campos comuns a todos os nós: `id`, `type`, `next`, `note` (comentário do autor), `editor` (posição no grafo e outros dados do Studio, ignorados pelo runtime), `unresolved` (passo incompleto, ex.: vindo da importação de roteiro; aviso W013 e bloqueio na exportação) e `censor` (modo stream, §10.4).
 
 | `type` | Função | Campos principais |
 |---|---|---|
-| `line` | Fala ou narração | `speaker` (null = narrador), `text`, `expression`, `voice` |
-| `choice` | Menu de escolhas | `prompt`, `speaker`, `options[]` (`id`, `text`, `value`, `visible_if`, `enabled_if`, `effects`, `goto`), `record` |
+| `line` | Fala ou narração | `speaker` (null = narrador), `text`, `censored_text` (§10.4), `expression`, `voice` |
+| `choice` | Menu de escolhas | `prompt`, `censored_prompt`, `speaker`, `options[]` (`id`, `text`, `censored_text`, `value`, `visible_if`, `enabled_if`, `effects`, `goto`), `record` |
 | `effects` | Altera variáveis (transação) | `effects[]`, `on_fail` |
 | `branch` | Desvio condicional | `cases[]` (`id`, `conditions`, `goto`), `else` |
 | `jump` | Desvio incondicional | `goto` |
 | `background` | Troca o cenário | `asset` ou `set` (cenário composto, UI Spec §5), `transition` |
-| `interact` | Escolha espacial: o jogador clica em áreas da cena | `prompt`, `hotspots[]` (`id`, `label`, `value`, `area`, `cursor`, `highlight`, `visible_if`, `enabled_if`, `once`, `effects`, `goto`), `exit`, `record` (UI Spec §6) |
+| `interact` | Escolha espacial: o jogador clica em áreas da cena | `prompt`, `censored_prompt`, `hotspots[]` (`id`, `label`, `value`, `area`, `cursor`, `highlight`, `visible_if`, `enabled_if`, `once`, `effects`, `goto`), `exit`, `record` (UI Spec §6) |
 | `show` / `hide` | Mostra/esconde personagem | `character`, `expression`, `position`, `transition` |
 | `audio` | Música, ambiente, efeitos, voz | `action`, `channel`, `asset`, `loop`, `volume`, `fade`, `caption` (legenda, Req §12) |
 | `wait` | Pausa | `seconds`, `skippable` |
@@ -404,6 +406,7 @@ Campos comuns a todos os nós: `id`, `type`, `next`, `note` (comentário do auto
 |---|---|---|
 | Fala, `prompt` de escolha, `caption` de áudio | `<cena>/<nó>` | `scenes/<cena>.json` |
 | Opção de escolha | `<cena>/<nó>/<opção>` | `scenes/<cena>.json` |
+| Versão censurada (modo stream, §10.4): `censored_text` de fala, `censored_prompt`, `censored_text` de opção | `<cena>/<nó>/censored`, `<cena>/<nó>/<opção>/censored` | `scenes/<cena>.json` |
 | Título de capítulo | `chapter/<capítulo>/title` | `project.json` |
 | Nome e `display_name` de personagem | `character/<personagem>/name`, `character/<personagem>/display_name` | `project.json` |
 | Título e descrição de final | `ending/<final>/title`, `ending/<final>/description` | `project.json` |
@@ -461,6 +464,44 @@ Fora dessa lista, o Studio converte quando pode (ex.: GIF → sequência) ou rec
 
 `theme.json` (`theme.schema.json`) define **como** a interface é: fontes (com reservas por idioma), cores, caixa de diálogo (imagem com `nine_slice`, posição, altura, plaquinha de nome), botões de escolha, sons de interface e estilos de botão com nome. As telas (título, pausa, salvar/carregar, configurações, galeria, créditos, HUD e telas próprias) ficam em `ui/*.json` e dizem **onde** cada elemento fica e **o que** faz; cenários com objetos clicáveis ficam em `sets/*.json`. Tudo é opcional: o que falta vem do `preset` (`classic`, `modern`, `minimal`). O runtime monta a interface a partir desses arquivos; a artista nunca abre o Godot. Assets do tema, das telas e dos sets seguem a regra R004. Detalhes e regras U001–U008 na UI Spec ([06-ui-menus-and-interaction-specification.md](06-ui-menus-and-interaction-specification.md)).
 
+### 10.4. Modo stream (versão censurada)
+
+O jogador (ou quem transmite o jogo ao vivo) liga o **modo stream** nas configurações, e as partes impróprias para menores aparecem na **versão censurada da mesma cena**. A cena não é pulada: ela roda inteira, com outras imagens, outros sons e outras falas onde o autor pediu.
+
+**Regra de ouro: só a apresentação muda, nunca a história** (decidido em 2026-11-15). Com o modo ligado ou desligado, a cena passa pelas mesmas escolhas, aplica os mesmos efeitos e chega ao mesmo fim. Por isso o modo pode ser ligado e desligado a qualquer momento, no meio de uma cena, e um save feito num modo carrega no outro sem diferença de progresso.
+
+O autor marca o conteúdo em três níveis, do mais simples ao mais fino:
+
+| Nível | Onde | O que faz |
+|---|---|---|
+| **Asset** | `assets.json → censored` | `{"replace_with": "<asset>"}` troca este asset por outro **em todo lugar** onde ele aparece: cenário, expressão de personagem, música, voz, imagem de tela e de set, galeria, imagem de final e assets que plugins carregam (Plugin SDK §5.6). `{"hide": true}` não desenha nem toca nada: o sprite some, o som fica mudo, e um cenário ou imagem dá lugar ao `content_filter.placeholder` do projeto (ou à cor de fundo do tema). É o caso mais comum: o autor marca uma vez e não mexe em nenhuma cena |
+| **Texto** | `censored_text` em `line` e em opções; `censored_prompt` em `choice` e `interact` | Mostrado no lugar do original. Segue as mesmas regras de interpolação e marcação (§9, §9.1) e tem tradução própria (caminho `…/censored`). A voz da fala segue a troca do asset de voz, se ele tiver `censored` |
+| **Passo** | `censor` num nó | `skip`: o passo só acontece com o modo desligado; `only`: só com o modo ligado. Quando o passo não vale, o runtime segue `next` (ou o nó seguinte) sem executá-lo. Vale **só** em passos de apresentação: `line`, `background`, `show`, `hide`, `audio` e `wait` (R023) |
+
+```json
+"assets": {
+  "cg/quarto_noite":      { "path": "cg/quarto_noite.png", "type": "background", "gallery": true,
+                            "censored": { "replace_with": "cg/quarto_noite_safe" } },
+  "cg/quarto_noite_safe": { "path": "cg/quarto_noite_safe.png", "type": "background" },
+  "sfx/gemido":           { "path": "sfx/gemido.ogg", "type": "audio_sfx", "censored": { "hide": true } }
+}
+```
+
+```json
+{ "id": "…", "type": "line", "speaker": "…", "text": "Fala original.", "censored_text": "Fala para todas as idades." },
+{ "id": "…", "type": "line", "text": "Descrição explícita.", "censor": "skip" },
+{ "id": "…", "type": "line", "text": "A noite passou.",       "censor": "only" }
+```
+
+O que garante a regra de ouro:
+
+- `censor` é recusado em escolhas, `interact`, efeitos, desvios (`branch`, `jump`), `emit`, minijogos e `end` (R023): esses passos sempre rodam.
+- O estado do filtro (`sys.ui.content_filter`) só pode ser lido por telas e sets, por exemplo para mostrar um selo "modo stream" no HUD. Uma condição, efeito, derivada ou interpolação de cena ou capítulo que o leia é erro (R022).
+- Uma substituta de asset não pode ter `censored` (sem cadeias) nem ser o próprio asset (R024).
+- Um projeto com conteúdo marcado sem nenhum jeito de o jogador ligar o modo (controle `content_filter` numa tela, `ask_on_first_launch` ou `default: true`) gera o aviso W024.
+
+`project.json → content_filter` traz `default` (valor inicial da configuração, padrão `false`), `ask_on_first_launch` (pergunta antes do título na primeira vez que o jogo abre, Runtime Spec §3.0) e `placeholder` (imagem neutra para cenários escondidos e miniaturas de save sensíveis). `build.edition: censored` gera a **edição censurada**, com o filtro sempre ligado e sem os originais no pacote (Build System §5.4). Como o modo liga, e o que acontece com saves, galeria e minijogos, está na Runtime Spec §3.0, §5.5 e §8, na UI Spec §8 e no Plugin SDK §5.6.
+
 ## 11. Regras de validação semântica
 
 O JSON Schema garante a forma. O Content Validator (implementação de referência em `tools/validate.py`) aplica as regras abaixo. **Erros** bloqueiam build; **avisos** não.
@@ -489,6 +530,9 @@ O JSON Schema garante a forma. O Content Validator (implementação de referênc
 | R019 | erro | Variável interpolada inexistente ou fora de escopo (seção 9) |
 | R020 | erro | Nó `emit` com evento fora do namespace `story` |
 | R021 | erro | Só na exportação: `project.json` sem `version` |
+| R022 | erro | `sys.ui.content_filter` ou `sys.ui.content_filter_available` lido numa cena, capítulo ou derivada (o modo stream não muda a história, §10.4) |
+| R023 | erro | `censor` num passo que não é de apresentação (só `line`, `background`, `show`, `hide`, `audio` e `wait`, §10.4) |
+| R024 | erro | `censored.replace_with` aponta para o próprio asset ou para um asset que também tem `censored`; `content_filter.placeholder` com `censored` |
 | T001 | erro | Literal incompatível com o tipo da variável |
 | T002 | erro | Escrita em variável derivada, `sys.` ou de plugin (`plugin.*`) |
 | T003 | erro | Operação incompatível com o tipo (`add` em string, `toggle` em número) |
@@ -540,6 +584,7 @@ O JSON Schema garante a forma. O Content Validator (implementação de referênc
 | W021 | aviso | Idioma do jogo fora dos idiomas do produto sem tradução dos textos prontos do runtime (`runtime/…`); caem no inglês (Req §9.1) |
 | W022 | aviso | Plugin com quadros de recordes sem a concessão de `profile.data`: recordes e dados de perfil seriam recusados |
 | W023 | aviso | Tradução num arquivo de `locales/<lang>/` diferente do que a tabela do §9 define |
+| W024 | aviso | O projeto tem conteúdo marcado para o modo stream, mas o jogador não tem como ligá-lo: nenhuma tela (do projeto ou do preset) liga `content_filter`, e `content_filter.ask_on_first_launch` e `default` estão desligados (§10.4) |
 
 Todo código tem uma mensagem em linguagem simples no idioma do Studio e leva ao ponto exato do problema (ver [Requisitos de autoria](04-studio-authoring-requirements.md) §6).
 

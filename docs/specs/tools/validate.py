@@ -45,7 +45,11 @@ PAIRED, SINGLE = {"b", "i", "color", "speed"}, {"pause"}
 SYS_FIXED = {"sys.chapter.id": "string", "sys.scene.id": "string", "sys.selection_count": "integer",
              "sys.locale": "string", "sys.save_modified": "boolean",
              "sys.ui.has_save": "boolean", "sys.ui.in_game": "boolean", "sys.ui.platform": "string", "sys.ui.activity": "boolean",
-             "sys.ui.has_minigames": "boolean", "sys.ui.last_activity_outcome": "string", "sys.ui.last_record_rank": "integer"}
+             "sys.ui.has_minigames": "boolean", "sys.ui.last_activity_outcome": "string", "sys.ui.last_record_rank": "integer",
+             "sys.ui.content_filter": "boolean", "sys.ui.content_filter_available": "boolean"}
+# Modo stream (Data Model §10.4): estado do filtro só nas telas (R022); censor só em passos de apresentação (R023)
+CONTENT_FILTER_VARS = {"sys.ui.content_filter", "sys.ui.content_filter_available"}
+CENSORABLE_NODES = {"line", "background", "show", "hide", "audio", "wait"}
 # UI Spec §4, §5.1, §8
 COSMETIC = {"set_state", "toggle_state", "play_animation", "play_sfx", "show", "hide", "toggle_visible"}
 TITLE_ONLY = {"new_game", "continue"}
@@ -59,7 +63,7 @@ SETTING_TYPES = {"volume.master": "number", "volume.music": "number", "volume.am
                  "volume.voice": "number", "display_mode": "string", "resolution": "list", "vsync": "boolean",
                  "fps_limit_vn": "integer", "fps_limit_activity": "integer", "text_speed": "number", "auto_delay": "number",
                  "skip_unread": "boolean", "locale": "string", "text_scale": "number", "reduce_motion": "boolean",
-                 "subtitles": "boolean", "high_contrast": "boolean", "show_hotspots": "boolean"}
+                 "subtitles": "boolean", "high_contrast": "boolean", "show_hotspots": "boolean", "content_filter": "boolean"}
 
 errors, warnings = [], []
 EXPORT = False
@@ -561,6 +565,7 @@ def main(root, plugin_dirs):
     def check_text(text, where, chapter_id, scene):
         for ref in interp_refs(text):
             if resolve(ref, chapter_id, scene) is None: err("R019", where, f"interpolação {{{ref}}}: variável inexistente ou fora de escopo")
+            elif ref in CONTENT_FILTER_VARS: err("R022", where, f"{{{ref}}}: o estado do modo stream só vale em telas")
 
     def check_refs(obj, where, chapter_id, scene, result_fields=None):
         """result_fields: None = {result} proibido aqui (T005); dict = result_schema da atividade; True = qualquer campo."""
@@ -572,6 +577,8 @@ def main(root, plugin_dirs):
             if "variable" in o and isinstance(o["variable"], str):
                 d = resolve(o["variable"], chapter_id, scene)
                 if d is None: err("R005", where, f"variável inexistente ou fora de escopo: {o['variable']}")
+                elif o["variable"] in CONTENT_FILTER_VARS:
+                    err("R022", where, f"{o['variable']}: o modo stream não pode mudar a história; use censored_text, censor ou assets censurados")
                 else:
                     if "op" in o and d.get("derived") is not None: err("T002", where, f"{o['variable']} é derivada (somente leitura)")
                     if "op" in o and o["variable"].startswith("plugin."): err("T002", where, f"{o['variable']} é de plugin (somente leitura para o projeto)")
@@ -590,6 +597,8 @@ def main(root, plugin_dirs):
                         err("T001", where, f"set {o['variable']} = {o['value']!r}: tipo incompatível")
             if "var" in o and isinstance(o["var"], str) and resolve(o["var"], chapter_id, scene) is None:
                 err("R005", where, f"variável inexistente ou fora de escopo: {o['var']}")
+            elif "var" in o and o["var"] in CONTENT_FILTER_VARS:
+                err("R022", where, f"{o['var']}: o modo stream não pode mudar a história")
             ev = o.get("event_since_last_selection")
             if isinstance(ev, str) and ev.startswith("story.") and ev not in story_events:
                 warn("W015", where, f"evento {ev} não declarado em project.json → events")
@@ -686,6 +695,22 @@ def main(root, plugin_dirs):
         if v: check_style(v, f"{theme_file.name}/{k}")
 
     text_paths = set()
+    marked = []                                   # conteúdo marcado para o modo stream (W024)
+    for aid, a in assets.items():
+        c = a.get("censored")
+        if not c: continue
+        marked.append(f"assets.json/{aid}")
+        r = c.get("replace_with")
+        if r is None: continue
+        if r not in assets: err("R004", f"assets.json/{aid}", f"censored.replace_with: asset {r} não registrado")
+        elif r == aid or assets[r].get("censored"): err("R024", f"assets.json/{aid}", f"censored.replace_with {r}: a substituta não pode ser o próprio asset nem ter censored")
+        elif assets[r]["type"] != a["type"]: warn("W014", f"assets.json/{aid}", f"censored.replace_with {r} é {assets[r]['type']}, não {a['type']}")
+    cf = project.get("content_filter", {})
+    if cf.get("placeholder"):
+        ph = cf["placeholder"]
+        if ph not in assets: err("R004", "project.json/content_filter", f"placeholder: asset {ph} não registrado")
+        elif assets[ph]["type"] not in IMG: warn("W014", "project.json/content_filter", f"placeholder {ph} é {assets[ph]['type']}")
+        elif assets[ph].get("censored"): err("R024", "project.json/content_filter", f"placeholder {ph} não pode ter censored")
     for sid, s in scenes.items():
         where = str(scene_paths[sid].relative_to(root))
         cid = s.get("chapter")
@@ -727,6 +752,18 @@ def main(root, plugin_dirs):
                 check_refs(n.get("on_result", {}), nw, cid, s, result_fields=rf)
             else:
                 check_refs(n, nw, cid, s)
+            if n.get("censor"):
+                marked.append(nw)
+                if n["type"] not in CENSORABLE_NODES:
+                    err("R023", nw, f"censor num passo {n['type']}: só line, background, show, hide, audio e wait podem mudar com o modo stream")
+            for k in ("censored_text", "censored_prompt"):
+                if n.get(k):
+                    marked.append(nw); text_paths.add(f"{sid}/{n['id']}/censored")
+                    check_markup(n[k], nw); check_text(n[k], nw, cid, s)
+            for o in n.get("options", []):
+                if o.get("censored_text"):
+                    marked.append(nw); text_paths.add(f"{sid}/{n['id']}/{o['id']}/censored")
+                    check_markup(o["censored_text"], nw); check_text(o["censored_text"], nw, cid, s)
             if n.get("unresolved"):
                 (err if EXPORT else warn)("W013", nw, f"passo incompleto: {n['unresolved'].get('reason')}")
             if n.get("speaker") and n["speaker"] not in chars: err("R010", nw, f"personagem {n['speaker']} não existe")
@@ -818,6 +855,16 @@ def main(root, plugin_dirs):
             if i not in seen: warn("W001", f"{where}#{n['id']}", "nó inalcançável")
 
     check_ui(root, project, theme, theme_file, screens, sets, assets, resolve, check_style, set_parts, text_paths, vars_, endings, activities, manifests)
+    # W024: há conteúdo marcado para o modo stream, mas o jogador não tem como ligar o filtro
+    edition = project.get("build", {}).get("edition", "standard")
+    if marked and edition == "standard" and not cf.get("ask_on_first_launch") and not cf.get("default"):
+        pdir = PRESETS / theme.get("preset", "classic") / "ui"
+        eff = {q.stem: load(q) for q in sorted(pdir.glob("*.json"))} if pdir.is_dir() else {}
+        eff.update(screens)
+        found = []
+        walk(eff, lambda o: found.append(1) if o.get("bind") == "content_filter" or (o.get("do") == "set_setting" and o.get("setting") == "content_filter") else None)
+        if not found:
+            warn("W024", marked[0], f"{len(marked)} conteúdo(s) marcado(s) para o modo stream, mas nenhuma tela liga content_filter e ask_on_first_launch está desligado")
     for p in sorted((root / "locales").rglob("*.json")):
         rel = p.relative_to(root / "locales")
         for k, v in load(p)["strings"].items():

@@ -21,14 +21,14 @@ As palavras **DEVE**, **DEVERIA** e **PODE** seguem a RFC 2119.
 | RNG | `rng.json` | RT §12.2 (PCG32, `random_int`, sementes de atividade e de plugin) | 8 |
 | Seleção de cena | `selection.json` | RT §4.2–§4.4 (elegibilidade, prioridade, desempate, pedidos, fim de capítulo, fallback) | 26 |
 | Recordes | `records.json` | SDK §9.1 (`submit_record`: ordem, `keep`, empate fica com a mais antiga, posição devolvida; exibição) | 6 |
-| Fluxo de cena | `flow.json` | RT §5.1–§5.4, §7.2 (falas com interpolação, escolhas, `on_fail`, `branch`/`jump`, ordem dos eventos, atividade com resultado, pulada e sem opção visível, fim do grafo sem `end`) | 9 |
+| Fluxo de cena | `flow.json` | RT §5.1–§5.5, §7.2 (falas com interpolação, escolhas, `on_fail`, `branch`/`jump`, ordem dos eventos, atividade com resultado, pulada e sem opção visível, fim do grafo sem `end`, modo stream ligado e desligado) | 11 |
 | JSON canônico e assinatura | `canonical.json` | BS §5.1 (JCS: números, ordem de chaves por UTF-16, escapes; `content_hash`), BS §8.3 (HMAC de save e perfil, inclusive `examples/demo-save.json`), RT §12.1 | 7 |
 
-São 135 casos no total. Todos conferem com a implementação de referência:
+São 137 casos no total. Todos conferem com a implementação de referência:
 
 ```bash
 python3 tools/conformance.py
-# 135/135 vetores conferem com a referência.
+# 137/137 vetores conferem com a referência.
 ```
 
 Os casos de RNG só valem para projetos com `settings.reproducible_rng` ligado (RT §12.2). Uma implementação PODE pular `rng.json` e o caso `weighted` de `selection.json` enquanto não implementa o RNG reproduzível, mas DEVE passar em todos os outros.
@@ -70,7 +70,7 @@ Nos resultados, `type` diz qual dos dois é. Um `number` com parte fracionária 
 | `record` | `board` (`order`, `keep`, `format`), `entries` (as marcas atuais), `submit` (`score`, `at`, `meta`?) | `{rank, entries}` (`rank` 0 quando a marca não entra) |
 | `canonical` | `json` (texto JSON em qualquer formatação) | `{text, hash}`: o JCS do valor e o `sha256-` + base64 dos bytes UTF-8 desse texto |
 | `hmac` | `json` (um save ou perfil), `key` (32 bytes em hex) | `{integrity}`: `hmac-sha256-` + base64 do HMAC do JCS sem o campo `integrity` (BS §8.3) |
-| `flow` | `scene` (nós no formato de `scene.schema.json`), `variables`, `locale`, `inputs` (lista de `"advance"`, `{choose: <opção>}` ou `{activity: {outcome, payload, skipped?, failed?}}`) | `{trace}`: lista em ordem, cada item com uma chave só: `event` (evento `sys.*` ou do conteúdo), `node` (nó em que entrou), `text` (fala já interpolada), `options` (opções mostradas), `changes` (mudanças de uma transação), `waiting` (o caso acabou parado num nó bloqueante), `error` e `end` (o `then` da cena) |
+| `flow` | `scene` (nós no formato de `scene.schema.json`), `variables`, `locale`, `content_filter`? (modo stream, RT §5.5), `inputs` (lista de `"advance"`, `{choose: <opção>}` ou `{activity: {outcome, payload, skipped?, failed?}}`) | `{trace}`: lista em ordem, cada item com uma chave só: `event` (evento `sys.*` ou do conteúdo), `node` (nó em que entrou), `text` (fala já interpolada), `options` (opções mostradas), `changes` (mudanças de uma transação), `waiting` (o caso acabou parado num nó bloqueante), `error` e `end` (o `then` da cena) |
 
 Um caso `text` aceita também `number_formats`, que simula `project.json → settings.number_formats`.
 
