@@ -14,6 +14,9 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Godot 4.7.2 e template Web
         run: |
           curl -sSL -o godot.zip https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip
@@ -26,8 +29,8 @@ jobs:
         working-directory: spikes/preview-web
         run: |
           GODOT=$GITHUB_WORKSPACE/Godot_v4.7.2-stable_linux.x86_64 tools/export.sh
-          python3 -m pip install -q --break-system-packages jsonschema
-          python3 tools/make_bundles.py build/bundles
+          python -m pip install -q 'jsonschema>=4.18'
+          python tools/make_bundles.py build/bundles
       - uses: actions/upload-artifact@v4
         with:
           name: preview-web-build
