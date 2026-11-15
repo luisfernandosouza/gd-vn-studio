@@ -1,5 +1,7 @@
 # Spike: Preview com um interpretador só (export Web do runtime)
 
+> **Pasta temporária.** Código descartável, só para medir (por isso em JavaScript, sem build). Apagar esta pasta e `.github/workflows/preview-web-spike.yml` quando o projeto do Studio começar; os números ficam registrados no README das specs (decisão de 2026-11-15).
+
 Teste da proposta A ("Propostas: Preview e estado normativo das specs"): o runtime Godot exportado para Web, embutido numa página que faz o papel do Studio, consegue recarregar o conteúdo em menos de 1 s depois de uma edição? Se conseguir, o interpretador TypeScript do Preview no Studio deixa de ser necessário.
 
 **Resultado: passa com folga, desde que o Preview use recarga incremental e receba o conteúdo em memória.** Num bundle de 405 cenas e 20 mil falas (3,55 MB), a fala editada aparece em 20 ms (p95). Sem as otimizações, o mesmo bundle leva 3,7 s.
