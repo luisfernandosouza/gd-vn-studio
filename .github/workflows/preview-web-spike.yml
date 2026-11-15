@@ -9,6 +9,11 @@ on:
     branches: [claude/preview-web-spike]
     paths: [spikes/preview-web/**, .github/workflows/preview-web-spike.yml]
 
+# Uma rodada por vez: um push novo cancela a anterior, para não gastar minutos de macOS à toa.
+concurrency:
+  group: preview-web-spike
+  cancel-in-progress: true
+
 jobs:
   export:
     runs-on: ubuntu-24.04
