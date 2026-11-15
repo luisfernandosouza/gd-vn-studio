@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Preview Web: bancada</title>
+<style>
+  body { margin: 0; font: 14px system-ui, sans-serif; background: #111; color: #ddd; }
+  #frame { width: 1280px; height: 720px; border: 0; display: block; }
+  #log { padding: 8px; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<iframe id="frame"></iframe>
+<div id="log"></div>
+<script>
+// Simula o lado do Studio: abre o runtime Web num iframe, edita o bundle e mede
+// o tempo até o quadro com a mudança ser desenhado (o runtime avisa por onEvent).
+(() => {
+  let req = 0;
+  const waiting = new Map();
+  let readyResolve = null;
+  const log = (s) => { document.getElementById('log').textContent += s + '\n'; };
+
+  window.vnPreviewHost = {
+    onEvent(kind, text) {
+      const info = JSON.parse(text);
+      if (kind === 'ready' && readyResolve) { readyResolve(info); readyResolve = null; }
+      else if ((kind === 'done' || kind === 'error') && waiting.has(info.req)) {
+        const w = waiting.get(info.req); waiting.delete(info.req);
+        info.total_ms = performance.now() - w.t0;
+        (kind === 'done' ? w.resolve : w.reject)(info);
+      }
+    }
+  };
+
+  // JCS (RFC 8785) como o Studio faria antes de gravar o bundle canônico.
+  function jcs(v) {
+    if (v === null || typeof v !== 'object') return JSON.stringify(v);
+    if (Array.isArray(v)) return '[' + v.map(jcs).join(',') + ']';
+    return '{' + Object.keys(v).sort().map(k => JSON.stringify(k) + ':' + jcs(v[k])).join(',') + '}';
+  }
+  async function sri(text) {
+    const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+    return 'sha256-' + btoa(String.fromCharCode(...new Uint8Array(d)));
+  }
+
+  const frame = document.getElementById('frame');
+  const api = () => frame.contentWindow.vnPreview;
+
+  window.bench = {
+    log,
+    // Abre (ou reabre) o runtime e espera o primeiro quadro desenhado.
+    async open(src) {
+      const t0 = performance.now();
+      const ready = new Promise(r => { readyResolve = r; });
+      frame.src = src + (src.includes('?') ? '&' : '?') + 'n=' + Math.random();
+      const info = await ready;
+      return { ms: performance.now() - t0, godot: info.godot };
+    },
+    // Chama um método da ponte e espera o "done" do quadro desenhado.
+    call(method, ...args) {
+      const id = ++req;
+      return new Promise((resolve, reject) => {
+        waiting.set(id, { t0: performance.now(), resolve, reject });
+        setTimeout(() => { if (waiting.delete(id)) reject(new Error('sem resposta: ' + method)); }, 60000);
+        // caminhos relativos viram URLs absolutas: o HTTPRequest do Godot não resolve caminhos relativos
+        api()[method](id, ...args.map(a => (typeof a === 'string' && a.startsWith('/build/')) ? location.origin + a : a));
+      });
+    },
+    // Lado do Studio no caminho "arquivo": JCS + hash + gravar na pasta do Preview.
+    async writeCanonical(bundle, path) {
+      const t0 = performance.now();
+      const raw = Object.assign({}, bundle); delete raw.content_hash;
+      bundle.content_hash = await sri(jcs(raw));
+      const text = jcs(bundle);
+      await fetch('/write/' + path, { method: 'PUT', body: text });
+      return performance.now() - t0;
+    },
+    jcs, sri,
+  };
+})();
+</script>
+</body>
+</html>
