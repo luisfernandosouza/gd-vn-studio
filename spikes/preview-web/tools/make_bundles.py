@@ -11,7 +11,10 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 SPECS = HERE.parents[2] / "docs" / "specs"
 sys.path.insert(0, str(SPECS / "tools"))
-from conformance import jcs  # noqa: E402
+try:
+    from conformance import jcs  # noqa: E402  (depois do PR das correções da auditoria)
+except ImportError:
+    from compile_bundle import jcs  # noqa: E402
 import base64, hashlib  # noqa: E402
 
 WORDS = ("o mar estava calmo e a luz da tarde batia nas janelas da casa velha enquanto "
