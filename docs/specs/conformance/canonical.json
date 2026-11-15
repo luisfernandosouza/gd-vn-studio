@@ -1,0 +1,81 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/1/conformance.schema.json",
+  "title": "JSON canônico (JCS) e assinatura de saves",
+  "covers": [
+    "BS §5.1 (JCS, RFC 8785)",
+    "BS §8.3 (HMAC de saves e perfil)",
+    "RT §12.1 (JSON canônico)"
+  ],
+  "cases": [
+    {
+      "id": "numbers_rfc8785",
+      "description": "Números do RFC 8785 §3.2.2.3: forma mais curta, expoente a partir de 1e21 e abaixo de 1e-6, -0 vira 0",
+      "kind": "canonical",
+      "json": "[333333333.33333329, 1E30, 4.50, 2e-3, 0.000000000000000000000000001, 1e21, 1e-7, 0.000001, -0, -0.0, 100, 1e2]",
+      "expect": {
+        "text": "[333333333.3333333,1e+30,4.5,0.002,1e-27,1e+21,1e-7,0.000001,0,0,100,100]",
+        "hash": "sha256-3+kqxtCZqolmEs92EN8XhD/yXRaMIK0HPvNfSwa1nRQ="
+      }
+    },
+    {
+      "id": "number_integral_float",
+      "description": "number com parte fracionária zero sai sem casa decimal; inteiro grande dentro de ±(2^53 − 1)",
+      "kind": "canonical",
+      "json": "{\"a\": 2.0, \"b\": -3.0, \"c\": 9007199254740991, \"d\": 0.1, \"e\": 1.005, \"f\": 123456789012345680000}",
+      "expect": {
+        "text": "{\"a\":2,\"b\":-3,\"c\":9007199254740991,\"d\":0.1,\"e\":1.005,\"f\":123456789012345680000}",
+        "hash": "sha256-nEihtCVqsv+gJDYK3k/ip5GHy1r/BPa8bWY2o0osSfk="
+      }
+    },
+    {
+      "id": "key_order_utf16",
+      "description": "Chaves em ordem de unidades UTF-16 (RFC 8785 §3.2.3): o emoji (surrogate D83D) vem antes de U+FB33",
+      "kind": "canonical",
+      "json": "{\"\\u20ac\": \"Euro Sign\", \"\\r\": \"Carriage Return\", \"\\ufb33\": \"Hebrew Letter Dalet With Dagesh\", \"1\": \"One\", \"\\ud83d\\ude00\": \"Emoji: Grinning Face\", \"\\u0080\": \"Control\", \"\\u00f6\": \"Latin Small Letter O With Diaeresis\"}",
+      "expect": {
+        "text": "{\"\\r\":\"Carriage Return\",\"1\":\"One\",\"\":\"Control\",\"ö\":\"Latin Small Letter O With Diaeresis\",\"€\":\"Euro Sign\",\"😀\":\"Emoji: Grinning Face\",\"דּ\":\"Hebrew Letter Dalet With Dagesh\"}",
+        "hash": "sha256-XjIVVtIgGKllaZGp6U937BdfoZPlKiQp0xL4QZ7IsIw="
+      }
+    },
+    {
+      "id": "string_escapes",
+      "description": "Escape mínimo (RFC 8785 §3.2.2.2): só aspas, barra invertida e controles; '/' e não ASCII ficam crus; controles sem forma curta em \\u minúsculo",
+      "kind": "canonical",
+      "json": "[\"\\u20ac$\\u000F\\u000aA'\\u0042\\u0022\\u005c\\\\\\\"\\/\", \"\\b\\f\\t\\r\\u001f\\u007f\", \"olá, 世界 \\u2028\"]",
+      "expect": {
+        "text": "[\"€$\\u000f\\nA'B\\\"\\\\\\\\\\\"/\",\"\\b\\f\\t\\r\\u001f\",\"olá, 世界  \"]",
+        "hash": "sha256-DndqbMruiFuPhCN1huiuIyme8O8eAxGa4ZBzGsk9gMM="
+      }
+    },
+    {
+      "id": "nested_whitespace",
+      "description": "Sem espaços; objetos aninhados ordenados em cada nível; arrays mantêm a ordem; literais",
+      "kind": "canonical",
+      "json": "{ \"z\": [3, {\"b\": true, \"a\": null}], \"a\": { \"y\": false, \"x\": \"x\" } }",
+      "expect": {
+        "text": "{\"a\":{\"x\":\"x\",\"y\":false},\"z\":[3,{\"a\":null,\"b\":true}]}",
+        "hash": "sha256-vAaOdPMSCfb+roP5jJK0ExQRIbKE0zpNqTx5y4EbhPQ="
+      }
+    },
+    {
+      "id": "demo_save",
+      "description": "Assinatura de examples/demo-save.json com a chave de debug (32 bytes zero, RT §2.1): JCS sem o campo integrity, HMAC-SHA256",
+      "kind": "hmac",
+      "json": "{\n \"save_format\": \"1.0.0\",\n \"project\": {\n  \"id\": \"seaside_story\",\n  \"version\": \"0.1.0\"\n },\n \"runtime_version\": \"1.0.0\",\n \"created_at\": \"2026-11-12T02:30:00Z\",\n \"label\": \"Capítulo 1 — Praia\",\n \"state\": {\n  \"variables\": {\n   \"global.player_money\": 130,\n   \"global.fishing_won\": true,\n   \"global.fishing_skill\": 12,\n   \"character.alice.affection\": 15,\n   \"character.alice.met\": true,\n   \"chapter.days_passed\": 0,\n   \"plugin.fishing.total_caught\": 3\n  },\n  \"chapter\": {\n   \"id\": \"019a7a00-03e8-7e8e-9f34-b5a38f4a780b\",\n   \"entered_at\": 0\n  },\n  \"scene\": null,\n  \"history\": {\n   \"selection_count\": 2,\n   \"scenes\": {\n    \"019a7a00-0fa0-755e-a143-bcfdef94a367\": {\n     \"plays\": 1,\n     \"starts\": 1,\n     \"last_selection\": 0\n    },\n    \"019a7a00-1388-7f6b-b667-94bbd1305982\": {\n     \"plays\": 1,\n     \"starts\": 1,\n     \"last_selection\": 1\n    }\n   },\n   \"groups\": {},\n   \"chapters\": {\n    \"019a7a00-03e8-7e8e-9f34-b5a38f4a780b\": {\n     \"entries\": 1,\n     \"completed\": false\n    }\n   },\n   \"events_since_selection\": [\n    \"fishing.completed\"\n   ]\n  },\n  \"plugins\": {\n   \"fishing\": {\n    \"plugin_version\": \"1.0.0\",\n    \"data_version\": 1,\n    \"data\": {\n     \"rod_level\": 2,\n     \"tutorial_seen\": true\n    }\n   }\n  },\n  \"backlog\": [\n   {\n    \"path\": \"019a7a00-0fa0-755e-a143-bcfdef94a367/019a7a00-2710-730c-a8a2-c3737040ab76\",\n    \"speaker\": null\n   },\n   {\n    \"path\": \"019a7a00-1388-7f6b-b667-94bbd1305982/019a7a00-3a98-732b-89dd-170487226b34\",\n    \"speaker\": \"019a7a00-0bb8-7dc0-b468-e39508f1443d\",\n    \"vars\": {\n     \"global.player_money\": 100\n    }\n   },\n   {\n    \"path\": \"019a7a00-1388-7f6b-b667-94bbd1305982/019a7a00-4268-71d6-977e-cf1637d45f1b/019a7a00-4650-7571-a41a-c83fdebea0ae\",\n    \"speaker\": null\n   },\n   {\n    \"path\": \"019a7a00-1388-7f6b-b667-94bbd1305982/019a7a00-5dc0-7aff-afa3-e85b08375cdf\",\n    \"speaker\": \"019a7a00-0bb8-7dc0-b468-e39508f1443d\"\n   }\n  ]\n },\n \"integrity\": \"hmac-sha256-WUg1fVQ7ur04X33MeYRAPN9Rm0kgaD5LCpoVOAMpAkQ=\"\n}",
+      "key": "0000000000000000000000000000000000000000000000000000000000000000",
+      "expect": {
+        "integrity": "hmac-sha256-WUg1fVQ7ur04X33MeYRAPN9Rm0kgaD5LCpoVOAMpAkQ="
+      }
+    },
+    {
+      "id": "small_profile",
+      "description": "Perfil mínimo: o campo integrity existente é ignorado no cálculo",
+      "kind": "hmac",
+      "json": "{\n \"save_format\": \"1.0.0\",\n \"project_id\": \"seaside_story\",\n \"variables\": {\n  \"global.ng_plus\": 1.0\n },\n \"endings\": [\n  \"festival_ending\"\n ],\n \"integrity\": \"hmac-sha256-AAAA\"\n}",
+      "key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "expect": {
+        "integrity": "hmac-sha256-cXwTd1QxgsovTtFkL193VLcm93BjEsFWyYUQ5J4/1dY="
+      }
+    }
+  ]
+}

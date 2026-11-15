@@ -11,7 +11,7 @@ Uso:
     python3 tools/conformance.py              # confere todos os casos de conformance/
     python3 tools/conformance.py caso.json    # confere só os arquivos dados
 """
-import hashlib, json, math, sys
+import base64, hashlib, hmac, json, math, sys
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 
@@ -75,6 +75,29 @@ def js_number_to_string(x):
     e = n - 1
     sign = "+" if e >= 0 else "-"
     return (digits[0] + ("." + digits[1:] if k > 1 else "")) + "e" + sign + str(abs(e))
+
+
+def jcs(v):
+    """JSON canônico (RFC 8785, JCS), usado no content_hash, em assinaturas de saves e perfil e no build.json (Build System §5.1)."""
+    if v is None: return "null"
+    if v is True: return "true"
+    if v is False: return "false"
+    if isinstance(v, int): return str(v)
+    if isinstance(v, float):
+        if v != v or v in (float("inf"), float("-inf")): raise ValueError("número não finito")
+        return js_number_to_string(v)
+    if isinstance(v, str): return json.dumps(v, ensure_ascii=False)
+    if isinstance(v, list): return "[" + ",".join(jcs(x) for x in v) + "]"
+    if isinstance(v, dict):
+        keys = sorted(v, key=lambda k: k.encode("utf-16-be"))          # ordem por unidades UTF-16
+        return "{" + ",".join(json.dumps(k, ensure_ascii=False) + ":" + jcs(v[k]) for k in keys) + "}"
+    raise TypeError(type(v))
+
+
+def save_integrity(doc, key):
+    """Assinatura de save ou perfil: HMAC-SHA256 do JCS do documento sem o campo integrity (Build System §8.3)."""
+    doc = {k: v for k, v in doc.items() if k != "integrity"}
+    return "hmac-sha256-" + base64.b64encode(hmac.new(key, jcs(doc).encode("utf-8"), hashlib.sha256).digest()).decode()
 
 
 def to_text(v):
@@ -495,6 +518,11 @@ def run_case(c):
         res = {"rank": rank, "entries": entries}
         if "locale" in c: res["display"] = [format_record(e["score"], c["board"]["format"], c["locale"]) for e in entries]
         return res
+    if k == "canonical":
+        text = jcs(json.loads(c["json"]))
+        return {"text": text, "hash": "sha256-" + base64.b64encode(hashlib.sha256(text.encode("utf-8")).digest()).decode()}
+    if k == "hmac":
+        return {"integrity": save_integrity(json.loads(c["json"]), bytes.fromhex(c["key"]))}
     if k == "flow":
         OVERRIDES.clear(); return {"trace": run_flow(c)}
     if k == "text":

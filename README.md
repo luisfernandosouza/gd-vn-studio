@@ -15,6 +15,7 @@ Conferências de referência (Python 3):
 cd docs/specs
 python3 tools/validate.py examples/demo-project examples/fishing-plugin   # validador
 python3 tools/test_validate.py                     # casos do validador
+python3 tools/test_schemas.py                      # padrões dos schemas
 python3 tools/conformance.py                       # vetores de conformidade
 python3 tools/compile_bundle.py examples/demo-project /tmp/bundle examples/fishing-plugin   # bundle que o runtime lê
 ```

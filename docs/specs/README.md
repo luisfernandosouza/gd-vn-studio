@@ -12,7 +12,7 @@ Marco da seção 16 do ADD: definir e congelar as três especificações que ser
 | 5 | [Build System](05-build-system-specification.md) | Pipeline de build, Build Staging, bundle `.vnb`, assets, presets por plataforma, PCK, proteção do conteúdo, manifesto, CLI `vnstudio build` |
 | 6 | [Menus, botões e interação](06-ui-menus-and-interaction-specification.md) | Telas montadas pelo autor (título, pausa, configurações…), ações de botões, estilos, cenários com objetos clicáveis, nó `interact`, configurações do jogador (FPS da VN × minijogos), ideias de personalização |
 | 7 | [Protocolo do Preview](07-preview-protocol.md) | Conversa Studio ↔ Runtime no Preview: sessão e token, métodos, notificações, `GameState`, `SchedulerEvaluation`, erros |
-| 8 | [Vetores de conformidade](08-conformance-vectors.md) | Formato dos casos que o Runtime e o Preview do Studio DEVEM reproduzir, conjunto de 128 casos (inclusive recordes e fluxo de cenas inteiras) e implementação de referência |
+| 8 | [Vetores de conformidade](08-conformance-vectors.md) | Formato dos casos que o Runtime e o Preview do Studio DEVEM reproduzir, conjunto de 135 casos (inclusive recordes e fluxo de cenas inteiras) e implementação de referência |
 | 9 | [Repositórios e organização do código](09-repositories-and-code-layout.md) | Onde cada coisa mora no Git: monorepo do produto, repositório de plugin avulso e repositório de um jogo (plugins do catálogo, guardados e embutidos), `.gitignore`, onde os dados dos minijogos ficam no computador do jogador |
 
 Artefatos:
@@ -24,6 +24,7 @@ Artefatos:
 - `examples/demo-save.json` — save válido, coerente com um caminho real do demo (chegada → praia → pescaria vencida) e assinado com uma chave de exemplo de 32 bytes zero.
 - `tools/validate.py` — validador de referência (schema + regras semânticas).
 - `tools/test_validate.py` — um projeto quebrado de propósito para cada código do validador.
+- `tools/test_schemas.py` — confere os padrões dos schemas (chaves de tradução, id de plugin) contra os formatos que as specs mandam gravar.
 - `conformance/` e `tools/conformance.py` — vetores de conformidade e a implementação de referência que os confere.
 - `tools/compile_bundle.py` — compilador de referência do bundle narrativo (BS §5.1): transforma um projeto na forma que o runtime lê, sem precisar do Studio (RT §2.1).
 
@@ -34,8 +35,10 @@ python3 tools/validate.py examples/demo-project examples/fishing-plugin
 # --export aplica também as regras de exportação (P013, W013 vira erro)
 python3 tools/test_validate.py
 # um caso por código; todos devem passar
+python3 tools/test_schemas.py
+# padrões dos schemas contra os exemplos das specs
 python3 tools/conformance.py
-# 128/128 vetores conferem com a referência.
+# 135/135 vetores conferem com a referência.
 python3 tools/compile_bundle.py examples/demo-project /tmp/demo-bundle examples/fishing-plugin
 # grava bundle.json, locales/<lang>.json e plugins.json; --stage copia também assets e plugins;
 # --godot <projeto-godot> grava em vn_content/ e vn_plugins/ do projeto do runtime
@@ -253,6 +256,19 @@ Saíram de [`../reviews/revisao-specs-2026-11-14.md`](../reviews/revisao-specs-2
 | `build-manifest.schema.json` | BS §9.2 |
 
 **Ainda em aberto:** quem opera o catálogo, nome e domínio definitivos (D11, D13) e os documentos E4–E7 e E9–E15.
+
+## Decisões de 2026-11-15: correções da auditoria documental
+
+Aplicam os achados A-01, A-02, A-03, A-04 e M-02 da auditoria de 2026-11-14.
+
+| Decisão | Onde |
+|---|---|
+| **Escala com `stretch_aspect = expand`** em todo lugar: o BS §4.3 dizia `keep`, o RT §1.1 já dizia `expand` (A-01) | BS §4.3 |
+| **Ordem dos plugins no boot**: topológica de dependências, empate pela ordem lexicográfica do id; o RT §3.0 e §12.1 diziam "ordem das chaves" (A-02) | RT §3.0, §12.1, SDK §5.1 |
+| **Chaves de tradução aceitam ponto e maiúsculas depois do primeiro segmento**, para `variable/global.mood/value/calm` e `ui/<tela>/<elemento>/option/pt-BR` (A-03) | `locale.schema.json` |
+| **Id de plugin aceita `_`**, para o `<id do projeto>.<nome>` recomendado (`seaside_story.quiz`) (M-02) | `plugin.schema.json`, `plugins.schema.json`, `plugin-lock.schema.json` |
+| **Vetores de JCS e HMAC** (`canonical.json`, 7 casos); o JCS de referência fica só em `conformance.py` e o compilador o importa (A-04) | spec 08, BS §5.1, RT §12.1 |
+| `tools/test_schemas.py`: padrões dos schemas conferidos contra os exemplos das specs | este README |
 
 ## Desvios em relação ao ADD
 
