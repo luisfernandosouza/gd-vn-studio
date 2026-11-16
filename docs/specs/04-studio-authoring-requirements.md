@@ -196,9 +196,18 @@ O vento sopra do mar.
 
 ## 11. Aparência do jogo
 
-O **Menu Editor** edita `theme.json`, as telas de `ui/` e os cenários de `sets/` (Data Model §10.3), com preview ao vivo de cada tela: título, caixa de diálogo com uma fala de exemplo, escolhas, pausa, salvar/carregar, configurações, galeria, créditos e HUD. A artista parte de um preset, arrasta botões para onde quiser, troca imagens arrastando arquivos, cria estilos de botão e torna objetos do cenário clicáveis. O comportamento completo está na UI Spec ([06-ui-menus-and-interaction-specification.md](06-ui-menus-and-interaction-specification.md)) §9. A galeria de finais usa `project.json → endings`.
+O **Menu Editor** edita `theme.json`, as telas de `ui/` e os cenários de `sets/` (Data Model §10.3), com preview ao vivo de cada tela: título, caixa de diálogo com uma fala de exemplo, escolhas, pausa, salvar/carregar, configurações, galeria, créditos e HUD. A artista parte de um preset, arrasta botões para onde quiser, troca imagens arrastando arquivos, cria estilos de botão e torna objetos do cenário clicáveis. O comportamento completo está na UI Spec ([06-ui-menus-and-interaction-specification.md](06-ui-menus-and-interaction-specification.md)) §9. A galeria é opcional (§11.1); a de finais usa `project.json → endings`.
 
-### 11.1. Modo stream (versão censurada)
+### 11.1. Galeria (opcional)
+
+Decisão de 2026-11-16: a galeria só existe se o autor quiser (Data Model §10.5). O Studio oferece, sem código:
+
+- **Configurações do projeto → Galeria.** Um interruptor "Este jogo tem galeria", desligado num projeto novo, e três caixas: "Finais", "Imagens" e "Músicas". Ligar grava `project.json → gallery` com as seções marcadas; desligar apaga o campo. Ao ligar, o Studio sugere marcar os cenários usados em `then: "end_game"` e as músicas já usadas nas cenas.
+- **Asset Manager.** Em imagens, cenários e músicas, a caixa "Mostrar na galeria" (`gallery: true`), visível só quando a seção daquele tipo está ligada, e a ordem por arrastar (`gallery_order`). O asset ganha um selo, e o filtro "Na galeria" lista o que já entrou.
+- **Menu Editor.** A tela "Galeria" só aparece na lista quando a galeria está ligada, e o preview mostra só as abas das seções ligadas, com um interruptor "Ver como se tudo estivesse desbloqueado".
+- **Validador.** Os avisos U011, U013 e U014 aparecem com um botão que resolve o caso: ligar a seção, desmarcar o asset ou ligar a galeria.
+
+### 11.2. Modo stream (versão censurada)
 
 Decisão de 2026-11-15: o modo stream mostra a mesma cena com outra apresentação, e só a apresentação muda (Data Model §10.4). O Studio oferece, sem código:
 

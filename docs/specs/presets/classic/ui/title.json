@@ -79,6 +79,13 @@
               "do": "open_screen",
               "screen": "gallery"
             }
+          ],
+          "visible_if": [
+            {
+              "variable": "sys.ui.has_gallery",
+              "operator": "equals",
+              "value": true
+            }
           ]
         },
         {

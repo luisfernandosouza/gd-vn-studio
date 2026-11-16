@@ -165,6 +165,8 @@ Somente leitura, mantidas pelo runtime. Lista mínima do v1:
 | `sys.ui.last_activity_outcome` | string | Resultado da última atividade jogada no modo livre (`completed`, `cancelled`, `failed` ou vazio) |
 | `sys.ui.last_record_rank` | integer | Posição do último recorde enviado no modo livre (0 se não entrou no quadro) |
 | `sys.ui.content_filter` | boolean | Modo stream ligado (§10.4). Só em telas e sets: cenas, capítulos e derivadas não podem ler (R022) |
+| `sys.ui.has_gallery` | boolean | O projeto tem galeria (`project.json → gallery`, §10.5) |
+| `sys.ui.gallery_endings`, `sys.ui.gallery_images`, `sys.ui.gallery_music` | boolean | A seção está em `project.json → gallery.sections` (§10.5) |
 | `sys.ui.content_filter_available` | boolean | O jogador pode ligar e desligar o modo stream: o projeto tem conteúdo marcado e o build não é a edição censurada (§10.4) |
 | `sys.save_modified` | boolean | O save ou o perfil carregado tem assinatura inválida e a política é `flag` (Build System §8.3); `persistence: session` |
 
@@ -457,7 +459,7 @@ Fora dessa lista, o Studio converte quando pode (ex.: GIF → sequência) ou rec
 
 - `show.position` aceita os nomes `far_left` (0.1), `left` (0.25), `center` (0.5), `right` (0.75), `far_right` (0.9) ou uma fração da largura da tela.
 - Cada sprite tem `anchor` (padrão `[0.5, 1.0]`, centro dos pés) e `scale` (padrão 1.0). A âncora fica na posição horizontal escolhida e na base da tela. `scale: 1.0` desenha o sprite com o tamanho em pixels da imagem na resolução base (`settings.resolution`); a tela inteira é escalada junto (Runtime Spec §1.1).
-- **Galeria.** `assets.json → gallery: true` põe um `image`/`background` na galeria de imagens e um `audio_music` na de músicas (UI Spec §3.1). O runtime marca o asset em `profile.seen_assets` na primeira vez que ele aparece em cena (`background`, `show` com essa expressão ou `audio` de música); a galeria mostra `locked_asset` para os não vistos. `gallery_order` ordena.
+- **Galeria.** `assets.json → gallery: true` põe um `image`/`background` na galeria de imagens e um `audio_music` na de músicas, se o projeto tiver essas seções (§10.5).
 - O Character Manager mostra o sprite sobre um cenário de exemplo e permite arrastar a âncora e ajustar a escala, com os valores gravados em `assets.json`.
 
 ### 10.3. Aparência do jogo (tema)
@@ -501,6 +503,39 @@ O que garante a regra de ouro:
 - Um projeto com conteúdo marcado sem nenhum jeito de o jogador ligar o modo (controle `content_filter` numa tela, `ask_on_first_launch` ou `default: true`) gera o aviso W024.
 
 `project.json → content_filter` traz `default` (valor inicial da configuração, padrão `false`), `ask_on_first_launch` (pergunta antes do título na primeira vez que o jogo abre, Runtime Spec §3.0) e `placeholder` (imagem neutra para cenários escondidos e miniaturas de save sensíveis). `build.edition: censored` gera a **edição censurada**, com o filtro sempre ligado e sem os originais no pacote (Build System §5.4). Como o modo liga, e o que acontece com saves, galeria e minijogos, está na Runtime Spec §3.0, §5.5 e §8, na UI Spec §8 e no Plugin SDK §5.6.
+
+### 10.5. Galeria (opcional)
+
+Decisão de 2026-11-16: a galeria é **opcional por projeto**. O autor decide se o jogo tem galeria e o que entra nela. Um projeto novo começa **sem galeria**.
+
+**Ativar.** `project.json → gallery` liga a galeria e diz quais seções ela tem:
+
+```json
+"gallery": { "sections": ["endings", "images", "music"] }
+```
+
+| Seção | O que entra | De onde vem |
+|---|---|---|
+| `endings` | Finais | Todos os de `project.json → endings` (§9), com `title`, `description` e `image` |
+| `images` | Imagens e cenários (CGs) | Assets `image` e `background` com `gallery: true` em `assets.json` |
+| `music` | Músicas | Assets `audio_music` com `gallery: true` |
+
+`sections` tem de 1 a 3 itens, sem repetir. A ordem da lista não importa: o preset mostra as abas sempre na ordem finais, imagens, músicas. Ausente `gallery`, o jogo não tem galeria.
+
+**Escolher o que entra.** Finais entram todos. Imagens e músicas entram uma a uma: o autor marca `gallery: true` no asset e, se quiser, `gallery_order` (inteiro; os sem ordem vêm depois, pelo id). Assim um cenário comum fica fora e a CG de um momento importante entra. Outros tipos de asset (sprites, sons, vozes, fontes) não entram. Novas seções (por exemplo, replay de cenas) ficam para depois do v1.
+
+**O que muda sem galeria ou sem uma seção.**
+
+- Sem `gallery`: o compilador não inclui a tela `gallery` do preset (UI Spec §2.1), `sys.ui.has_gallery` é falso e o botão "Galeria" do título some. Uma tela `ui/gallery.json` do projeto também fica fora do jogo (aviso U014).
+- Seção fora de `sections`: a aba dela some da tela do preset, e o compilador tira `gallery` e `gallery_order` dos assets daquele tipo no bundle (aviso U013 no validador), para o runtime não marcar nada.
+- Os **finais vistos continuam sendo gravados** no perfil mesmo sem galeria, porque `sys.endings.<id>` serve também para NG+ e condições do título.
+
+**Como o jogo registra o que o jogador viu.** Tudo fica no perfil (`profile.json`, Runtime Spec §8.5), que vale para todos os saves e sobrevive a um jogo novo:
+
+- **Finais:** `profile.endings`, no `end` com `ending` (Runtime Spec §3.4).
+- **Imagens e músicas:** `profile.seen_assets`, a lista de ids dos assets da galeria já vistos numa cena, em ordem lexicográfica. A regra exata de quando um asset conta está na Runtime Spec §5.2.
+
+Um item não visto aparece bloqueado (`locked_asset` e o texto `runtime/gallery/locked`, UI Spec §3.1). A ação `reset_profile` apaga tudo isso junto com o resto do perfil.
 
 ## 11. Regras de validação semântica
 

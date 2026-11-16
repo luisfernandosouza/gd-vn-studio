@@ -64,6 +64,13 @@
     "default": false,
     "ask_on_first_launch": true
   },
+  "gallery": {
+    "sections": [
+      "endings",
+      "images",
+      "music"
+    ]
+  },
   "events": [
     {
       "name": "story.met_master",

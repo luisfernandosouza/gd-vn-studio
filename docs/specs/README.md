@@ -69,7 +69,7 @@ Cada linha é uma proposta, não uma decisão final. Onde está detalhada:  DM =
 | Estrutura do projeto | Um arquivo por entidade, Git-friendly | DM §2 |
 | Modelo de cenas e diálogos | Lista plana de nós tipados | DM §8 |
 | Undo/redo | Todo comando gera JSON Patch + inverso; plugins usam o mesmo mecanismo | SDK §10.4 |
-| Comunicação com Godot / sincronização do preview | WebSocket local + token + JSON-RPC 2.0, com hot reload | RT §11 |
+| Comunicação com Godot / sincronização do preview | **Decidido (2026-11-16):** o runtime Godot é o único interpretador. Painel com o export Web e ponte JavaScript; janela nativa com WebSocket local + token. JSON-RPC 2.0 nos dois, com recarga incremental | RT §11, PP |
 | Interfaces de condições e de seleção de cenas | Condições em frases, predefinições de agendamento, painel "por que não apareceu" | Req §3–4, RT §11 |
 | Importação de assets | Formatos, âncora, escala e posições do palco | DM §10.1–10.2 |
 | Aparência do jogo | `theme.json` + Theme Editor | DM §10.3, Req §11 |
@@ -106,7 +106,7 @@ A stack do ADD §2.1 foi revisada e mantida: **Tauri + React + TypeScript** no S
 | Binário do Godot | Distribuído como *sidecar* do Tauri, na versão exata exigida pelo runtime (`compatibility.godot`). Alternativa: download sob demanda no primeiro build, com verificação de hash, para reduzir o instalador |
 | Templates de exportação | Gerenciados pelo Studio, na mesma versão fixada do Godot |
 | Build | Godot headless chamado pelo Build Manager, sobre a cópia em Build Staging (ADD §7) |
-| Preview | Um interpretador só, o runtime: no painel do Studio, o export Web do runtime; na janela, o binário embutido. Mesmo JSON-RPC nos dois (RT §11, decisão de 2026-11-15) |
+| Preview | Um interpretador só, o runtime: no painel do Studio, o export Web do runtime; na janela, o binário embutido. Mesmo JSON-RPC nos dois (RT §11, decisão de 2026-11-15, encerrada em 2026-11-16 depois do teste no macOS) |
 | Jogadores | Recebem o executável exportado, sem dependências |
 | Desenvolvedores de runtime plugins | Únicos que usam o editor do Godot, para escrever e testar GDScript |
 | Linguagem | Só GDScript nos plugins e no runtime. C# fica fora, porque o Godot 4 com C# não exporta para Web |
@@ -237,7 +237,7 @@ Saíram de [`../reviews/revisao-specs-2026-11-14.md`](../reviews/revisao-specs-2
 | **Modo livre** de minijogos a partir do menu (`free_play`, ação `play_activity`, elemento `records_list`), sem mexer na história | SDK §6.1, RT §5.3, UI §3.1, §4 |
 | Novos códigos P019–P021; 112 casos em `test_validate.py` | DM §11, spec 09 §5 |
 
-**Ainda em aberto** (ver a seção "O que falta" do relatório): escopo da galeria (a spec 06 já prevê `gallery_grid` com finais, imagens e músicas; falta decidir se imagens e músicas entram no v1 e como o perfil registra o que foi visto), quem opera o catálogo, nome e domínio definitivos, e os documentos E1 e E4–E15 (E2 e E3 já estão nas specs 07 e 08).
+**Ainda em aberto** (ver a seção "O que falta" do relatório): ~~escopo da galeria~~ (resolvido em 2026-11-16: galeria opcional por projeto, DM §10.5), quem opera o catálogo, nome e domínio definitivos, e os documentos E1 e E4–E15 (E2 e E3 já estão nas specs 07 e 08).
 
 ## Decisões de 2026-11-14: antes do runtime (3ª e 4ª revisões)
 
@@ -274,6 +274,8 @@ Aplicam os achados A-01, A-02, A-03, A-04 e M-02 da auditoria de 2026-11-14.
 
 O Preview no Studio deixa de ter um interpretador próprio em TypeScript. O Studio roda o **próprio runtime**, exportado para Web, num painel do webview; o runtime nativo, numa janela, continua para o modo desenvolvedor e para plugins sem `web`. Assim o autor vê exatamente o jogo do jogador e não há um segundo interpretador para manter igual.
 
+**Encerrada em 2026-11-16.** O resultado do teste no macOS (WKWebView, o motor do Tauri no Mac, na tabela abaixo) foi considerado suficiente, e fica decidido usar só o runtime Godot como interpretador. Não há mais pendência sobre o Preview no macOS; o teste num Mac físico não é necessário para a decisão.
+
 A decisão saiu do teste do export Web dentro dos webviews do Tauri ([`spikes/preview-web/`](../../spikes/preview-web/README.md), pasta temporária, apagada quando o projeto do Studio começar), com um bundle grande (405 cenas, 20 mil falas, 3,55 MB) e o template oficial:
 
 | Motor (máquina) | Primeira abertura | Recarga incremental, p95 | Reler o bundle inteiro, p95 |
@@ -309,6 +311,16 @@ A primeira abertura é sem cache; com o motor já compilado em cache, cai para 0
 | **Minijogos:** assets do projeto chegam filtrados ao plugin; para o conteúdo próprio, `ctx.content_filter` e `"content_filter": "supported"` no manifesto | SDK §5.2, §5.6, `plugin.schema.json` |
 | **Edição censurada** (`build.edition: censored`, `--edition censored`): filtro sempre ligado e originais fora do pacote | BS §5.4, §11, `tools/compile_bundle.py` |
 | Códigos R022–R024 e W024; 127 casos em `test_validate.py`; 2 vetores `flow` novos | DM §11, spec 08 |
+
+## Decisões de 2026-11-16: Preview encerrado e galeria opcional
+
+| Decisão | Onde |
+|---|---|
+| **Preview: só o runtime Godot como interpretador.** O teste no macOS (WKWebView) foi suficiente; a decisão de 2026-11-15 está encerrada e não há mais pendência sobre o Preview | RT §11, ADD §3.3 (nota), seção de 2026-11-15 acima |
+| **Galeria opcional por projeto.** O autor liga a galeria e escolhe as seções em `project.json → gallery.sections` (`endings`, `images`, `music`); projeto novo começa sem galeria. Imagens e músicas entram uma a uma com `gallery: true` | DM §10.5, `project.schema.json`, Req §11.1 |
+| **Sem galeria, nada aparece:** o compilador tira a tela `gallery`, o botão do título some (`sys.ui.has_gallery`) e as abas mostram só as seções ativas (`sys.ui.gallery_*`) | UI §2.1, §3.2, BS §5.1, `presets/classic/ui/gallery.json`, `title.json`, `tools/compile_bundle.py` |
+| **Registro do que foi visto:** finais em `profile.endings` (sempre, com ou sem galeria); imagens e músicas em `profile.seen_assets`, só por nós `background` e `audio` de cenas, também no modo pular, ao carregar save e com o modo stream (marca o original) | RT §5.2, `save.schema.json` |
+| Códigos U011 (revisto), U012–U014; 130 casos em `test_validate.py`; a demo liga as três seções | UI §11, `examples/demo-project/` |
 
 ## Desvios em relação ao ADD
 

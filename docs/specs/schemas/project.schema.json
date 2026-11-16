@@ -281,6 +281,29 @@
         }
       }
     },
+    "gallery": {
+      "description": "Galeria do jogo (Data Model §10.5, UI Spec §3.1). Opcional: ausente = o jogo não tem galeria (a tela gallery do preset não entra, o botão do título some e nada é marcado em profile.seen_assets). O autor escolhe quais seções entram.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sections"
+      ],
+      "properties": {
+        "sections": {
+          "description": "Seções da galeria. endings: finais de project.json → endings; images: assets image e background com gallery: true; music: assets audio_music com gallery: true. O preset mostra as abas nesta ordem fixa, não na ordem da lista.",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "endings",
+              "images",
+              "music"
+            ]
+          }
+        }
+      }
+    },
     "theme": {
       "description": "Caminho do arquivo de tema, relativo à raiz do projeto. Ausente = theme.json se existir, senão o preset 'classic'.",
       "type": "string",

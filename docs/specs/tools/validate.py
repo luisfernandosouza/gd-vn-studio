@@ -46,7 +46,9 @@ SYS_FIXED = {"sys.chapter.id": "string", "sys.scene.id": "string", "sys.selectio
              "sys.locale": "string", "sys.save_modified": "boolean",
              "sys.ui.has_save": "boolean", "sys.ui.in_game": "boolean", "sys.ui.platform": "string", "sys.ui.activity": "boolean",
              "sys.ui.has_minigames": "boolean", "sys.ui.last_activity_outcome": "string", "sys.ui.last_record_rank": "integer",
-             "sys.ui.content_filter": "boolean", "sys.ui.content_filter_available": "boolean"}
+             "sys.ui.content_filter": "boolean", "sys.ui.content_filter_available": "boolean",
+             "sys.ui.has_gallery": "boolean", "sys.ui.gallery_endings": "boolean", "sys.ui.gallery_images": "boolean",
+             "sys.ui.gallery_music": "boolean"}
 # Modo stream (Data Model §10.4): estado do filtro só nas telas (R022); censor só em passos de apresentação (R023)
 CONTENT_FILTER_VARS = {"sys.ui.content_filter", "sys.ui.content_filter_available"}
 CENSORABLE_NODES = {"line", "background", "show", "hide", "audio", "wait"}
@@ -195,6 +197,8 @@ def check_ui(root, project, theme, theme_file, screens, sets, assets, resolve, c
     for st_id in sets:
         layers, hs = set_parts(st_id); stage_parts |= set(layers) | hs
     known_screens = set(screens) | FIXED_SCREENS | PRESET_SCREENS
+    gallery_sources = {"images": {"image", "background"}, "music": {"audio_music"}}
+    gallery_sections = (project.get("gallery") or {}).get("sections", [])
     opens = {}   # tela → telas que ela abre (U010)
     base = project.get("settings", {}).get("resolution", [1920, 1080])
 
@@ -234,6 +238,8 @@ def check_ui(root, project, theme, theme_file, screens, sets, assets, resolve, c
             if do in GAME_ONLY and ctx["kind"] == "title": err("U004", where, f"{do} só vale durante o jogo")
             if do == "open_screen":
                 if a["screen"] not in known_screens: err("U001", where, f"tela {a['screen']} não existe")
+                if a["screen"] == "gallery" and not gallery_sections:
+                    warn("U014", where, "open_screen abre a galeria, mas project.json não tem gallery: a ação não faz nada")
                 opens.setdefault(ctx.get("screen"), set()).add(a["screen"])
             if do == "reset_profile" and ctx["kind"] in ("pause", "hud"): err("U004", where, "reset_profile não vale durante o jogo")
             if "target" in a:
@@ -270,7 +276,19 @@ def check_ui(root, project, theme, theme_file, screens, sets, assets, resolve, c
         elif setting == "locale" and value not in project.get("locales", []): err("U005", where, f"idioma {value} fora de project.json → locales")
 
     plays = set()
-    gallery_sources = {"images": {"image", "background"}, "music": {"audio_music"}}
+    # galeria opcional (Data Model §10.5, UI Spec §11)
+    if "gallery" in screens and not gallery_sections:
+        warn("U014", "ui/gallery.json", "o projeto tem tela de galeria, mas project.json não tem gallery: a tela não entra no jogo")
+    for s in gallery_sections:
+        if s == "endings" and not project.get("endings"):
+            warn("U011", "project.json/gallery", "seção endings da galeria vazia: nenhum final em project.json → endings")
+        elif s in gallery_sources and not any(a.get("gallery") and a["type"] in gallery_sources[s] for a in assets.values()):
+            warn("U011", "project.json/gallery", f"seção {s} da galeria vazia: nenhum asset com gallery: true desse tipo")
+    for aid, a in sorted(assets.items()):
+        if a.get("gallery") and not any(a["type"] in gallery_sources.get(s, ()) for s in gallery_sections):
+            sec = next((s for s, t in gallery_sources.items() if a["type"] in t), None)
+            why = f"a seção {sec} não está em project.json → gallery.sections" if sec else f"assets {a['type']} não entram na galeria"
+            warn("U013", f"assets.json#{aid}", f"gallery: true ignorado: {why}")
     for scr_id, scr in screens.items():
         where = f"ui/{scr_id}.json"
         title = scr["kind"] == "title"
@@ -308,9 +326,8 @@ def check_ui(root, project, theme, theme_file, screens, sets, assets, resolve, c
                 ns, _, board = e["board"].partition(".")
                 m = next((m for m in manifests.values() if m["namespace"] == ns), None)
                 if m is None or board not in {r["id"] for r in m.get("records", [])}: err("U001", ew, f"quadro de recordes {e['board']} não existe")
-            if e["type"] == "gallery_grid" and e["source"] in gallery_sources:
-                if not any(a.get("gallery") and a["type"] in gallery_sources[e["source"]] for a in assets.values()):
-                    warn("U011", ew, f"galeria de {e['source']} vazia: nenhum asset com gallery: true desse tipo")
+            if e["type"] == "gallery_grid" and e["source"] not in gallery_sections:
+                err("U012", ew, f"gallery_grid de {e['source']}, mas essa seção não está em project.json → gallery.sections")
             for o in e.get("options", []):
                 text_paths.add(f"{tp}/option/{o['value']}")
                 check_setting_value(e["bind"], o["value"], ew)

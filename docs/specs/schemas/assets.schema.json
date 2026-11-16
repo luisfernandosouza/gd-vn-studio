@@ -96,7 +96,7 @@
             "uniqueItems": true
           },
           "gallery": {
-            "description": "Entra na galeria (UI Spec §3.1, gallery_grid). Vale para image, background (fonte images) e audio_music (fonte music). O runtime marca o asset como visto em profile.seen_assets na primeira vez que ele aparece em cena.",
+            "description": "Entra na galeria (Data Model §10.5, UI Spec §3.1, gallery_grid). Vale para image, background (seção images) e audio_music (seção music), e só se a seção estiver em project.json → gallery.sections; senão a marca é ignorada (U013). O runtime marca o asset como visto em profile.seen_assets na primeira vez que ele aparece numa cena (Runtime Spec §5.2).",
             "type": "boolean",
             "default": false
           },
