@@ -6,11 +6,63 @@
   "on_open": [
     {
       "do": "hide",
+      "target": "grid_endings"
+    },
+    {
+      "do": "hide",
       "target": "grid_images"
     },
     {
       "do": "hide",
       "target": "grid_music"
+    },
+    {
+      "do": "show",
+      "target": "grid_endings",
+      "if": [
+        {
+          "variable": "sys.ui.gallery_endings",
+          "operator": "equals",
+          "value": true
+        }
+      ]
+    },
+    {
+      "do": "show",
+      "target": "grid_images",
+      "if": [
+        {
+          "variable": "sys.ui.gallery_images",
+          "operator": "equals",
+          "value": true
+        },
+        {
+          "variable": "sys.ui.gallery_endings",
+          "operator": "equals",
+          "value": false
+        }
+      ]
+    },
+    {
+      "do": "show",
+      "target": "grid_music",
+      "if": [
+        {
+          "variable": "sys.ui.gallery_music",
+          "operator": "equals",
+          "value": true
+        },
+        {
+          "variable": "sys.ui.gallery_endings",
+          "operator": "equals",
+          "value": false
+        },
+        {
+          "variable": "sys.ui.gallery_images",
+          "operator": "equals",
+          "value": false
+        }
+      ]
     }
   ],
   "elements": [
@@ -51,6 +103,13 @@
               "do": "hide",
               "target": "grid_music"
             }
+          ],
+          "visible_if": [
+            {
+              "variable": "sys.ui.gallery_endings",
+              "operator": "equals",
+              "value": true
+            }
           ]
         },
         {
@@ -70,6 +129,13 @@
               "do": "hide",
               "target": "grid_music"
             }
+          ],
+          "visible_if": [
+            {
+              "variable": "sys.ui.gallery_images",
+              "operator": "equals",
+              "value": true
+            }
           ]
         },
         {
@@ -88,6 +154,13 @@
             {
               "do": "show",
               "target": "grid_music"
+            }
+          ],
+          "visible_if": [
+            {
+              "variable": "sys.ui.gallery_music",
+              "operator": "equals",
+              "value": true
             }
           ]
         }

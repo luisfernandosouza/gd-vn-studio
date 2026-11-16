@@ -49,6 +49,7 @@ Um preset é um projeto parcial, no mesmo formato e validado pelos mesmos schema
 
 - **Tema:** fusão profunda do `theme.json` do preset com o do projeto; o projeto vence em cada chave. O preset define o estilo padrão de cada tipo de elemento (`button`, `choice`, `slot`, `slider`, `toggle`, `select`, `hotspot`, `label`), mais `title_label` e `hud_button`, e o layout padrão da caixa de texto, da plaquinha de nome e das escolhas.
 - **Telas:** uma tela do projeto substitui inteira a do preset com o mesmo id. O `classic` traz `title`, `pause`, `save`, `load`, `settings`, `gallery`, `credits`, `hud`, `backlog` (aberta por `open_backlog`) e `minigames`.
+- **`gallery`:** só entra se o projeto tiver galeria (`project.json → gallery`, Data Model §10.5); sem ela, a tela some (mesmo a do projeto, aviso U014) e `sys.ui.has_gallery` é falso. A tela do preset mostra só as abas das seções ativas (`visible_if` com `sys.ui.gallery_endings`, `sys.ui.gallery_images` e `sys.ui.gallery_music`) e abre na primeira delas; o botão "Galeria" do título tem `visible_if` com `sys.ui.has_gallery`.
 - **`minigames`:** se o projeto não tiver a própria, o compilador a gera a partir das atividades de plugin com `free_play`: um botão `play_activity` por atividade e o quadro de recordes do plugin. Sem nenhuma atividade com `free_play`, a tela some e `sys.ui.has_minigames` é falso.
 - **Textos:** o preset traz as traduções dos seus textos (`ui/<tela>/<elemento>`) e das mensagens do runtime (`runtime/…`) para os idiomas do produto (Req §9.1). As traduções do projeto vencem as do preset. Para um idioma do jogo, o compilador procura a tag exata no preset, depois a tag base (`es-MX` usa `es`) e, na falta das duas, usa o inglês. Nesse último caso, as telas do preset e as mensagens do runtime aparecem em inglês até o projeto traduzi-las, e o validador avisa (W021) quando faltam chaves `runtime/`.
 - **Título do jogo:** um texto do preset igual a `$project.title` é trocado pelo `title` do projeto.
@@ -109,7 +110,7 @@ Todo elemento tem `id` (legível, único na tela), `type` e uma **posição**:
 | `toggle` | Liga/desliga ligado a uma configuração | `bind` |
 | `select` | Lista de opções ligada a uma configuração | `bind`, `options` (ausente = opções do próprio `bind`) |
 | `slot_grid` | Grade de slots de save | `mode` (`save`/`load`), `columns`, `rows`, `slot_style`. Com o modo stream ligado, miniaturas `thumbnail_sensitive` aparecem como `content_filter.placeholder` (RT §8.5) |
-| `gallery_grid` | Grade da galeria | `source` (`endings`, `images`, `music`), `columns`, `locked_asset`. `endings` lista `project.json → endings`; `images` e `music` listam os assets com `gallery: true` em `assets.json` (cenários e músicas), na ordem de `gallery_order` e depois do id. Itens ainda não vistos (`profile.seen_assets`, RT §5.2) aparecem com `locked_asset` e o texto `runtime/gallery/locked`. Com o modo stream ligado (§8), cada item mostra a substituta de `censored.replace_with`; um item com `censored.hide` aparece com o placeholder e o texto `runtime/content_filter/hidden`. Ver a versão censurada desbloqueia o item (RT §5.2) |
+| `gallery_grid` | Grade da galeria | `source` (`endings`, `images`, `music`), `columns`, `locked_asset`. A seção de `source` tem de estar em `project.json → gallery.sections` (U012, Data Model §10.5). `endings` lista `project.json → endings`; `images` e `music` listam os assets com `gallery: true` em `assets.json` (cenários e músicas), na ordem de `gallery_order` e depois do id. Itens ainda não vistos (`profile.seen_assets`, RT §5.2) aparecem com `locked_asset` e o texto `runtime/gallery/locked`. Com o modo stream ligado (§8), cada item mostra a substituta de `censored.replace_with`; um item com `censored.hide` aparece com o placeholder e o texto `runtime/content_filter/hidden`. Ver a versão censurada desbloqueia o item (RT §5.2) |
 | `backlog_list` | Histórico de falas | `max_items` |
 | `container` | Agrupa e alinha elementos | `layout` (`row`, `column`, `grid`), `spacing`, `children` |
 | `records_list` | Quadro de recordes de um minijogo (Plugin SDK §9.1) | `board` (`<namespace>.<quadro>`), `max_items`, `empty_text` |
@@ -126,6 +127,8 @@ No título ainda não existe partida, então `visible_if`, `enabled_if` e condi�
 | `sys.ui.platform` | string | `windows`, `linux`, `macos`, `web` (ex.: esconder "Sair" no Web) |
 | `sys.ui.activity` | boolean | Um minijogo está rodando |
 | `sys.ui.has_minigames` | boolean | Existe ao menos uma atividade com `free_play` (botão "Minijogos") |
+| `sys.ui.has_gallery` | boolean | O projeto tem galeria (botão "Galeria", Data Model §10.5) |
+| `sys.ui.gallery_endings`, `sys.ui.gallery_images`, `sys.ui.gallery_music` | boolean | A seção está ativa em `project.json → gallery.sections` (abas da tela `gallery`) |
 | `sys.ui.last_activity_outcome` | string | Resultado da última atividade jogada no modo livre (`completed`, `cancelled`, `failed` ou o `outcome` declarado); vazio antes da primeira |
 | `sys.ui.last_record_rank` | integer | Posição do último recorde enviado no modo livre; 0 se não entrou no quadro |
 | `sys.ui.content_filter` | boolean | Modo stream ligado (ex.: um selo no HUD) |
@@ -397,7 +400,10 @@ Os mesmos valores estão como `default` em `save.schema.json → PlayerSettings`
 | U008 | aviso | Elemento clicável sem texto nem `tooltip` (sem nome para teclado e acessibilidade) |
 | U009 | aviso | A tela `credits` não tem `licenses_list`, mas algum plugin habilitado ou fonte do tema traz licença |
 | U010 | aviso | Um `play_activity` pode ser alcançado a partir da pausa ou do HUD (por uma cadeia de `open_screen`); o botão vai ficar oculto durante a partida |
-| U011 | aviso | Uma `gallery_grid` de `images` ou `music` não tem nenhum asset com `gallery: true` |
+| U011 | aviso | Uma seção ativa da galeria está vazia: `endings` sem finais em `project.json → endings`, `images` ou `music` sem nenhum asset desse tipo com `gallery: true` |
+| U012 | erro | `gallery_grid` com `source` que não está em `project.json → gallery.sections` (inclusive num projeto sem galeria) |
+| U013 | aviso | Asset com `gallery: true` que não vai aparecer: a seção do tipo dele não está ativa, ou o tipo não entra na galeria (só `image`, `background` e `audio_music`) |
+| U014 | aviso | Projeto sem galeria com tela `ui/gallery.json` ou com uma ação `open_screen` para `gallery`: a tela não entra no jogo e a ação não faz nada |
 | W020 | aviso | Texto de um idioma usa caracteres que nem a fonte do estilo nem as reservas daquele idioma cobrem. Conferido pelo Studio, que lê os arquivos de fonte; o validador de referência não confere, porque não tem os arquivos |
 
 ## 12. Runtime

@@ -81,6 +81,8 @@ O projeto deverá suportar dois tipos de preview:
 
 A comunicação entre o Studio e o Godot deverá ser padronizada. A escolha definitiva entre WebSocket, comunicação por processo ou outra solução ainda está pendente.
 
+> **Nota (2026-11-16):** resolvido. Os dois previews são o mesmo Runtime Godot, que é o único interpretador: no painel do Studio, exportado para Web e ligado por uma ponte JavaScript; na janela, nativo e ligado por WebSocket com token. Os dois falam o mesmo JSON-RPC 2.0 (Runtime Spec §11, Preview Protocol). A decisão é de 2026-11-15 e foi encerrada em 2026-11-16, depois do teste no macOS.
+
 ## 4. Sistema narrativo dinâmico
 
 ### 4.1. Conceito

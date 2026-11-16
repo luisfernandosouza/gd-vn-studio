@@ -108,6 +108,13 @@
               "screen": "gallery"
             }
           ],
+          "visible_if": [
+            {
+              "variable": "sys.ui.has_gallery",
+              "operator": "equals",
+              "value": true
+            }
+          ],
           "appear": {
             "kind": "slide",
             "from": "left",

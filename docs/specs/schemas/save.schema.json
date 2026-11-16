@@ -514,7 +514,7 @@
           "pattern": "^hmac-sha256-[A-Za-z0-9+/]+=*$"
         },
         "seen_assets": {
-          "description": "Assets com gallery: true que o jogador já viu (Runtime Spec §5.2), por id, em ordem lexicográfica.",
+          "description": "Assets da galeria que o jogador já viu numa cena (Runtime Spec §5.2), por id, em ordem lexicográfica. Só recebe assets com gallery: true cuja seção está em project.json → gallery.sections; jogo sem galeria não acrescenta nada.",
           "type": "array",
           "items": {
             "$ref": "common.schema.json#/$defs/AssetRef"

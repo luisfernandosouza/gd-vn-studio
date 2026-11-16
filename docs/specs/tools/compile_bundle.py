@@ -128,6 +128,10 @@ def compile_project(root, plugin_dirs=(), edition=None):
                               "ask_on_first_launch": False if censored_ed else project.get("content_filter", {}).get("ask_on_first_launch", False),
                               **({"placeholder": project["content_filter"]["placeholder"]} if project.get("content_filter", {}).get("placeholder") else {}),
                               "edition": edition}
+    # galeria opcional (Data Model §10.5): ausente = jogo sem galeria
+    sections = [s for s in ("endings", "images", "music") if s in project.get("gallery", {}).get("sections", [])]
+    proj.pop("gallery", None)
+    if sections: proj["gallery"] = {"sections": sections}
 
     # --- variáveis de escopo de jogo
     def var(d, **extra):
@@ -202,6 +206,7 @@ def compile_project(root, plugin_dirs=(), edition=None):
     elif not free_play and "minigames" not in screens:
         bui.pop("minigames")
     bui.update(screens)                                      # telas do projeto substituem as do preset
+    if not sections: bui.pop("gallery", None)                # sem galeria, a tela não entra (UI Spec §2.1)
 
     # --- assets
     bassets = {aid: {**a, "path": "res://vn_content/assets/" + a["path"]} for aid, a in assets.items()}
@@ -216,6 +221,11 @@ def compile_project(root, plugin_dirs=(), edition=None):
             if c.get("replace_with"):                        # arquivo e palco da substituta; lugar na galeria do original
                 rep = {k: v for k, v in bassets[c["replace_with"]].items() if k not in ("gallery", "gallery_order", "renamed_from")}
                 bassets[aid] = {**rep, **{k: a[k] for k in ("type", "gallery", "gallery_order", "renamed_from") if k in a}}
+
+    gallery_types = {"images": {"image", "background"}, "music": {"audio_music"}}
+    for aid, a in assets.items():                            # marca de galeria sem a seção ativa é ignorada (U013)
+        if a.get("gallery") and not any(a["type"] in gallery_types[s] for s in sections if s in gallery_types):
+            for k in ("gallery", "gallery_order"): bassets[aid].pop(k, None)
 
     bundle = {"bundle_version": 1, "format_version": project["format_version"], "project": proj,
               "variables": bvars, "aliases": aliases, "characters": chars, "chapters": chapters,

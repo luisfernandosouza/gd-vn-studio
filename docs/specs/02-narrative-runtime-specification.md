@@ -294,7 +294,17 @@ O Narrative Engine executa um nó de cada vez. Cada nó é **instantâneo** (ava
 
 **Digitação.** O texto aparece a `text_speed` caracteres por segundo (`PlayerSettings`, padrão 40; `0` mostra a fala inteira de uma vez). Só contam os caracteres visíveis: a marcação de estilo (`[b]`, `[color]` etc.) aparece junto com o primeiro caractere que ela envolve. Não há pausa extra em pontuação no v1. O primeiro `vn_advance` durante a digitação completa a fala; o segundo avança. O modo automático conta `auto_delay` a partir do fim da digitação (mais o fim da voz, se houver).
 
-**Galeria.** Ao exibir um asset marcado com `gallery: true` em `assets.json` (cenário por `background`, música por `audio`), o runtime o acrescenta a `profile.seen_assets`, que alimenta a tela `gallery` (UI Spec §3.1). Com o modo stream ligado, quem fica marcado é o asset **original**, mesmo que a tela mostre a substituta (§5.5).
+**Galeria.** A galeria é opcional (Data Model §10.5). Só quando o projeto a tem, o runtime registra em `profile.seen_assets` os assets que o jogador viu, com estas regras:
+
+- **Conta:** um nó `background` com `asset`, e um nó `audio` com `action: play` de um `audio_music` (canal `music` ou `ambient`), quando o asset tem `gallery: true` no bundle. O compilador já tirou a marca dos assets cuja seção o projeto não ativou, então o runtime só olha a marca.
+- **Não conta:** imagens e músicas de telas, de sets e de minijogos, e a imagem de um final (que aparece com o final). A galeria registra o que aconteceu na história.
+- **Preview:** com `profile` em `preview.start` (Preview Protocol §3), o que for marcado vale só naquela sessão, como o resto desse perfil.
+- **Quando:** na hora em que o nó executa, inclusive no modo pular e no automático. Ao carregar um save, o cenário e a música restaurados também contam (o asset aparece de novo na tela).
+- **Modo stream:** com o filtro ligado, quem fica marcado é o asset **original**, mesmo que a tela mostre a substituta ou o placeholder (§5.5).
+- **Gravação:** o id entra na lista uma vez só, em ordem lexicográfica, e `profile.json` é gravado com o debounce do §8.5, como as variáveis `profile`. Ao ler o perfil, ids antigos passam pelos aliases de `renamed_from` do asset (§8.4); um id que não existe mais no bundle, ou que perdeu a marca, fica na lista mas não aparece.
+- **Variáveis:** no boot, o runtime preenche `sys.ui.has_gallery` e `sys.ui.gallery_endings`, `sys.ui.gallery_images` e `sys.ui.gallery_music` a partir de `bundle.json → project.gallery` (Data Model §4.3). Elas não mudam durante o jogo.
+
+Finais vistos (`profile.endings`, §3.4) são gravados sempre, com ou sem galeria.
 
 Guarda contra laço infinito: mais de 10 000 nós instantâneos seguidos sem um bloqueante é erro de conteúdo (provável `jump` circular).
 
@@ -530,9 +540,9 @@ O runtime registra estas ações no `InputMap` ao iniciar, se o projeto Godot ai
 
 ## 11. Comunicação com o Studio (Preview)
 
-Proposta para a pendência do ADD §3.3. O protocolo completo, com parâmetros, resultados, erros e schema, está em [07-preview-protocol.md](07-preview-protocol.md); esta seção é o resumo.
+Resposta à pendência do ADD §3.3. O protocolo completo, com parâmetros, resultados, erros e schema, está em [07-preview-protocol.md](07-preview-protocol.md); esta seção é o resumo.
 
-- **Um interpretador só** (decisão de 2026-11-15). O Preview é o próprio runtime, em dois modos com o mesmo protocolo:
+- **Um interpretador só** (decisão de 2026-11-15, encerrada em 2026-11-16 depois do teste no macOS). O Preview é o próprio runtime, em dois modos com o mesmo protocolo:
   - **Painel** (padrão): o runtime exportado para Web (sem threads, BS §7.3) roda dentro do webview do Studio, ao lado do editor. É o que o autor vê enquanto edita.
   - **Janela:** o Godot embutido, nativo, numa janela própria. Serve ao modo desenvolvedor (depurador do Godot, Plugin SDK §12.3), a plugins que não declaram `web` em `compatibility.platforms` (Plugin SDK §10.6) e a conferir o jogo como no desktop.
 - **Transporte:** no painel, uma ponte JavaScript na mesma página (Preview Protocol §1.1). Na janela, WebSocket em `127.0.0.1`, porta escolhida pelo Studio, com token de uso único passado por argumento de linha de comando (`--vn-preview-port`, `--vn-preview-token`); o runtime recusa conexões sem o token.
