@@ -775,7 +775,7 @@
               "$ref": "common.schema.json#/$defs/Locale"
             },
             "content_filter": {
-              "description": "Modo stream ligado (Data Model §10.4): passos censor: skip não rodam, censor: only rodam e falas usam censored_text. Ausente = desligado.",
+              "description": "Modo stream ligado (Data Model §10.4): passos censor: skip não rodam, censor: only rodam e falas usam censored_text. Ausente = desligado. Um input {content_filter} muda o modo no meio da cena.",
               "type": "boolean",
               "default": false
             },
@@ -824,6 +824,19 @@
                         }
                       }
                     }
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "content_filter"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "content_filter": {
+                        "type": "boolean",
+                        "description": "O jogador liga ou desliga o modo stream com a fala na tela (Runtime Spec §5.5). O traço ganha o evento, o palco visível (stage) e a fala de novo."
+                      }
+                    }
                   }
                 ]
               }
@@ -867,6 +880,10 @@
                       },
                       "error": {
                         "type": "string"
+                      },
+                      "stage": {
+                        "type": "object",
+                        "description": "Palco visível depois de mudar o modo: background (id ou null = placeholder), characters (ids, na ordem de entrada) e audio (canal → asset)."
                       }
                     },
                     "additionalProperties": false

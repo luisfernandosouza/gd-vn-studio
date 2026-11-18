@@ -14,7 +14,7 @@ As mensagens são as mesmas nos dois modos; muda só o transporte.
 
 ### 1.1. Painel (runtime Web)
 
-1. O Studio carrega o export Web do runtime (os arquivos `.wasm`, `.js` e `.pck` do template da versão fixada do Godot, sem threads, BS §7.3) numa página isolada do webview, servida pelo protocolo próprio do Tauri (`vnpreview://`), sem servidor HTTP.
+1. O Studio carrega o **export Web do runtime para o Preview** (`.wasm`, `.js` e `.pck`, sem threads, BS §7.3) numa página isolada do webview, servida pelo protocolo próprio do Tauri (`vnpreview://`), sem servidor HTTP. Esse export é gerado na release do runtime e vem embutido no Studio (spec 09 §1): não é o template de exportação do jogo, que o Studio só baixa ao exportar (BS §2), então o painel funciona na primeira abertura e sem internet. O protocolo DEVE servir o `.wasm` com `Content-Type: application/wasm`, para o motor compilar em streaming. O spike serviu a página por HTTP; servir por `vnpreview://` no WebView2, na WKWebView e no WebKitGTK ainda precisa ser conferido no primeiro protótipo (README das specs, "A conferir").
 2. O runtime expõe na página, via `JavaScriptBridge`, a função `vnPreview.send(text)`, por onde o Studio manda cada requisição, e entrega respostas e notificações chamando `vnPreview.onmessage(text)`, que o Studio registra antes de iniciar o motor. Cada chamada leva **uma** mensagem JSON-RPC 2.0 em texto. Lotes não são aceitos.
 3. O `session.hello` vem sem `token`: a página só é acessível ao Studio. As regras de 5 segundos e de mensagem antes do `hello` valem como na janela, com o erro `UNAUTHENTICATED` no lugar do fechamento.
 4. O Studio mantém a página viva entre edições: abrir o motor e o bundle custa de 1 a 5 segundos (teste de 2026-11-15), e cada edição depois disso vai por recarga incremental (§3). Fechar o painel descarta a página; não há processo para encerrar.
@@ -26,6 +26,26 @@ As mensagens são as mesmas nos dois modos; muda só o transporte.
 3. O runtime abre um servidor WebSocket só em `127.0.0.1:<porta>`, aceita **uma** conexão por vez e espera `session.hello` com o token. Qualquer outra mensagem antes disso, token errado ou 5 segundos sem `hello` fecham a conexão com o código 4401. Uma segunda conexão é recusada com 4409.
 4. Cada quadro de texto do WebSocket leva **uma** mensagem JSON-RPC 2.0 em UTF-8. Lotes (arrays) não são aceitos.
 5. Ao fechar a janela do jogo, o runtime envia `session.closing` e fecha com 1000. Se a conexão cair, o runtime encerra sozinho em 10 segundos, para não deixar processos órfãos.
+6. O binário é o Godot embutido no Studio, da versão fixada, e abre o pacote principal do runtime para o Preview (`runtime-preview.pck`, gerado na mesma release que o export Web do §1.1) com `--main-pack`. Os plugins entram como no painel (§1.3).
+
+### 1.3. Assets e plugins no Preview
+
+Decisão D18 (2026-11-17). O Preview não passa pelo import do editor do Godot: o Studio não reimporta nem empacota assets a cada edição.
+
+- **Caminhos.** No bundle que o Studio grava para o Preview (`.vnstudio/preview/narrative/`), `assets.<id>.path` é uma URL `vnpreview://localhost/assets/<path>` no painel, ou uma URL `file://` absoluta para o arquivo na pasta do projeto na janela, em vez de `res://` (RT §2). É a única diferença entre esse bundle e o do build.
+- **Carregador.** Em modo preview, o runtime resolve esses caminhos pelo carregador de bytes `VNAssets`: lê os bytes e cria o recurso em memória (`ImageTexture` para PNG, JPG e WebP; SVG rasterizado na escala que o import usaria; `AudioStreamOggVorbis`, `AudioStreamMP3` ou `AudioStreamWAV`; `FontFile`). O carregador aplica ele mesmo as opções que o import do Godot aplicaria no build: o bloco `import` do asset em `assets.json`, `nine_slice`, `loop` de música, e o filtro de textura e os mipmaps do tema.
+- **Mesmo resultado.** O Preview DEVE mostrar e tocar o mesmo que o jogo exportado. Só podem diferir a compressão (o build comprime texturas e áudio conforme `import`; o Preview usa os bytes originais), o tempo de carga e a memória. Qualquer outra diferença é defeito do carregador.
+- **Troca.** Acrescentar, trocar ou apagar um asset vai em `preview.reload` com a troca `/assets/<id>` (§3). O runtime descarta o recurso em cache daquele id e redesenha o que estiver na tela com ele.
+- **Plugins.** Nos dois modos, cada plugin entra como um pacote de recursos (`.pck`) montado em `res://vn_plugins/<namespace>/` com `ProjectSettings.load_resource_pack` (Plugin SDK §10.6). O Studio gera o `.pck` com o Godot embutido em modo headless, a partir de uma cópia do plugin em `.vnstudio/preview/plugins/<namespace>/` (import dos assets do plugin mais exportação do pacote), e só o refaz quando um arquivo do plugin muda.
+- **A conferir no primeiro protótipo** (README das specs): o teste B dos assets (abrir no painel 200 imagens de 1920 × 1080 e 30 músicas, medir memória e tempo, e trocar um asset em uso); se o Godot registra os `class_name` de um `.pck` montado depois do boot; e quanto tempo leva gerar o `.pck` de um plugin a cada salvamento. Se o `class_name` falhar, os plugins entram num único `.pck` montado antes do boot do runtime, e `preview.reload_plugins` reabre o motor.
+
+### 1.4. Dados do jogador no Preview
+
+Decisão D21 (2026-11-17). Saves, perfil e configurações do Preview nunca se misturam com os de outro projeto nem com os do jogo instalado.
+
+- **Padrão: em memória.** O runtime em modo preview usa um `user://` em memória. O perfil vem de `preview.start.profile` ou começa vazio; as configurações começam nos padrões do projeto (UI Spec §8). Nada sobrevive ao fechar o painel ou a janela.
+- **"Manter saves do Preview"**, opção por projeto no Studio: `preview.load` com `user_data: "project"`. O runtime grava como o jogo grava (RT §8.5), mas na pasta do projeto, em `.vnstudio/preview/user/` (fora do Git, spec 09 §3.4). No painel, onde `user://` é a IndexedDB da origem `vnpreview://`, comum a todos os projetos, o runtime prefixa as chaves com o `project.id`; na janela, o Studio passa o diretório com `--vn-user-dir <pasta>`.
+- O `profile` de `preview.start`, quando vem, substitui o perfil só naquela sessão, nos dois casos: não é gravado.
 
 Mensagens do Studio para o runtime são **requisições** (com `id`) e recebem uma resposta. Mensagens do runtime para o Studio são **notificações** (sem `id`). O runtime nunca faz requisições ao Studio no v1.
 
@@ -53,8 +73,8 @@ O estado do motor (RT §3: `TITLE`, `SCENE_RUNNING`, `ACTIVITY`…) vem em `prev
 | Método | Estados | Parâmetros | Resultado |
 |---|---|---|---|
 | `session.hello` | `CONNECTED` | `token` (só na janela), `protocol`, `studio_version` | `runtime_version`, `godot_version`, `protocol`, `platform`, `features` |
-| `preview.load` | `READY`, `LOADED` | `bundle_path` (janela) ou `bundle_url` (painel, URL `vnpreview://`): a pasta com a forma canônica (RT §2); `locale`? | `content_hash`, `format_version`, `chapters`, `scenes`, `plugins` |
-| `preview.start` | `LOADED` | `chapter`?, `scene`?, `node`?, `variables`?, `profile`?, `seed`?, `paused`? | `GameState` |
+| `preview.load` | `READY`, `LOADED` | `bundle_path` (janela) ou `bundle_url` (painel, URL `vnpreview://`): a pasta com a forma canônica (RT §2, com os caminhos de asset do §1.3); `locale`?; `user_data`?: `memory` (padrão) ou `project` (§1.4) | `content_hash`, `format_version`, `chapters`, `scenes`, `plugins` |
+| `preview.start` | `LOADED` | `chapter`?, `scene`?, `node`?, `variables`?, `profile`?, `content_filter`?, `seed`?, `paused`? | `GameState` |
 | `preview.stop` | `RUNNING`, `PAUSED` | — | `{}` (volta a `LOADED`) |
 | `preview.pause` / `preview.resume` | `RUNNING` / `PAUSED` | — | `{ node }` |
 | `preview.step` | `PAUSED` | `until`: `node` (padrão), `blocking`, `scene_end`, `selection` | `{ node, phase }` (continua `PAUSED`) |
@@ -64,12 +84,13 @@ O estado do motor (RT §3: `TITLE`, `SCENE_RUNNING`, `ACTIVITY`…) vem em `prev
 | `preview.explain_selection` | `RUNNING`, `PAUSED` | `scene`? | `SchedulerEvaluation` (§4.3), sem alterar o estado |
 | `preview.reload` | depois de `load` | `patch` (incremental) ou `bundle_path`/`bundle_url` com `changed` (completa) | `{ content_hash?, resumed }` |
 | `preview.reload_plugins` | depois de `load` | `ids` | `{ reloaded, activity_restarted }` |
-| `preview.show_screen` | `LOADED`, `RUNNING`, `PAUSED` | `screen` (id de `ui/`), `simulate`? (`has_save`, `in_game`, `platform`, `endings`) | `{}` |
+| `preview.show_screen` | `LOADED`, `RUNNING`, `PAUSED` | `screen` (id de `ui/`), `simulate`? (`has_save`, `in_game`, `platform`, `endings`, `content_filter`, `content_filter_available`, `last_activity_outcome`, `last_record_rank`, `seen_assets`, `gallery_unlock_all`) | `{}` |
+| `preview.set_setting` | depois de `load` | `setting` (um `bind` da UI Spec §8), `value` | `{}` |
 | `preview.set_locale` | depois de `load` | `locale` | `{}` |
 
 Detalhes:
 
-- **`preview.start`.** Sem `scene`, começa um jogo novo (RT §3.1) no `chapter` dado ou no `start_chapter`. Com `scene`, entra no capítulo da cena sem rodar a `entry_scene` e começa a cena; com `node`, começa nesse nó, depois de instanciar `scene.*`. `variables` sobrescreve valores depois dos defaults e do perfil (é o "começar daqui com estas variáveis" do Studio). `profile` substitui o `profile.json` só nesta sessão (para testar NG+ e finais vistos). Com `settings.reproducible_rng`, `seed` (16 hex) semeia o PCG32; sem ela, semeia o RNG comum do motor, o que ajuda a reproduzir um bug mas não garante o mesmo traço (RT §12.2). `paused: true` para no primeiro nó.
+- **`preview.start`.** Sem `scene`, começa um jogo novo (RT §3.1) no `chapter` dado ou no `start_chapter`. Com `scene`, entra no capítulo da cena sem rodar a `entry_scene` e começa a cena; com `node`, começa nesse nó, depois de instanciar `scene.*`. `variables` sobrescreve valores depois dos defaults e do perfil (é o "começar daqui com estas variáveis" do Studio). `profile` substitui o `profile.json` só nesta sessão (para testar NG+, finais vistos e a galeria; §1.4). `content_filter` liga ou desliga o modo stream desde o início, sem mexer nas configurações guardadas. Com `settings.reproducible_rng`, `seed` (16 hex) semeia o PCG32; sem ela, semeia o RNG comum do motor, o que ajuda a reproduzir um bug mas não garante o mesmo traço (RT §12.2). `paused: true` para no primeiro nó.
 - **`preview.set_variables`** passa pelo State Manager como uma transação com origem `preview`: as mesmas validações do RT §6.2, menos a de permissão. Variáveis `sys.*` e derivadas dão `READ_ONLY`. A resposta e a notificação `state.changed` trazem as mudanças.
 - **`preview.input`** é o que a automação de testes e o "repetir a partir daqui" do Studio usam. `choose` e `click` recebem o UUID da opção ou do hotspot; uma opção invisível ou desabilitada dá `accepted: false`. `complete_activity` conclui a atividade em curso com `outcome` (um dos `outcomes` declarados) e `payload` (validado contra o `result_schema`), como se o plugin chamasse `complete` (Plugin SDK §6): é o que o painel usa para plugins sem `web` (Plugin SDK §10.6).
 - **`preview.reload`.** Tem duas formas:
@@ -78,7 +99,8 @@ Detalhes:
 
   Nas duas formas, o runtime tenta continuar na mesma cena e no mesmo nó (`resumed: "node"`). Se o nó sumiu, reinicia a cena (`"scene_restarted"`); se a cena sumiu, volta ao ponto de seleção (`"selection_point"`). Valores de variáveis são mantidos e passam pelas regras do RT §8.4. Mudanças só em `ui/`, `sets/` ou `theme.json` redesenham a tela sem mexer no jogo (`"ui_only"`). Uma troca de `patch` com erro de schema dá `BUNDLE_INVALID` (`data.path` aponta a troca) e nada é aplicado.
 - **`preview.reload_plugins`.** Na janela, recarrega scripts e cenas do disco (Plugin SDK §12.3). No painel, o Studio reempacota o plugin como `.pck` e o runtime o carrega de novo com `ProjectSettings.load_resource_pack`, substituindo os recursos em cache (Plugin SDK §10.6).
-- **`preview.show_screen`** abre uma tela de `ui/` por cima de tudo, para o Menu Editor (UI Spec §9). `simulate` finge os valores de `sys.ui.*` e `sys.endings.*`, para o autor ver o título "depois do final" sem jogar.
+- **`preview.show_screen`** abre uma tela de `ui/` por cima de tudo, para o Menu Editor (UI Spec §9). `simulate` finge os valores de `sys.ui.*` e `sys.endings.*`, para o autor ver o título "depois do final" sem jogar: `content_filter` e `content_filter_available` fingem as variáveis do modo stream; `last_activity_outcome` e `last_record_rank`, as do fim de um minijogo; `seen_assets` finge a lista do perfil para a galeria, e `gallery_unlock_all: true` mostra a galeria inteira desbloqueada ("Ver como se tudo estivesse desbloqueado", Req §11.1). Os valores fingidos valem só enquanto a tela está aberta.
+- **`preview.set_setting`** muda uma configuração do jogador como se ele a tivesse mudado numa tela (UI Spec §8): aplica na hora e emite o evento correspondente, por exemplo `sys.content_filter_changed` para `content_filter` (RT §5.5). É o botão "Modo stream" da barra do Preview (Req §11.2). Com `user_data: "memory"`, a mudança vale só na sessão.
 
 ## 4. Notificações (Runtime → Studio)
 
@@ -90,7 +112,7 @@ Toda notificação tem `seq` (inteiro crescente na sessão, a partir de 1) e `ph
 | `chapter.started` / `chapter.ended` | RT §3.2, §3.3 | `chapter` |
 | `scene.started` | Uma cena começa | `scene`, `chapter`, `selection_count`, `reason`: o `reason` da seleção (§4.3); `entry` quando é a `entry_scene` do capítulo (RT §3.2, sem passar pelo Scheduler); `start` quando o Preview forçou a cena com `preview.start({scene})` |
 | `scene.ended` | Fim de cena (RT §5.4) | `scene`, `then` |
-| `node.entered` | Antes de executar cada nó | `scene`, `node`, `type` |
+| `node.entered` | Antes de executar cada nó. Um nó pulado pelo modo stream (`censor`, RT §5.5) não executa e não gera `node.entered` | `scene`, `node`, `type` |
 | `state.changed` | Cada transação aplicada | `changes` (`{variable, old, new}`), `source`: `scene`, `choice`, `plugin:<id>`, `ui`, `preview`, `system` |
 | `event.emitted` | Evento entregue pelo Event Bus | `name`, `payload`, `source` |
 | `scheduler.evaluated` | Cada ponto de seleção | `SchedulerEvaluation` (§4.3) |

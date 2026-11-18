@@ -345,6 +345,24 @@
             }
           ]
         },
+        "background_censor": {
+          "description": "Modo stream (Runtime Spec §5.5): censor do passo que pôs este item no palco. Ao mudar o modo ou ao carregar, um item cujo passo não valeria no modo atual sai do palco. Ausente = passo sem censor.",
+          "enum": [
+            "skip",
+            "only"
+          ]
+        },
+        "background_base": {
+          "description": "Modo stream: último cenário posto por um passo sem censor, mostrado quando o cenário atual sai do palco por background_censor (Runtime Spec §5.5). Ausente ou null = content_filter.placeholder, senão a cor de fundo do tema.",
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/AssetRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "characters": {
           "type": "array",
           "items": {
@@ -369,6 +387,13 @@
                     "type": "number"
                   }
                 ]
+              },
+              "censor": {
+                "description": "Modo stream (Runtime Spec §5.5): censor do passo que pôs este item no palco. Ao mudar o modo ou ao carregar, um item cujo passo não valeria no modo atual sai do palco. Ausente = passo sem censor.",
+                "enum": [
+                  "skip",
+                  "only"
+                ]
               }
             }
           }
@@ -390,6 +415,13 @@
               },
               "volume": {
                 "type": "number"
+              },
+              "censor": {
+                "description": "Modo stream (Runtime Spec §5.5): censor do passo que pôs este item no palco. Ao mudar o modo ou ao carregar, um item cujo passo não valeria no modo atual sai do palco. Ausente = passo sem censor.",
+                "enum": [
+                  "skip",
+                  "only"
+                ]
               }
             }
           }

@@ -1,0 +1,174 @@
+{
+  "title": "Vetores de compilação",
+  "covers": [
+    "Build System §5.1, §5.4",
+    "Data Model §10.5, §12",
+    "UI Spec §2.1",
+    "Preview Protocol §3"
+  ],
+  "cases": [
+    {
+      "id": "demo",
+      "description": "exemplo das specs, edição completa",
+      "expect": {
+        "content_hash": "sha256-txXZ/Jp9MKLzofEqJvxtOp0Tl57q1jS+FhSQ8k4EgWQ=",
+        "locales": {
+          "en": "sha256-I1UdsAR7RPXZYX9TZsNjym8DZAbGvJlOKj+2mmaw0MA=",
+          "pt-BR": "sha256-2mAyLwoc/dAOXFz7Tx6fJzveSswJZtsu5JLBhG7OTHU="
+        },
+        "plugins": "sha256-6bbziWicmrjC0stBozX38VsinQV7SUpvd0Z0yFqiQvc=",
+        "present": [
+          "/ui/gallery",
+          "/assets/bg~1beach_day/gallery",
+          "/ui/minigames"
+        ]
+      }
+    },
+    {
+      "id": "edicao_censurada",
+      "description": "edição censurada: texto censurado no lugar do original, substituta no lugar do asset",
+      "edition": "censored",
+      "expect": {
+        "content_hash": "sha256-3Mrhy7vrZPg/wAxThYw9kSZaqMsUbszpYxEdjxYUb0g=",
+        "locales": {
+          "en": "sha256-T9CUzuCiTPYTbpQjZ+qbfkZuoj7QqIf3wfUu0PK3Xj0=",
+          "pt-BR": "sha256-2mAyLwoc/dAOXFz7Tx6fJzveSswJZtsu5JLBhG7OTHU="
+        },
+        "plugins": "sha256-6bbziWicmrjC0stBozX38VsinQV7SUpvd0Z0yFqiQvc=",
+        "present": [
+          "/assets/bg~1pier_sunset"
+        ]
+      }
+    },
+    {
+      "id": "sem_galeria",
+      "description": "sem project.json → gallery: a tela gallery e as marcas dos assets saem",
+      "edits": [
+        {
+          "file": "project.json",
+          "pointer": "/gallery"
+        }
+      ],
+      "expect": {
+        "content_hash": "sha256-cLnmAWNbmhy7kSNwg9JaSJd78uiY6aYMqpx/SKuDwNw=",
+        "locales": {
+          "en": "sha256-I1UdsAR7RPXZYX9TZsNjym8DZAbGvJlOKj+2mmaw0MA=",
+          "pt-BR": "sha256-2mAyLwoc/dAOXFz7Tx6fJzveSswJZtsu5JLBhG7OTHU="
+        },
+        "plugins": "sha256-6bbziWicmrjC0stBozX38VsinQV7SUpvd0Z0yFqiQvc=",
+        "absent": [
+          "/ui/gallery",
+          "/project/gallery",
+          "/assets/bg~1beach_day/gallery",
+          "/assets/music~1waves/gallery"
+        ]
+      }
+    },
+    {
+      "id": "galeria_so_finais",
+      "description": "só a seção endings: imagens e músicas perdem a marca",
+      "edits": [
+        {
+          "file": "project.json",
+          "pointer": "/gallery/sections",
+          "value": [
+            "endings"
+          ]
+        }
+      ],
+      "expect": {
+        "content_hash": "sha256-LAlmMdHHJhBncmvLLq5x1l32/mH9nP7b3jypgQFd0CE=",
+        "locales": {
+          "en": "sha256-I1UdsAR7RPXZYX9TZsNjym8DZAbGvJlOKj+2mmaw0MA=",
+          "pt-BR": "sha256-2mAyLwoc/dAOXFz7Tx6fJzveSswJZtsu5JLBhG7OTHU="
+        },
+        "plugins": "sha256-6bbziWicmrjC0stBozX38VsinQV7SUpvd0Z0yFqiQvc=",
+        "present": [
+          "/ui/gallery",
+          "/project/gallery"
+        ],
+        "absent": [
+          "/assets/bg~1beach_day/gallery",
+          "/assets/music~1waves/gallery"
+        ]
+      }
+    },
+    {
+      "id": "renomear_variavel",
+      "description": "renamed_from vira alias no bundle",
+      "edits": [
+        {
+          "file": "variables.json",
+          "pointer": "/global/0/renamed_from",
+          "value": [
+            "money"
+          ]
+        }
+      ],
+      "expect": {
+        "content_hash": "sha256-GvfFxqOSrDH/SY6tE5r0/0lRmz+FA/fvakWxG+FIEUw=",
+        "locales": {
+          "en": "sha256-I1UdsAR7RPXZYX9TZsNjym8DZAbGvJlOKj+2mmaw0MA=",
+          "pt-BR": "sha256-2mAyLwoc/dAOXFz7Tx6fJzveSswJZtsu5JLBhG7OTHU="
+        },
+        "plugins": "sha256-6bbziWicmrjC0stBozX38VsinQV7SUpvd0Z0yFqiQvc=",
+        "present": [
+          "/aliases/global.money"
+        ]
+      }
+    },
+    {
+      "id": "idioma_fora_do_produto",
+      "description": "idioma do jogo fora dos idiomas do produto: textos prontos caem no inglês",
+      "edits": [
+        {
+          "file": "project.json",
+          "pointer": "/locales/-",
+          "value": "ko"
+        }
+      ],
+      "expect": {
+        "content_hash": "sha256-D4XeCmFMM2FXJzN1WlZffkpP1NQNVzmIDHNVrHro2OQ=",
+        "locales": {
+          "en": "sha256-I1UdsAR7RPXZYX9TZsNjym8DZAbGvJlOKj+2mmaw0MA=",
+          "ko": "sha256-mkNQCvygL20iyzKKkfVIa5cZ2+Hlz6aYqv8h0HGZ7Kk=",
+          "pt-BR": "sha256-2mAyLwoc/dAOXFz7Tx6fJzveSswJZtsu5JLBhG7OTHU="
+        },
+        "plugins": "sha256-6bbziWicmrjC0stBozX38VsinQV7SUpvd0Z0yFqiQvc="
+      }
+    },
+    {
+      "id": "censurada_esconde_da_galeria",
+      "description": "edição censurada: asset com censored.hide sai da galeria",
+      "edition": "censored",
+      "edits": [
+        {
+          "file": "assets.json",
+          "pointer": "/assets/bg~1sea/censored",
+          "value": {
+            "hide": true
+          }
+        },
+        {
+          "file": "assets.json",
+          "pointer": "/assets/bg~1sea/gallery",
+          "value": true
+        }
+      ],
+      "expect": {
+        "content_hash": "sha256-hBxUaQFs/SEle+fZSxaaoULoaToDst/2Ca6Y7FkiFj8=",
+        "locales": {
+          "en": "sha256-T9CUzuCiTPYTbpQjZ+qbfkZuoj7QqIf3wfUu0PK3Xj0=",
+          "pt-BR": "sha256-2mAyLwoc/dAOXFz7Tx6fJzveSswJZtsu5JLBhG7OTHU="
+        },
+        "plugins": "sha256-6bbziWicmrjC0stBozX38VsinQV7SUpvd0Z0yFqiQvc=",
+        "present": [
+          "/assets/bg~1sea"
+        ],
+        "absent": [
+          "/assets/bg~1sea/gallery"
+        ]
+      }
+    }
+  ]
+}

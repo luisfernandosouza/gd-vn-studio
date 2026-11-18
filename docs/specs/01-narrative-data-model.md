@@ -477,7 +477,7 @@ O autor marca o conteúdo em três níveis, do mais simples ao mais fino:
 | Nível | Onde | O que faz |
 |---|---|---|
 | **Asset** | `assets.json → censored` | `{"replace_with": "<asset>"}` troca este asset por outro **em todo lugar** onde ele aparece: cenário, expressão de personagem, música, voz, imagem de tela e de set, galeria, imagem de final e assets que plugins carregam (Plugin SDK §5.6). `{"hide": true}` não desenha nem toca nada: o sprite some, o som fica mudo, e um cenário ou imagem dá lugar ao `content_filter.placeholder` do projeto (ou à cor de fundo do tema). É o caso mais comum: o autor marca uma vez e não mexe em nenhuma cena |
-| **Texto** | `censored_text` em `line` e em opções; `censored_prompt` em `choice` e `interact` | Mostrado no lugar do original. Segue as mesmas regras de interpolação e marcação (§9, §9.1) e tem tradução própria (caminho `…/censored`). A voz da fala segue a troca do asset de voz, se ele tiver `censored` |
+| **Texto** | `censored_text` em `line` e em opções; `censored_prompt` em `choice` e `interact` | Mostrado no lugar do original. Segue as mesmas regras de interpolação e marcação (§9, §9.1) e tem tradução própria (caminho `…/censored`). A voz da fala segue a troca do asset de voz, se ele tiver `censored` (fala com `censored_text` e voz sem `censored` gera o aviso W025). Também têm versão censurada a legenda de `audio` (`censored_caption`) e os rótulos de hotspot e de `exit` em `interact` (`censored_label`), com caminho `…/censored`. A legenda segue o asset: com `hide`, não aparece; com `replace_with`, mostra `censored_caption` (ou nada, se não houver) |
 | **Passo** | `censor` num nó | `skip`: o passo só acontece com o modo desligado; `only`: só com o modo ligado. Quando o passo não vale, o runtime segue `next` (ou o nó seguinte) sem executá-lo. Vale **só** em passos de apresentação: `line`, `background`, `show`, `hide`, `audio` e `wait` (R023) |
 
 ```json
@@ -499,7 +499,11 @@ O que garante a regra de ouro:
 
 - `censor` é recusado em escolhas, `interact`, efeitos, desvios (`branch`, `jump`), `emit`, minijogos e `end` (R023): esses passos sempre rodam.
 - O estado do filtro (`sys.ui.content_filter`) só pode ser lido por telas e sets, por exemplo para mostrar um selo "modo stream" no HUD. Uma condição, efeito, derivada ou interpolação de cena ou capítulo que o leia é erro (R022).
+- Numa tela, a leitura só serve para enfeites. Também é R022 ler `sys.ui.content_filter*` numa condição que decide uma ação `effects` ou `emit`: o `if` da própria ação ou de uma ação que a envolve, um valor de `effects` ou `payload`, ou o `visible_if`/`enabled_if` do elemento que dispara a lista (UI Spec §11).
+- O palco lembra o `censor` do passo que pôs cada item (cenário, personagem, canal de áudio). Ao mudar o modo, e ao carregar um save, o runtime esconde os itens cujo passo não valeria no modo atual, como se ele não tivesse rodado (Runtime Spec §5.5, decisão D19 de 2026-11-17).
+- Um minijogo NÃO DEVE devolver outro `outcome` ou `payload`, nem escrever variáveis ou emitir eventos diferentes, conforme o modo (Plugin SDK §5.6).
 - Uma substituta de asset não pode ter `censored` (sem cadeias) nem ser o próprio asset (R024).
+- Nomes de personagem (`display_name`), títulos de capítulo, títulos e descrições de finais e textos de telas não têm versão censurada: devem ser neutros. Uma tela pode trocar um texto pelo modo com `visible_if`, porque isso só muda a apresentação.
 - Um projeto com conteúdo marcado sem nenhum jeito de o jogador ligar o modo (controle `content_filter` numa tela, `ask_on_first_launch` ou `default: true`) gera o aviso W024.
 
 `project.json → content_filter` traz `default` (valor inicial da configuração, padrão `false`), `ask_on_first_launch` (pergunta antes do título na primeira vez que o jogo abre, Runtime Spec §3.0) e `placeholder` (imagem neutra para cenários escondidos e miniaturas de save sensíveis). `build.edition: censored` gera a **edição censurada**, com o filtro sempre ligado e sem os originais no pacote (Build System §5.4). Como o modo liga, e o que acontece com saves, galeria e minijogos, está na Runtime Spec §3.0, §5.5 e §8, na UI Spec §8 e no Plugin SDK §5.6.
@@ -529,11 +533,12 @@ Decisão de 2026-11-16: a galeria é **opcional por projeto**. O autor decide se
 - Sem `gallery`: o compilador não inclui a tela `gallery` do preset (UI Spec §2.1), `sys.ui.has_gallery` é falso e o botão "Galeria" do título some. Uma tela `ui/gallery.json` do projeto também fica fora do jogo (aviso U014).
 - Seção fora de `sections`: a aba dela some da tela do preset, e o compilador tira `gallery` e `gallery_order` dos assets daquele tipo no bundle (aviso U013 no validador), para o runtime não marcar nada.
 - Os **finais vistos continuam sendo gravados** no perfil mesmo sem galeria, porque `sys.endings.<id>` serve também para NG+ e condições do título.
+- As **imagens e músicas vistas também continuam sendo gravadas** (decisão D20 de 2026-11-17): o runtime registra em `profile.seen_assets` todo asset `image`, `background` e `audio_music` que aparece numa cena, com ou sem galeria e com ou sem `gallery: true`. A galeria filtra na hora de mostrar. Assim, um jogo que ganha galeria (ou marca uma CG com `gallery: true`) numa atualização mostra desbloqueado o que o jogador já viu.
 
 **Como o jogo registra o que o jogador viu.** Tudo fica no perfil (`profile.json`, Runtime Spec §8.5), que vale para todos os saves e sobrevive a um jogo novo:
 
 - **Finais:** `profile.endings`, no `end` com `ending` (Runtime Spec §3.4).
-- **Imagens e músicas:** `profile.seen_assets`, a lista de ids dos assets da galeria já vistos numa cena, em ordem lexicográfica. A regra exata de quando um asset conta está na Runtime Spec §5.2.
+- **Imagens e músicas:** `profile.seen_assets`, a lista de ids dos assets `image`, `background` e `audio_music` já vistos numa cena, em ordem lexicográfica. A regra exata de quando um asset conta está na Runtime Spec §5.2.
 
 Um item não visto aparece bloqueado (`locked_asset` e o texto `runtime/gallery/locked`, UI Spec §3.1). A ação `reset_profile` apaga tudo isso junto com o resto do perfil.
 
@@ -565,7 +570,7 @@ O JSON Schema garante a forma. O Content Validator (implementação de referênc
 | R019 | erro | Variável interpolada inexistente ou fora de escopo (seção 9) |
 | R020 | erro | Nó `emit` com evento fora do namespace `story` |
 | R021 | erro | Só na exportação: `project.json` sem `version` |
-| R022 | erro | `sys.ui.content_filter` ou `sys.ui.content_filter_available` lido numa cena, capítulo ou derivada (o modo stream não muda a história, §10.4) |
+| R022 | erro | `sys.ui.content_filter` ou `sys.ui.content_filter_available` lido numa cena, capítulo ou derivada, ou numa tela onde decide uma ação `effects` ou `emit` (o modo stream não muda a história, §10.4) |
 | R023 | erro | `censor` num passo que não é de apresentação (só `line`, `background`, `show`, `hide`, `audio` e `wait`, §10.4) |
 | R024 | erro | `censored.replace_with` aponta para o próprio asset ou para um asset que também tem `censored`; `content_filter.placeholder` com `censored` |
 | T001 | erro | Literal incompatível com o tipo da variável |
@@ -620,10 +625,11 @@ O JSON Schema garante a forma. O Content Validator (implementação de referênc
 | W022 | aviso | Plugin com quadros de recordes sem a concessão de `profile.data`: recordes e dados de perfil seriam recusados |
 | W023 | aviso | Tradução num arquivo de `locales/<lang>/` diferente do que a tabela do §9 define |
 | W024 | aviso | O projeto tem conteúdo marcado para o modo stream, mas o jogador não tem como ligá-lo: nenhuma tela (do projeto ou do preset) liga `content_filter`, e `content_filter.ask_on_first_launch` e `default` estão desligados (§10.4) |
+| W025 | aviso | Fala com `censored_text` cuja voz (`voice`) não tem `censored`: com o modo ligado, a voz original toca sob o texto censurado (§10.4) |
 
 Todo código tem uma mensagem em linguagem simples no idioma do Studio e leva ao ponto exato do problema (ver [Requisitos de autoria](04-studio-authoring-requirements.md) §6).
 
-Telas, sets e estilos têm regras próprias (U001–U011, W020) na UI Spec §11. O validador de referência implementa todos os códigos acima e os da UI Spec, exceto W005, que exige análise de satisfatibilidade das condições, e W020, que exige ler os arquivos de fonte. W006 e W010 são aproximações: W006 avisa quando todas as opções têm `visible_if` (no `interact`, quando todos os hotspots têm `visible_if` e não há `exit`), e W010 quando a `fallback_scene` não escreve em nenhuma variável citada em `completion.conditions`. `tools/test_validate.py` contém um caso quebrado de propósito para cada código implementado.
+Telas, sets e estilos têm regras próprias (U001–U014, W020) na UI Spec §11. O validador de referência implementa todos os códigos acima e os da UI Spec, exceto W005, que exige análise de satisfatibilidade das condições, e W020, que exige ler os arquivos de fonte. W006 e W010 são aproximações: W006 avisa quando todas as opções têm `visible_if` (no `interact`, quando todos os hotspots têm `visible_if` e não há `exit`), e W010 quando a `fallback_scene` não escreve em nenhuma variável citada em `completion.conditions`. `tools/test_validate.py` contém um caso quebrado de propósito para cada código implementado.
 
 O `tools/validate.py` é a **referência de conformidade**: o validador do Studio (TypeScript) implementa as mesmas regras e passa nos mesmos casos.
 

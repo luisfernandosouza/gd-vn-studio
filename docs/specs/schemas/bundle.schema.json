@@ -174,7 +174,7 @@
     },
     "assets": {
       "type": "object",
-      "description": "Assets por id, com path reescrito para res://vn_content/assets/<path>.",
+      "description": "Assets por id, com path reescrito para res://vn_content/assets/<path>. No bundle do Preview, path é uma URL vnpreview:// (painel) ou file:// (janela) para o arquivo do autor (spec 07 §1.3).",
       "propertyNames": {
         "$ref": "common.schema.json#/$defs/AssetRef"
       },
@@ -187,7 +187,7 @@
         "properties": {
           "path": {
             "type": "string",
-            "pattern": "^res://"
+            "pattern": "^(res|vnpreview|file)://"
           }
         }
       }

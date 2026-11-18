@@ -390,6 +390,32 @@
               ]
             },
             "method": {
+              "const": "preview.set_setting"
+            },
+            "params": {
+              "$ref": "#/$defs/Preview_set_setting_params"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "id",
+            "method"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "id": {
+              "type": [
+                "integer",
+                "string"
+              ]
+            },
+            "method": {
               "const": "preview.set_locale"
             },
             "params": {
@@ -1216,6 +1242,13 @@
         },
         "locale": {
           "$ref": "common.schema.json#/$defs/Locale"
+        },
+        "user_data": {
+          "enum": [
+            "memory",
+            "project"
+          ],
+          "description": "Onde ficam saves, perfil e configurações do Preview: memory (padrão) ou a pasta .vnstudio/preview/user/ do projeto (spec 07 §1.4)."
         }
       },
       "additionalProperties": false,
@@ -1280,6 +1313,10 @@
         },
         "profile": {
           "$ref": "save.schema.json#/$defs/Profile"
+        },
+        "content_filter": {
+          "type": "boolean",
+          "description": "Liga ou desliga o modo stream desde o início, sem mexer nas configurações guardadas (spec 07 §3)."
         },
         "seed": {
           "type": "string",
@@ -1739,6 +1776,29 @@
               "items": {
                 "$ref": "common.schema.json#/$defs/Id"
               }
+            },
+            "content_filter": {
+              "type": "boolean"
+            },
+            "content_filter_available": {
+              "type": "boolean"
+            },
+            "last_activity_outcome": {
+              "type": "string"
+            },
+            "last_record_rank": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "seen_assets": {
+              "type": "array",
+              "items": {
+                "$ref": "common.schema.json#/$defs/AssetRef"
+              },
+              "uniqueItems": true
+            },
+            "gallery_unlock_all": {
+              "type": "boolean"
             }
           },
           "additionalProperties": false
@@ -1752,6 +1812,27 @@
     "Preview_show_screen_result": {
       "type": "object",
       "properties": {},
+      "additionalProperties": false
+    },
+    "Preview_set_setting_params": {
+      "type": "object",
+      "description": "Muda uma configuração do jogador como se ele a mudasse numa tela (UI Spec §8); emite o evento correspondente, como sys.content_filter_changed.",
+      "properties": {
+        "setting": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Um bind de configuração da UI Spec §8, como content_filter ou locale."
+        },
+        "value": {}
+      },
+      "required": [
+        "setting",
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "Preview_set_setting_result": {
+      "type": "object",
       "additionalProperties": false
     },
     "Preview_set_locale_params": {

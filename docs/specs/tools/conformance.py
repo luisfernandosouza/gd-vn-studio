@@ -607,6 +607,26 @@ def run_flow(c):
         return None
     def nxt(i, n): return index[n["next"]] if n.get("next") else i + 1
     cf = c.get("content_filter", False)                    # modo stream (Data Model §10.4)
+    # palco com a marca censor de quem pôs cada item (Runtime Spec §5.5, save.schema.json → Stage)
+    stage = {"background": None, "background_censor": None, "background_base": None, "characters": [], "audio": {}}
+    def hidden(censor): return censor == ("skip" if cf else "only")
+    def visible_stage():
+        bg = stage["background_base"] if hidden(stage["background_censor"]) else stage["background"]
+        return {"background": bg,
+                "characters": [ch["id"] for ch in stage["characters"] if not hidden(ch.get("censor"))],
+                "audio": {k: a["asset"] for k, a in sorted(stage["audio"].items()) if not hidden(a.get("censor"))}}
+    def put_on_stage(n):
+        t, cen = n["type"], n.get("censor")
+        if t == "background":
+            stage["background"] = n.get("asset") or n.get("set"); stage["background_censor"] = cen
+            if not cen: stage["background_base"] = stage["background"]
+        elif t == "show":
+            stage["characters"] = [ch for ch in stage["characters"] if ch["id"] != n["character"]] + [{"id": n["character"], **({"censor": cen} if cen else {})}]
+        elif t == "hide":
+            stage["characters"] = [ch for ch in stage["characters"] if n["character"] not in (ch["id"], "*")]
+        elif t == "audio":
+            if n["action"] == "play": stage["audio"][n["channel"]] = {"asset": n["asset"], **({"censor": cen} if cen else {})}
+            else: stage["audio"].pop(n["channel"], None)
     i = index[scene.get("start") or nodes[0]["id"]]; guard = 0
     trace.append({"event": "sys.scene_started"})
     while True:
@@ -621,6 +641,12 @@ def run_flow(c):
         if t == "line":
             trace.append({"text": interpolate(n["censored_text"] if cf and "censored_text" in n else n["text"], env, locale)})
             inp = inputs.pop(0) if inputs else None
+            while isinstance(inp, dict) and "content_filter" in inp:   # o jogador liga/desliga o modo com a fala na tela
+                if inp["content_filter"] != cf:
+                    cf = inp["content_filter"]; emit("sys.content_filter_changed"); drain()
+                    trace.append({"stage": visible_stage()})
+                    trace.append({"text": interpolate(n["censored_text"] if cf and "censored_text" in n else n["text"], env, locale)})
+                inp = inputs.pop(0) if inputs else None
             if inp != "advance": return trace + [{"waiting": "line"}]
             i = nxt(i, n)
         elif t == "choice":
@@ -662,7 +688,8 @@ def run_flow(c):
         elif t == "end":
             then = n.get("then", "schedule")
             trace.append({"event": "sys.scene_ended"}); trace.append({"end": then}); break
-        else:   # background, show, hide, audio, wait, interact sem entrada: palco não entra no traço
+        else:   # background, show, hide, audio, wait, interact sem entrada: o palco só entra no traço ao mudar o modo
+            put_on_stage(n)
             i = nxt(i, n)
     return trace
 

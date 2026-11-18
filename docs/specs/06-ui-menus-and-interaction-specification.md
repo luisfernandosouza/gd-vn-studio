@@ -110,7 +110,7 @@ Todo elemento tem `id` (legível, único na tela), `type` e uma **posição**:
 | `toggle` | Liga/desliga ligado a uma configuração | `bind` |
 | `select` | Lista de opções ligada a uma configuração | `bind`, `options` (ausente = opções do próprio `bind`) |
 | `slot_grid` | Grade de slots de save | `mode` (`save`/`load`), `columns`, `rows`, `slot_style`. Com o modo stream ligado, miniaturas `thumbnail_sensitive` aparecem como `content_filter.placeholder` (RT §8.5) |
-| `gallery_grid` | Grade da galeria | `source` (`endings`, `images`, `music`), `columns`, `locked_asset`. A seção de `source` tem de estar em `project.json → gallery.sections` (U012, Data Model §10.5). `endings` lista `project.json → endings`; `images` e `music` listam os assets com `gallery: true` em `assets.json` (cenários e músicas), na ordem de `gallery_order` e depois do id. Itens ainda não vistos (`profile.seen_assets`, RT §5.2) aparecem com `locked_asset` e o texto `runtime/gallery/locked`. Com o modo stream ligado (§8), cada item mostra a substituta de `censored.replace_with`; um item com `censored.hide` aparece com o placeholder e o texto `runtime/content_filter/hidden`. Ver a versão censurada desbloqueia o item (RT §5.2) |
+| `gallery_grid` | Grade da galeria | `source` (`endings`, `images`, `music`), `columns`, `locked_asset`. A seção de `source` tem de estar em `project.json → gallery.sections` (U012, Data Model §10.5). `endings` lista `project.json → endings`; `images` e `music` listam os assets com `gallery: true` em `assets.json` (`images`: imagens e cenários; `music`: músicas), na ordem de `gallery_order` e depois do id. Itens ainda não vistos (`profile.seen_assets`, RT §5.2) aparecem com `locked_asset` e o texto `runtime/gallery/locked`. Com o modo stream ligado (§8), cada item mostra a substituta de `censored.replace_with`; um item com `censored.hide` aparece com o placeholder e o texto `runtime/content_filter/hidden`. Ver a versão censurada desbloqueia o item (RT §5.2) |
 | `backlog_list` | Histórico de falas | `max_items` |
 | `container` | Agrupa e alinha elementos | `layout` (`row`, `column`, `grid`), `spacing`, `children` |
 | `records_list` | Quadro de recordes de um minijogo (Plugin SDK §9.1) | `board` (`<namespace>.<quadro>`), `max_items`, `empty_text` |
@@ -405,6 +405,8 @@ Os mesmos valores estão como `default` em `save.schema.json → PlayerSettings`
 | U013 | aviso | Asset com `gallery: true` que não vai aparecer: a seção do tipo dele não está ativa, ou o tipo não entra na galeria (só `image`, `background` e `audio_music`) |
 | U014 | aviso | Projeto sem galeria com tela `ui/gallery.json` ou com uma ação `open_screen` para `gallery`: a tela não entra no jogo e a ação não faz nada |
 | W020 | aviso | Texto de um idioma usa caracteres que nem a fonte do estilo nem as reservas daquele idioma cobrem. Conferido pelo Studio, que lê os arquivos de fonte; o validador de referência não confere, porque não tem os arquivos |
+
+Telas também passam pela regra R022 do Data Model (§11 de lá): `sys.ui.content_filter` e `sys.ui.content_filter_available` podem decidir o que aparece (um selo "modo stream", um texto alternativo), mas não uma ação `effects` ou `emit`. É erro lê-las no `if` dessas ações ou de uma ação que as envolve, nos valores de `effects` e `payload`, ou no `visible_if`/`enabled_if` do elemento que dispara a lista (`actions`, `on_hover`). Assim o modo stream continua sem mudar a história (Data Model §10.4).
 
 ## 12. Runtime
 

@@ -342,6 +342,8 @@ func randf() -> float
 
 **Modo stream** (Data Model §10.4, Runtime Spec §5.5). Todo id de asset **do projeto** passa pelo filtro: com o modo ligado, `load_asset` e `play` (e os assets escolhidos pelo autor em campos `vn-asset` de `params` e `config`) devolvem a substituta de `censored.replace_with`, e um asset com `censored.hide` devolve `null` em `load_asset` e não toca em `play`, como um serviço sem capacidade. O plugin não precisa fazer nada para isso. Para o conteúdo **próprio** (recursos em `res://vn_plugins/<ns>/`), o plugin lê `ctx.content_filter` e, para reagir a uma mudança durante a atividade, assina `sys.content_filter_changed { enabled }` (capacidade `events.subscribe`). Um plugin com conteúdo adulto próprio DEVERIA declarar `"content_filter": "supported"` no manifesto quando trata o modo; o catálogo mostra o selo "funciona com o modo stream". Na edição censurada (Build System §5.4), `ctx.content_filter` é sempre `true`.
 
+O modo stream muda só a apresentação (Data Model §10.4), e isso vale também para o minijogo: com a mesma entrada do jogador, o plugin **NÃO DEVE** devolver outro `outcome` ou `payload`, escrever outros valores em variáveis nem emitir outros eventos conforme `ctx.content_filter`. O modo só pode mudar o que o jogador vê e ouve. Para conferir, o `VNTestHarness` aceita `content_filter` nas opções (§12.1): o mesmo `VNScriptedInput` deve dar o mesmo resultado nos dois modos.
+
 ### 5.7. Idioma, aparência, input e tempo
 
 ```gdscript
@@ -569,7 +571,8 @@ Chamado pelo Studio ao atualizar o plugin quando a `config` salva foi criada com
 ### 10.6. Preview
 
 - O Preview é o próprio runtime (Runtime Spec §11): a atividade roda o GDScript real do plugin, no **painel** (runtime Web, dentro do Studio) e na **janela** (runtime nativo). O Editor SDK não tem mock de atividade.
-- No painel, o Studio inclui os plugins no export Web como pacotes de recursos (`.pck`, um por plugin). `preview.reload_plugins` troca o pacote do plugin alterado.
+- Nos dois modos, o Studio monta cada plugin como um pacote de recursos (`.pck`, um por plugin) em `res://vn_plugins/<namespace>/`, gerado pelo Godot embutido em modo headless (Preview Protocol §1.3). `preview.reload_plugins` troca o pacote do plugin alterado.
+- **A conferir no primeiro protótipo:** se scripts com `class_name` (obrigatórios com o prefixo do namespace, P011) funcionam num `.pck` montado depois do boot, já que o registro de classes globais é montado na exportação; e quanto tempo leva gerar o `.pck` a cada salvamento de um plugin vinculado. Se o `class_name` falhar, os plugins entram num `.pck` único montado antes do boot, e `preview.reload_plugins` reabre o motor. Até lá, o modo desenvolvedor usa a janela (§12.3).
 - Um plugin que não declara `web` em `compatibility.platforms` não carrega no painel. Quando uma atividade dele começa, o painel mostra um formulário gerado do `result_schema` e da lista de `outcomes` e conclui a atividade com `preview.input` `complete_activity` (Preview Protocol §3), sem aplicar a lógica do plugin. O botão "Abrir em janela" roda a atividade real no runtime nativo.
 
 ## 11. Compatibilidade, versões e dependências
@@ -604,7 +607,8 @@ O addon do Runtime SDK inclui o `VNTestHarness`, uma NarrativeAPI falsa em memó
 ```gdscript
 class_name VNTestHarness
 func _init(manifest_path: String, opts: Dictionary = {})
-    # opts: variables, config, grants (padrão: tudo que o manifesto pede), seed, locale, profile
+    # opts: variables, config, grants (padrão: tudo que o manifesto pede), seed, locale, profile,
+    #       content_filter (padrão false; muda ctx.content_filter, §5.6)
 func run_activity(id: StringName, params: Dictionary, input: VNScriptedInput = null,
                   max_seconds: float = 600.0, mode: StringName = &"story") -> VNActivityResult   # { outcome, payload, failed, reason, seconds }
 func skip_activity_after(id: StringName, params: Dictionary, seconds: float) -> VNActivityResult
@@ -675,7 +679,7 @@ JSON estático versionado num repositório do projeto e servido por HTTPS (GitHu
 
 ### 13.4. Revisão de plugins externos
 
-Antes de `published`: `vnplugin validate` e testes verdes, leitura do código-fonte (runtime e editor), checagem de que o pedido de permissões é proporcional ao propósito, e conferência de que `editor/dist/` corresponde a `editor/src/` (build reprodutível na CI do catálogo).
+Antes de `published`: `vnplugin validate` e testes verdes, leitura do código-fonte (runtime e editor), checagem de que o pedido de permissões é proporcional ao propósito, checagem de que o resultado, as escritas e os eventos não dependem de `ctx.content_filter` (§5.6), e conferência de que `editor/dist/` corresponde a `editor/src/` (build reprodutível na CI do catálogo).
 
 ### 13.5. Fluxo de publicação
 

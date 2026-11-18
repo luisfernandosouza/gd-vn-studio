@@ -68,6 +68,15 @@ CASES = [
     (True, "PP §3: concluir atividade pelo formulário do Studio",
      *rpc("preview.input", {"action": "complete_activity", "outcome": "won", "payload": {"fish_count": 3}})),
     (False, "PP §3: complete_activity sem outcome", *rpc("preview.input", {"action": "complete_activity"})),
+    (True, "PP §1.4: load guardando os saves do Preview no projeto",
+     *rpc("preview.load", {"bundle_url": "vnpreview://localhost/narrative", "user_data": "project"})),
+    (False, "PP §1.4: user_data desconhecido", *rpc("preview.load", {"bundle_path": "x", "user_data": "disk"})),
+    (True, "PP §3: start com o modo stream ligado", *rpc("preview.start", {"content_filter": True, "paused": True})),
+    (True, "PP §3: botão Modo stream do Preview", *rpc("preview.set_setting", {"setting": "content_filter", "value": True})),
+    (False, "PP §3: set_setting sem valor", *rpc("preview.set_setting", {"setting": "content_filter"})),
+    (True, "PP §3: galeria desbloqueada e fim de minijogo simulados",
+     *rpc("preview.show_screen", {"screen": "gallery", "simulate": {"gallery_unlock_all": True, "seen_assets": ["bg/beach_day"],
+                                                                     "content_filter": True, "last_activity_outcome": "won", "last_record_rank": 1}})),
 ]
 
 
