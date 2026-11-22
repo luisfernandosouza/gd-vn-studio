@@ -1,21 +1,30 @@
 {
   "$schema": "https://schemas.vnstudio.dev/1/assets.schema.json",
   "assets": {
-    "bg/beach_day": {
-      "path": "backgrounds/beach_day.png",
+    "bg/train_beach": {
+      "path": "backgrounds/noraneko/Train_beach.png",
       "type": "background",
       "gallery": true
     },
-    "bg/pier_sunset": {
-      "path": "backgrounds/pier_sunset.png",
+    "bg/sitting_room": {
+      "path": "backgrounds/noraneko/Sitting_Room.png",
+      "type": "background"
+    },
+    "bg/train_evening": {
+      "path": "backgrounds/noraneko/Train_Evening.png",
       "type": "background",
       "gallery": true,
       "censored": {
-        "replace_with": "bg/pier_sunset_safe"
+        "replace_with": "bg/train_evening_safe"
       }
     },
-    "bg/pier_sunset_safe": {
-      "path": "backgrounds/pier_sunset_safe.png",
+    "bg/onsen_night": {
+      "path": "backgrounds/noraneko/Onsen_Building_Night.png",
+      "type": "background",
+      "gallery": true
+    },
+    "bg/train_evening_safe": {
+      "path": "backgrounds/noraneko/train_evening_safe.png",
       "type": "background"
     },
     "char/alice/neutral": {

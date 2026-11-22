@@ -1300,12 +1300,13 @@
           "const": "licenses_list"
         },
         "include": {
-          "description": "O que listar: plugins (licenças de vn_content/licenses.txt), fonts (licenças das fontes do tema) ou os dois (padrão).",
+          "description": "O que listar: plugins (licenças dos plugins), fonts (licenças das fontes do tema) e assets (o credit dos assets de terceiros que entram no jogo), todos reunidos em vn_content/licenses.txt. Padrão: os três.",
           "type": "array",
           "items": {
             "enum": [
               "plugins",
-              "fonts"
+              "fonts",
+              "assets"
             ]
           },
           "uniqueItems": true

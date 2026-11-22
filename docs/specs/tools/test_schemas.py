@@ -28,6 +28,10 @@ def lock(pid):
     return "plugin-lock.schema.json", {"lock_version": 1, "plugins": {pid: entry}}
 
 
+def bundle_asset(path):
+    return "bundle.schema.json#/properties/assets", {"bg/x": {"type": "background", "path": path}}
+
+
 def rpc(method, params):
     return "preview-protocol.schema.json", {"jsonrpc": "2.0", "id": 1, "method": method, "params": params}
 
@@ -46,13 +50,23 @@ CASES = [
     (False, "chave sem barra", *locale("variable")),
     (False, "primeiro segmento com maiúscula", *locale("UI/settings/title")),
     (False, "segmento vazio", *locale("ui//title")),
+    (True, "RT §2: asset do build em res://", *bundle_asset("res://vn_content/assets/backgrounds/x.png")),
+    (True, "PP §1.3: asset do bundle do Preview, relativo a assets/", *bundle_asset("backgrounds/noraneko/Train_beach.png")),
+    (False, "PP §1.3: URL com esquema no bundle", *bundle_asset("file:///C:/jogo/assets/x.png")),
+    (False, "PP §1.3: URL vnpreview no bundle", *bundle_asset("vnpreview://localhost/assets/x.png")),
+    (False, "PP §1.3: caminho absoluto no bundle", *bundle_asset("/home/autor/x.png")),
+    (False, "PP §1.3: caminho que sai da pasta de assets", *bundle_asset("../segredo.png")),
     (True, "REPO §3.2 / BS §9.2: id de plugin do jogo com _", *plugins("seaside_story.quiz")),
     (True, "SDK §3: id oficial", *plugins("vnstudio.fishing")),
     (True, "REPO §3.2 no lock", *lock("seaside_story.quiz")),
     (False, "id de plugin sem ponto", *plugins("seaside_story")),
     (False, "id de plugin com maiúscula", *plugins("Seaside.quiz")),
     (True, "PP §1.1: hello no painel, sem token", *rpc("session.hello", {"protocol": "1.0"})),
-    (True, "PP §3: load no painel", *rpc("preview.load", {"bundle_url": "vnpreview://localhost/narrative"})),
+    (True, "PP §3: load no painel", *rpc("preview.load", {"bundle_url": "vnpreview://localhost/narrative", "assets_base": "vnpreview://localhost/assets/"})),
+    (True, "PP §1.3: load no painel no Windows (WebView2)",
+     *rpc("preview.load", {"bundle_url": "http://vnpreview.localhost/narrative", "assets_base": "http://vnpreview.localhost/assets/"})),
+    (True, "PP §1.3: load na janela", *rpc("preview.load", {"bundle_path": "C:/Users/autor/jogo/.vnstudio/preview/narrative", "assets_base": "C:/Users/autor/jogo/assets"})),
+    (False, "PP §1.3: load sem assets_base", *rpc("preview.load", {"bundle_url": "vnpreview://localhost/narrative"})),
     (False, "PP §3: load com caminho e URL ao mesmo tempo",
      *rpc("preview.load", {"bundle_path": ".vnstudio/preview/narrative", "bundle_url": "vnpreview://localhost/narrative"})),
     (True, "PP §3: recarga incremental de uma cena",
@@ -69,13 +83,13 @@ CASES = [
      *rpc("preview.input", {"action": "complete_activity", "outcome": "won", "payload": {"fish_count": 3}})),
     (False, "PP §3: complete_activity sem outcome", *rpc("preview.input", {"action": "complete_activity"})),
     (True, "PP §1.4: load guardando os saves do Preview no projeto",
-     *rpc("preview.load", {"bundle_url": "vnpreview://localhost/narrative", "user_data": "project"})),
+     *rpc("preview.load", {"bundle_url": "vnpreview://localhost/narrative", "assets_base": "vnpreview://localhost/assets/", "user_data": "project"})),
     (False, "PP §1.4: user_data desconhecido", *rpc("preview.load", {"bundle_path": "x", "user_data": "disk"})),
     (True, "PP §3: start com o modo stream ligado", *rpc("preview.start", {"content_filter": True, "paused": True})),
     (True, "PP §3: botão Modo stream do Preview", *rpc("preview.set_setting", {"setting": "content_filter", "value": True})),
     (False, "PP §3: set_setting sem valor", *rpc("preview.set_setting", {"setting": "content_filter"})),
     (True, "PP §3: galeria desbloqueada e fim de minijogo simulados",
-     *rpc("preview.show_screen", {"screen": "gallery", "simulate": {"gallery_unlock_all": True, "seen_assets": ["bg/beach_day"],
+     *rpc("preview.show_screen", {"screen": "gallery", "simulate": {"gallery_unlock_all": True, "seen_assets": ["bg/train_beach"],
                                                                      "content_filter": True, "last_activity_outcome": "won", "last_record_rank": 1}})),
 ]
 

@@ -607,25 +607,54 @@ def run_flow(c):
         return None
     def nxt(i, n): return index[n["next"]] if n.get("next") else i + 1
     cf = c.get("content_filter", False)                    # modo stream (Data Model §10.4)
-    # palco com a marca censor de quem pôs cada item (Runtime Spec §5.5, save.schema.json → Stage)
+    # palco com a marca censor de quem pôs cada item e a base de cada um (Runtime Spec §5.5, save.schema.json → Stage):
+    # a base é o último estado posto por um passo sem censor; um item escondido volta à base ou, sem ela, sai do palco
     stage = {"background": None, "background_censor": None, "background_base": None, "characters": [], "audio": {}}
     def hidden(censor): return censor == ("skip" if cf else "only")
+    def char_view(ch):
+        if not hidden(ch.get("censor")): return {"id": ch["id"], **({"expression": ch["expression"]} if ch.get("expression") else {})}
+        b = ch.get("base")
+        if b is None: return None
+        return {"id": ch["id"], **({"expression": b["expression"]} if b.get("expression") else {})}
+    def audio_view(a):
+        if not hidden(a.get("censor")): return a["asset"]
+        return (a.get("base") or {}).get("asset")
     def visible_stage():
         bg = stage["background_base"] if hidden(stage["background_censor"]) else stage["background"]
-        return {"background": bg,
-                "characters": [ch["id"] for ch in stage["characters"] if not hidden(ch.get("censor"))],
-                "audio": {k: a["asset"] for k, a in sorted(stage["audio"].items()) if not hidden(a.get("censor"))}}
+        chars = [v for v in (char_view(ch) for ch in stage["characters"]) if v]
+        aud = {k: v for k, v in ((k, audio_view(a)) for k, a in sorted(stage["audio"].items())) if v}
+        return {"background": bg, "characters": chars, "audio": aud}
+    def base_of(item, fields):
+        """Estado a que um item volta se o passo censurado que o mudou não valer: o próprio item, se ele não tem censor."""
+        if item is None: return None
+        if item.get("censor"): return item.get("base")
+        return {k: item[k] for k in fields if k in item}
     def put_on_stage(n):
         t, cen = n["type"], n.get("censor")
         if t == "background":
             stage["background"] = n.get("asset") or n.get("set"); stage["background_censor"] = cen
             if not cen: stage["background_base"] = stage["background"]
         elif t == "show":
-            stage["characters"] = [ch for ch in stage["characters"] if ch["id"] != n["character"]] + [{"id": n["character"], **({"censor": cen} if cen else {})}]
+            old = next((ch for ch in stage["characters"] if ch["id"] == n["character"]), None)
+            item = {"id": n["character"]}
+            expr = n.get("expression") or (old or {}).get("expression")
+            if expr: item["expression"] = expr
+            if cen:
+                item["censor"] = cen
+                b = base_of(old, ("expression",))
+                if b is not None: item["base"] = b
+            stage["characters"] = [ch for ch in stage["characters"] if ch["id"] != n["character"]] + [item]
         elif t == "hide":
             stage["characters"] = [ch for ch in stage["characters"] if n["character"] not in (ch["id"], "*")]
         elif t == "audio":
-            if n["action"] == "play": stage["audio"][n["channel"]] = {"asset": n["asset"], **({"censor": cen} if cen else {})}
+            if n["action"] == "play":
+                old = stage["audio"].get(n["channel"])
+                item = {"asset": n["asset"]}
+                if cen:
+                    item["censor"] = cen
+                    b = base_of(old, ("asset",))
+                    if b is not None: item["base"] = b
+                stage["audio"][n["channel"]] = item
             else: stage["audio"].pop(n["channel"], None)
     i = index[scene.get("start") or nodes[0]["id"]]; guard = 0
     trace.append({"event": "sys.scene_started"})

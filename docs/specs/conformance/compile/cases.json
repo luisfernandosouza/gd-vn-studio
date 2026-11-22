@@ -11,7 +11,7 @@
       "id": "demo",
       "description": "exemplo das specs, edição completa",
       "expect": {
-        "content_hash": "sha256-txXZ/Jp9MKLzofEqJvxtOp0Tl57q1jS+FhSQ8k4EgWQ=",
+        "content_hash": "sha256-rvQH4GAOzZU9NsO/62jhjZjp4KCZmGwfZ1x8VUrWMiE=",
         "locales": {
           "en": "sha256-I1UdsAR7RPXZYX9TZsNjym8DZAbGvJlOKj+2mmaw0MA=",
           "pt-BR": "sha256-2mAyLwoc/dAOXFz7Tx6fJzveSswJZtsu5JLBhG7OTHU="
@@ -19,7 +19,7 @@
         "plugins": "sha256-6bbziWicmrjC0stBozX38VsinQV7SUpvd0Z0yFqiQvc=",
         "present": [
           "/ui/gallery",
-          "/assets/bg~1beach_day/gallery",
+          "/assets/bg~1train_beach/gallery",
           "/ui/minigames"
         ]
       }
@@ -29,14 +29,14 @@
       "description": "edição censurada: texto censurado no lugar do original, substituta no lugar do asset",
       "edition": "censored",
       "expect": {
-        "content_hash": "sha256-3Mrhy7vrZPg/wAxThYw9kSZaqMsUbszpYxEdjxYUb0g=",
+        "content_hash": "sha256-5Jc6+v30KV+J0C86MV+Mtyxw4oS/pJwWNRU0w0NJgqM=",
         "locales": {
           "en": "sha256-T9CUzuCiTPYTbpQjZ+qbfkZuoj7QqIf3wfUu0PK3Xj0=",
           "pt-BR": "sha256-2mAyLwoc/dAOXFz7Tx6fJzveSswJZtsu5JLBhG7OTHU="
         },
         "plugins": "sha256-6bbziWicmrjC0stBozX38VsinQV7SUpvd0Z0yFqiQvc=",
         "present": [
-          "/assets/bg~1pier_sunset"
+          "/assets/bg~1train_evening"
         ]
       }
     },
@@ -50,7 +50,7 @@
         }
       ],
       "expect": {
-        "content_hash": "sha256-cLnmAWNbmhy7kSNwg9JaSJd78uiY6aYMqpx/SKuDwNw=",
+        "content_hash": "sha256-J7/UUFlwALh4vpVD2jI5WM1BoRZXVyiWMFWnDXAhCjg=",
         "locales": {
           "en": "sha256-I1UdsAR7RPXZYX9TZsNjym8DZAbGvJlOKj+2mmaw0MA=",
           "pt-BR": "sha256-2mAyLwoc/dAOXFz7Tx6fJzveSswJZtsu5JLBhG7OTHU="
@@ -59,7 +59,7 @@
         "absent": [
           "/ui/gallery",
           "/project/gallery",
-          "/assets/bg~1beach_day/gallery",
+          "/assets/bg~1train_beach/gallery",
           "/assets/music~1waves/gallery"
         ]
       }
@@ -77,7 +77,7 @@
         }
       ],
       "expect": {
-        "content_hash": "sha256-LAlmMdHHJhBncmvLLq5x1l32/mH9nP7b3jypgQFd0CE=",
+        "content_hash": "sha256-QGALN+gPpooWpGrW2qYewAGI5A12wOeQLQEOePMPNxw=",
         "locales": {
           "en": "sha256-I1UdsAR7RPXZYX9TZsNjym8DZAbGvJlOKj+2mmaw0MA=",
           "pt-BR": "sha256-2mAyLwoc/dAOXFz7Tx6fJzveSswJZtsu5JLBhG7OTHU="
@@ -88,7 +88,7 @@
           "/project/gallery"
         ],
         "absent": [
-          "/assets/bg~1beach_day/gallery",
+          "/assets/bg~1train_beach/gallery",
           "/assets/music~1waves/gallery"
         ]
       }
@@ -106,7 +106,7 @@
         }
       ],
       "expect": {
-        "content_hash": "sha256-GvfFxqOSrDH/SY6tE5r0/0lRmz+FA/fvakWxG+FIEUw=",
+        "content_hash": "sha256-1tnuj1XMVXgVJrnATe2Eg+sqoo8mQPETC9uZ78THn4g=",
         "locales": {
           "en": "sha256-I1UdsAR7RPXZYX9TZsNjym8DZAbGvJlOKj+2mmaw0MA=",
           "pt-BR": "sha256-2mAyLwoc/dAOXFz7Tx6fJzveSswJZtsu5JLBhG7OTHU="
@@ -128,7 +128,7 @@
         }
       ],
       "expect": {
-        "content_hash": "sha256-D4XeCmFMM2FXJzN1WlZffkpP1NQNVzmIDHNVrHro2OQ=",
+        "content_hash": "sha256-VfWCA6zAOwuX965LCBv210zLUz4a/uoXipHpyrv/25A=",
         "locales": {
           "en": "sha256-I1UdsAR7RPXZYX9TZsNjym8DZAbGvJlOKj+2mmaw0MA=",
           "ko": "sha256-mkNQCvygL20iyzKKkfVIa5cZ2+Hlz6aYqv8h0HGZ7Kk=",
@@ -156,7 +156,7 @@
         }
       ],
       "expect": {
-        "content_hash": "sha256-hBxUaQFs/SEle+fZSxaaoULoaToDst/2Ca6Y7FkiFj8=",
+        "content_hash": "sha256-0aTuZ1FB8tXDy3DRtfCMTgh3ziF7hiBdGYFUbTnBIB8=",
         "locales": {
           "en": "sha256-T9CUzuCiTPYTbpQjZ+qbfkZuoj7QqIf3wfUu0PK3Xj0=",
           "pt-BR": "sha256-2mAyLwoc/dAOXFz7Tx6fJzveSswJZtsu5JLBhG7OTHU="
@@ -167,6 +167,31 @@
         ],
         "absent": [
           "/assets/bg~1sea/gallery"
+        ]
+      }
+    },
+    {
+      "id": "credito_fora_do_bundle",
+      "description": "credit de um asset de terceiros não entra no bundle nem no content_hash (Build System §4.5): o hash é o mesmo do caso demo",
+      "edits": [
+        {
+          "file": "assets.json",
+          "pointer": "/assets/bg~1train_beach/credit",
+          "value": {
+            "author": "Noraneko Games",
+            "license": "Termos do pacote"
+          }
+        }
+      ],
+      "expect": {
+        "content_hash": "sha256-rvQH4GAOzZU9NsO/62jhjZjp4KCZmGwfZ1x8VUrWMiE=",
+        "locales": {
+          "en": "sha256-I1UdsAR7RPXZYX9TZsNjym8DZAbGvJlOKj+2mmaw0MA=",
+          "pt-BR": "sha256-2mAyLwoc/dAOXFz7Tx6fJzveSswJZtsu5JLBhG7OTHU="
+        },
+        "plugins": "sha256-6bbziWicmrjC0stBozX38VsinQV7SUpvd0Z0yFqiQvc=",
+        "absent": [
+          "/assets/bg~1train_beach/credit"
         ]
       }
     }

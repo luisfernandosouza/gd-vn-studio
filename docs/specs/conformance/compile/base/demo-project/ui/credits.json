@@ -1,0 +1,49 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/1/ui-screen.schema.json",
+  "id": "credits",
+  "kind": "credits",
+  "background": "bg/train_evening",
+  "focus_start": "btn_back",
+  "elements": [
+    {
+      "id": "text",
+      "type": "label",
+      "text": "Roteiro e arte: Seaside Team",
+      "position": [
+        0.5,
+        0.25
+      ],
+      "align": "center",
+      "appear": {
+        "kind": "fade",
+        "duration": 1.0
+      }
+    },
+    {
+      "id": "licenses",
+      "type": "licenses_list",
+      "position": [
+        0.5,
+        0.58
+      ],
+      "size": [
+        1200,
+        420
+      ]
+    },
+    {
+      "id": "btn_back",
+      "type": "button",
+      "text": "Voltar",
+      "position": [
+        0.5,
+        0.9
+      ],
+      "actions": [
+        {
+          "do": "back"
+        }
+      ]
+    }
+  ]
+}

@@ -1233,12 +1233,18 @@
       "type": "object",
       "properties": {
         "bundle_path": {
-          "type": "string"
+          "type": "string",
+          "description": "Janela (runtime nativo): caminho absoluto da pasta do bundle no sistema."
         },
         "bundle_url": {
           "type": "string",
-          "pattern": "^vnpreview://",
-          "description": "Painel (runtime Web): URL da pasta do bundle."
+          "pattern": "^(vnpreview://|https?://vnpreview\\.localhost/)",
+          "description": "Painel (runtime Web): URL da pasta do bundle, como o Tauri a expõe naquele sistema (vnpreview://localhost/… no macOS e no Linux, http://vnpreview.localhost/… no Windows; spec 07 §1.3)."
+        },
+        "assets_base": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Base dos caminhos relativos de assets do bundle do Preview (spec 07 §1.3): no painel, a URL da pasta assets/ do projeto pelo protocolo vnpreview, como o Tauri a expõe naquele sistema; na janela, o caminho absoluto da pasta assets/ do projeto. O runtime junta a base e o caminho relativo."
         },
         "locale": {
           "$ref": "common.schema.json#/$defs/Locale"
@@ -1263,6 +1269,9 @@
             "bundle_url"
           ]
         }
+      ],
+      "required": [
+        "assets_base"
       ]
     },
     "Preview_load_result": {

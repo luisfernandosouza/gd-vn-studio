@@ -2,13 +2,13 @@
   "$schema": "https://schemas.vnstudio.dev/1/ui-screen.schema.json",
   "id": "credits",
   "kind": "credits",
-  "background": "bg/pier_sunset",
+  "background": "bg/train_evening",
   "focus_start": "btn_back",
   "elements": [
     {
       "id": "text",
       "type": "label",
-      "text": "Roteiro e arte: Seaside Team",
+      "text": "Roteiro: Seaside Team",
       "position": [
         0.5,
         0.25

@@ -1,0 +1,15 @@
+{
+  "lock_version": 1,
+  "plugins": {
+    "vnstudio.fishing": {
+      "version": "1.0.0",
+      "namespace": "fishing",
+      "resolved": "https://github.com/luisfernandosouza/gd-vn-studio/releases/download/plugin-fishing-v1.0.0/vnstudio.fishing-1.0.0.vnplugin",
+      "integrity": "sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=",
+      "enabled": true,
+      "trust": "official",
+      "requested_by": ["project"],
+      "dependencies": {}
+    }
+  }
+}

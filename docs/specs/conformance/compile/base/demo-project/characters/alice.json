@@ -1,0 +1,16 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/1/character.schema.json",
+  "id": "019a7a00-0bb8-7dc0-b468-e39508f1443d",
+  "key": "alice",
+  "name": "Alice",
+  "color": "#e05a7a",
+  "expressions": {
+    "neutral": "char/alice/neutral",
+    "happy": "char/alice/happy",
+    "sad": "char/alice/sad"
+  },
+  "default_expression": "neutral",
+  "initial_values": {
+    "affection": 10
+  }
+}

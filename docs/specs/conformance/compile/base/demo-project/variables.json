@@ -1,0 +1,18 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/1/variables.schema.json",
+  "global": [
+    { "key": "player_money", "name": "Dinheiro", "type": "integer", "default": 0,
+      "constraints": { "min": 0, "max": 99999, "on_overflow": "reject" },
+      "access": { "plugins_read": "granted" } },
+    { "key": "fishing_won", "name": "Venceu a pescaria", "type": "boolean", "default": false },
+    { "key": "fishing_skill", "name": "Habilidade de pesca", "type": "integer", "default": 0,
+      "constraints": { "min": 0, "max": 100 } },
+    { "key": "is_rich", "name": "É rico", "type": "boolean",
+      "derived": { "if": [{ "variable": "global.player_money", "operator": "greater_than_or_equal", "value": 1000 }], "then": true, "else": false } },
+    { "key": "endings_seen", "type": "integer", "default": 0, "persistence": "profile" }
+  ],
+  "character": [
+    { "key": "affection", "name": "Afeição", "type": "integer", "default": 0, "constraints": { "min": -100, "max": 100 } },
+    { "key": "met", "type": "boolean", "default": false }
+  ]
+}

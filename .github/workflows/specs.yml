@@ -1,0 +1,80 @@
+# Ferramentas das specs em todo pull request (spec 09 §1 e §1.1, spec 08 §4).
+# Também confere que o exemplo das specs é a cópia filtrada da demo na versão de SOURCE.json (decisão D23).
+# O repositório da demo é privado: o token padrão da workflow não o lê. A conferência com a demo
+# usa o secret DEMO_REPO_TOKEN (token com leitura de Contents no repositório da demo). Sem ele,
+# esses passos são pulados com um aviso, e o resto da workflow roda normalmente.
+name: Specs
+
+on:
+  pull_request:
+    paths: [docs/specs/**, .github/workflows/specs.yml]
+  push:
+    branches: [main]
+    paths: [docs/specs/**, .github/workflows/specs.yml]
+  workflow_dispatch:
+
+jobs:
+  specs:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: docs/specs
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -q 'jsonschema>=4.18'
+      - name: Validador sobre o exemplo
+        run: python tools/validate.py examples/demo-project examples/fishing-plugin
+      - name: Casos do validador
+        run: python tools/test_validate.py
+      - name: Padrões dos schemas
+        run: python tools/test_schemas.py
+      - name: Vetores de conformidade
+        run: python tools/conformance.py
+      - name: Vetores de compilação
+        run: python tools/test_compile.py
+      - name: Versão da demo em SOURCE.json
+        id: source
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          s = json.load(open("examples/demo-project/SOURCE.json"))
+          print(f"repository={s['repository']}")
+          print(f"commit={s['commit']}")
+          PY
+      - name: Acesso ao repositório da demo
+        id: demo_access
+        env:
+          DEMO_REPO_TOKEN: ${{ secrets.DEMO_REPO_TOKEN }}
+        run: |
+          if [ -n "$DEMO_REPO_TOKEN" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Demo não conferida::O secret DEMO_REPO_TOKEN não está configurado. A cópia do exemplo não foi comparada com a demo (D23)."
+          fi
+      - if: steps.demo_access.outputs.ok == 'true'
+        uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.DEMO_REPO_TOKEN }}
+          repository: ${{ steps.source.outputs.repository }}
+          ref: ${{ steps.source.outputs.commit }}
+          path: demo
+          lfs: false
+          sparse-checkout: |
+            /*.json
+            /chapters/
+            /characters/
+            /locales/
+            /scenes/
+            /sets/
+            /ui/
+          sparse-checkout-cone-mode: false
+      - name: Exemplo igual à demo (sem os créditos)
+        if: steps.demo_access.outputs.ok == 'true'
+        run: python tools/sync_demo_example.py "$GITHUB_WORKSPACE/demo" --check
+      - name: Demo valida com as specs desta versão
+        if: steps.demo_access.outputs.ok == 'true'
+        run: python tools/validate.py "$GITHUB_WORKSPACE/demo" examples/fishing-plugin

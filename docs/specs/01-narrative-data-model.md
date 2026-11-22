@@ -455,6 +455,15 @@ O Asset Manager aceita arrastar arquivos ou pastas. Ele copia o arquivo para `as
 
 Fora dessa lista, o Studio converte quando pode (ex.: GIF → sequência) ou recusa com mensagem clara. Imagens maiores que 4096 px em qualquer lado geram aviso.
 
+**Crédito de terceiros** (decisão de 2026-11-22). Um asset feito por outra pessoa, como os de pacotes gratuitos de arte, leva o campo opcional `credit`: `{ "author", "license"?, "url"?, "notice"? }`. `author` é quem deve ser creditado; `notice` é o texto exato que a licença pede para mostrar, quando houver. O crédito acompanha o asset: o Build System reúne em `vn_content/licenses.txt` o `credit` de cada asset que **entra no jogo** (Build System §4.5), e a tela de créditos o mostra com `licenses_list` (UI Spec §3.1). Um asset que não entra no build não aparece nos créditos, e o autor não digita créditos de arte à mão. `credit` não entra no `bundle.json` nem no `content_hash`.
+
+```json
+"bg/forest": {
+  "path": "backgrounds/pack/forest.png", "type": "background",
+  "credit": { "author": "Estúdio Exemplo", "license": "CC BY 4.0", "url": "https://example.com/pack" }
+}
+```
+
 ### 10.2. Palco: posição, âncora e escala
 
 - `show.position` aceita os nomes `far_left` (0.1), `left` (0.25), `center` (0.5), `right` (0.75), `far_right` (0.9) ou uma fração da largura da tela.
@@ -478,7 +487,7 @@ O autor marca o conteúdo em três níveis, do mais simples ao mais fino:
 |---|---|---|
 | **Asset** | `assets.json → censored` | `{"replace_with": "<asset>"}` troca este asset por outro **em todo lugar** onde ele aparece: cenário, expressão de personagem, música, voz, imagem de tela e de set, galeria, imagem de final e assets que plugins carregam (Plugin SDK §5.6). `{"hide": true}` não desenha nem toca nada: o sprite some, o som fica mudo, e um cenário ou imagem dá lugar ao `content_filter.placeholder` do projeto (ou à cor de fundo do tema). É o caso mais comum: o autor marca uma vez e não mexe em nenhuma cena |
 | **Texto** | `censored_text` em `line` e em opções; `censored_prompt` em `choice` e `interact` | Mostrado no lugar do original. Segue as mesmas regras de interpolação e marcação (§9, §9.1) e tem tradução própria (caminho `…/censored`). A voz da fala segue a troca do asset de voz, se ele tiver `censored` (fala com `censored_text` e voz sem `censored` gera o aviso W025). Também têm versão censurada a legenda de `audio` (`censored_caption`) e os rótulos de hotspot e de `exit` em `interact` (`censored_label`), com caminho `…/censored`. A legenda segue o asset: com `hide`, não aparece; com `replace_with`, mostra `censored_caption` (ou nada, se não houver) |
-| **Passo** | `censor` num nó | `skip`: o passo só acontece com o modo desligado; `only`: só com o modo ligado. Quando o passo não vale, o runtime segue `next` (ou o nó seguinte) sem executá-lo. Vale **só** em passos de apresentação: `line`, `background`, `show`, `hide`, `audio` e `wait` (R023) |
+| **Passo** | `censor` num nó | `skip`: o passo só acontece com o modo desligado; `only`: só com o modo ligado. Quando o passo não vale, o runtime segue `next` (ou o nó seguinte) sem executá-lo. Vale **só** em passos de apresentação que põem algo na tela ou no som: `line`, `background`, `show`, `audio` com `action: play` e `wait` (R023). `hide` e `audio` que para um som não aceitam: o que muda com o modo é a entrada de um item, não a saída (decisão de 2026-11-22) |
 
 ```json
 "assets": {
@@ -497,10 +506,10 @@ O autor marca o conteúdo em três níveis, do mais simples ao mais fino:
 
 O que garante a regra de ouro:
 
-- `censor` é recusado em escolhas, `interact`, efeitos, desvios (`branch`, `jump`), `emit`, minijogos e `end` (R023): esses passos sempre rodam.
+- `censor` é recusado em escolhas, `interact`, efeitos, desvios (`branch`, `jump`), `emit`, minijogos e `end` (R023): esses passos sempre rodam. Também é recusado em `hide` e em `audio` sem `play`, porque um item tirado do palco por um passo que não rodou não teria como voltar quando o modo muda.
 - O estado do filtro (`sys.ui.content_filter`) só pode ser lido por telas e sets, por exemplo para mostrar um selo "modo stream" no HUD. Uma condição, efeito, derivada ou interpolação de cena ou capítulo que o leia é erro (R022).
-- Numa tela, a leitura só serve para enfeites. Também é R022 ler `sys.ui.content_filter*` numa condição que decide uma ação `effects` ou `emit`: o `if` da própria ação ou de uma ação que a envolve, um valor de `effects` ou `payload`, ou o `visible_if`/`enabled_if` do elemento que dispara a lista (UI Spec §11).
-- O palco lembra o `censor` do passo que pôs cada item (cenário, personagem, canal de áudio). Ao mudar o modo, e ao carregar um save, o runtime esconde os itens cujo passo não valeria no modo atual, como se ele não tivesse rodado (Runtime Spec §5.5, decisão D19 de 2026-11-17).
+- Numa tela, a leitura só serve para enfeites. Também é R022 ler `sys.ui.content_filter*` numa condição que decide uma ação `effects` ou `emit`: o `if` da própria ação ou de uma ação que a envolve, um valor de `effects` ou `payload`, ou o `visible_if`/`enabled_if` do elemento que dispara a lista ou de um `container` que o contém (UI Spec §11).
+- O palco lembra o `censor` do passo que pôs cada item (cenário, personagem, canal de áudio) e o estado do item antes desse passo. Ao mudar o modo, e ao carregar um save, o runtime volta ao estado anterior os itens cujo passo não valeria no modo atual, como se ele não tivesse rodado: o cenário anterior (asset ou set), a expressão anterior da personagem, a música anterior do canal; sem estado anterior, o item sai (Runtime Spec §5.5, decisões D19 de 2026-11-17 e de 2026-11-22).
 - Um minijogo NÃO DEVE devolver outro `outcome` ou `payload`, nem escrever variáveis ou emitir eventos diferentes, conforme o modo (Plugin SDK §5.6).
 - Uma substituta de asset não pode ter `censored` (sem cadeias) nem ser o próprio asset (R024).
 - Nomes de personagem (`display_name`), títulos de capítulo, títulos e descrições de finais e textos de telas não têm versão censurada: devem ser neutros. Uma tela pode trocar um texto pelo modo com `visible_if`, porque isso só muda a apresentação.
@@ -571,7 +580,7 @@ O JSON Schema garante a forma. O Content Validator (implementação de referênc
 | R020 | erro | Nó `emit` com evento fora do namespace `story` |
 | R021 | erro | Só na exportação: `project.json` sem `version` |
 | R022 | erro | `sys.ui.content_filter` ou `sys.ui.content_filter_available` lido numa cena, capítulo ou derivada, ou numa tela onde decide uma ação `effects` ou `emit` (o modo stream não muda a história, §10.4) |
-| R023 | erro | `censor` num passo que não é de apresentação (só `line`, `background`, `show`, `hide`, `audio` e `wait`, §10.4) |
+| R023 | erro | `censor` num passo que não é de apresentação (só `line`, `background`, `show`, `audio` com `action: play` e `wait`, §10.4) |
 | R024 | erro | `censored.replace_with` aponta para o próprio asset ou para um asset que também tem `censored`; `content_filter.placeholder` com `censored` |
 | T001 | erro | Literal incompatível com o tipo da variável |
 | T002 | erro | Escrita em variável derivada, `sys.` ou de plugin (`plugin.*`) |

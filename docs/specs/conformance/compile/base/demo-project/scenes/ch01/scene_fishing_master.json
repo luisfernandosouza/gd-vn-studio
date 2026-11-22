@@ -1,0 +1,89 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/1/scene.schema.json",
+  "id": "019a7a00-1770-7f6d-a4ca-6bc8c4c015ff",
+  "chapter": "019a7a00-03e8-7e8e-9f34-b5a38f4a780b",
+  "title": "O mestre pescador",
+  "scheduling": {
+    "priority": 80,
+    "conditions": [
+      {
+        "variable": "global.fishing_won",
+        "operator": "equals",
+        "value": true
+      },
+      {
+        "variable": "global.fishing_skill",
+        "operator": "greater_than_or_equal",
+        "value": 10
+      }
+    ],
+    "exclusive_groups": [
+      "evening_event"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "019a7a00-7530-7375-b3c2-1b5b13841bae",
+      "type": "background",
+      "asset": "bg/train_evening"
+    },
+    {
+      "id": "019a7a00-7918-7bc4-a75f-5cc948fd4ca0",
+      "type": "line",
+      "text": "Um velho pescador observa você do outro lado do vagão."
+    },
+    {
+      "id": "019a7a00-7d00-77a3-b73e-826615c4050d",
+      "type": "branch",
+      "cases": [
+        {
+          "id": "019a7a00-a088-7c1e-9d2a-5e7f3b1c4d60",
+          "conditions": {
+            "any": [
+              {
+                "variable": "global.is_rich",
+                "operator": "equals",
+                "value": true
+              },
+              {
+                "variable": "character.alice.affection",
+                "operator": "greater_than",
+                "value": 20
+              }
+            ]
+          },
+          "goto": "019a7a00-84d0-759e-8ba0-2b62445af286"
+        }
+      ],
+      "else": "019a7a00-80e8-711d-bd49-02af111b7b70"
+    },
+    {
+      "id": "019a7a00-80e8-711d-bd49-02af111b7b70",
+      "type": "line",
+      "text": "Ele volta a olhar para o mar.",
+      "next": "019a7a00-88b8-79e6-bafb-4cce9416ffca"
+    },
+    {
+      "id": "019a7a00-84d0-759e-8ba0-2b62445af286",
+      "type": "line",
+      "text": "Ele acena e oferece uma vara nova."
+    },
+    {
+      "id": "019a7a00-88b8-79e6-bafb-4cce9416ffca",
+      "type": "emit",
+      "event": "story.met_master",
+      "payload": {
+        "skill": {
+          "var": "global.fishing_skill"
+        }
+      }
+    },
+    {
+      "id": "019a7a00-8ca0-73fc-907b-09d5ab7e3a5e",
+      "type": "end",
+      "then": {
+        "scene": "019a7a00-1b58-719e-a5e5-9bc09a99b364"
+      }
+    }
+  ]
+}
