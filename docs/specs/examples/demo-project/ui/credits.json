@@ -20,16 +20,6 @@
       }
     },
     {
-      "id": "bg_credit",
-      "type": "label",
-      "text": "Cenários: Noraneko Games",
-      "position": [
-        0.5,
-        0.32
-      ],
-      "align": "center"
-    },
-    {
       "id": "licenses",
       "type": "licenses_list",
       "position": [
