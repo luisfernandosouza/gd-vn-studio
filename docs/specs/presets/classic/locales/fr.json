@@ -5,6 +5,7 @@
     "runtime/confirm/no": "Non",
     "runtime/confirm/overwrite_save": "Écraser cette sauvegarde ?",
     "runtime/confirm/quit": "Quitter le jeu ?",
+    "runtime/confirm/quit_activity": "Quitter le mini-jeu ?",
     "runtime/confirm/reset_profile": "Effacer toutes les données du jeu ? Les fins, la galerie, les records et le texte lu seront effacés. Les sauvegardes et les paramètres sont conservés.",
     "runtime/confirm/return_to_title": "Revenir à l'écran titre ? La progression non sauvegardée sera perdue.",
     "runtime/confirm/yes": "Oui",

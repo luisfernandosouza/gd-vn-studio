@@ -5,6 +5,7 @@
     "runtime/confirm/no": "No",
     "runtime/confirm/overwrite_save": "Sovrascrivere questo salvataggio?",
     "runtime/confirm/quit": "Uscire dal gioco?",
+    "runtime/confirm/quit_activity": "Uscire dal minigioco?",
     "runtime/confirm/reset_profile": "Cancellare tutti i dati di gioco? Finali, galleria, record e testo letto verranno cancellati. Salvataggi e impostazioni restano.",
     "runtime/confirm/return_to_title": "Tornare alla schermata del titolo? I progressi non salvati andranno persi.",
     "runtime/confirm/yes": "Sì",

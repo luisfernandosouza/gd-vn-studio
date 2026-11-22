@@ -5,6 +5,7 @@
     "runtime/confirm/no": "No",
     "runtime/confirm/overwrite_save": "¿Sobrescribir esta partida guardada?",
     "runtime/confirm/quit": "¿Salir del juego?",
+    "runtime/confirm/quit_activity": "¿Salir del minijuego?",
     "runtime/confirm/reset_profile": "¿Borrar todos los datos del juego? Se borrarán los finales, la galería, los récords y el texto leído. Las partidas guardadas y los ajustes se conservan.",
     "runtime/confirm/return_to_title": "¿Volver a la pantalla de título? Se perderá el progreso no guardado.",
     "runtime/confirm/yes": "Sí",

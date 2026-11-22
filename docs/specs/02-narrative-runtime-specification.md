@@ -62,7 +62,7 @@ narrative/
 └── plugins.json         # plugins habilitados, concessões efetivas e config (a partir do lock)
 ```
 
-Os três arquivos têm schema: [`bundle.schema.json`](schemas/bundle.schema.json), [`bundle-locale.schema.json`](schemas/bundle-locale.schema.json) e [`bundle-plugins.schema.json`](schemas/bundle-plugins.schema.json). Todos os mapas são objetos indexados por id e com as chaves em ordem lexicográfica (§12.1). O preset escolhido em `project.json → ui.preset` já vem aplicado: o tema é a fusão do tema do preset com o do projeto, as telas do projeto substituem as do preset com o mesmo id, as traduções do preset entram nos `locales` e a tela `minigames` é gerada a partir das atividades com `free_play` (UI Spec §2).
+Os três arquivos têm schema: [`bundle.schema.json`](schemas/bundle.schema.json), [`bundle-locale.schema.json`](schemas/bundle-locale.schema.json) e [`bundle-plugins.schema.json`](schemas/bundle-plugins.schema.json). Todos os mapas são objetos indexados por id e com as chaves em ordem lexicográfica (§12.1). O preset escolhido em `theme.json → preset` (UI Spec §2.1) já vem aplicado: o tema é a fusão do tema do preset com o do projeto, as telas do projeto substituem as do preset com o mesmo id, as traduções do preset entram nos `locales` e a tela `minigames` é gerada a partir das atividades com `free_play` (UI Spec §2).
 
 O bundle já vem validado (zero erros), com defaults resolvidos (`priority`, `max_plays`, `start` etc.), variáveis de personagem instanciadas, aliases de `renamed_from` reunidos e `content_hash` calculado (SHA-256 do `bundle.json` canônico). O conteúdo continua referenciando assets **por ID**; `bundle.json → assets` é o mapa `{id → res://…}` que o runtime usa para resolver IDs vindos de cenas, do tema, de plugins (`load_asset`, `audio.play`) e do palco salvo. No bundle do Preview, os assets do projeto têm o caminho relativo a `assets/`, que o runtime junta com a base recebida em `preview.load` e carrega sem o import do Godot (§11, Preview Protocol §1.3). Fora do modo preview, o runtime DEVE recusar qualquer caminho que não comece com `res://` (Build System §12). O runtime DEVE recusar bundle com `format_version` MAJOR que não suporta.
 
@@ -92,7 +92,7 @@ Regras do runtime nesse modo, **só em builds de debug e no editor** (num build 
 
 - Em `res://vn_content/`, se houver `bundle.json`, o runtime lê a forma canônica em JSON em vez dos `.vnb`.
 - `--vn-bundle <res://pasta>` lê o bundle de outra pasta dentro do projeto, para alternar entre jogos compilados lado a lado. O padrão é `res://vn_content/`.
-- Plugins de `res://vn_plugins/` sem pacote conferido são carregados com confiança `local`, sem conferir `integrity`, como um vínculo (Plugin SDK §12.3). As concessões continuam vindo de `plugins.json`.
+- Plugins de `res://vn_plugins/` são carregados com confiança `local`, como um vínculo (Plugin SDK §12.3), mesmo sem pacote conferido no lock. As concessões continuam vindo de `plugins.json`.
 
 **Chave de desenvolvimento.** Sem `SAVE_KEY` (editor, `--vn-bundle` ou build de debug), saves e perfil são assinados com a chave fixa de debug, 32 bytes zero, a mesma do build de debug (Build System §11.1) e do [`examples/demo-save.json`](examples/demo-save.json). Um build de release trata essas assinaturas como inválidas e aplica a política de `save_tamper` (Build System §8.3).
 
@@ -122,13 +122,15 @@ Na ordem; cada passo só começa depois do anterior.
 | # | Passo | Se falhar |
 |---|---|---|
 | 1 | Lê `user://settings.json` e aplica idioma, modo de tela, resolução, VSync, FPS e volumes. Campos ausentes vêm de `project.json → settings` e dos padrões do `PlayerSettings` (UI Spec §8) | Arquivo ilegível ou inválido: renomeia para `settings.json.bad`, usa os padrões e segue |
-| 2 | Lê o bundle (`res://vn_content/` ou a pasta de `--vn-bundle`, §2.1), confere o `format_version` e recalcula o `content_hash` | Bundle ausente, `format_version` MAJOR não suportado ou hash diferente: erro fatal com a mensagem `runtime/message/g001` e o jogo fecha |
+| 2 | Lê o bundle (`res://vn_content/` ou a pasta de `--vn-bundle`, §2.1), confere o `format_version` e recalcula o `content_hash` | Bundle ausente, que não decodifica ou com `format_version` MAJOR não suportado: erro fatal com a mensagem `runtime/message/g001`. Hash diferente do cabeçalho ou de `build_config` (Build System §8.2): erro fatal com `runtime/message/g002`. Nos dois casos o jogo fecha |
 | 3 | Carrega o idioma: `settings.locale`, senão o idioma do sistema se o projeto o tiver, senão `project.default_locale` | Idioma sem arquivo: usa `default_locale` |
 | 4 | Lê `user://profile.json` e confere a assinatura | Assinatura inválida: aplica a política de `flag`/`reject` (Build System §8.3); com `reject`, guarda o arquivo como `profile.rejected.json`, começa um perfil vazio e mostra `runtime/message/g006` no título. Arquivo ilegível: o mesmo, sem a mensagem |
-| 5 | Plugin Host: lê `plugins.json`, confere `integrity` e carrega os plugins em ordem topológica de dependências, com empate desfeito pela ordem lexicográfica do id (SDK §5.1), chamando `_vn_init(ctx)` em todos e depois `_vn_ready()` em todos | Falha de um plugin: segue sem ele (§9) |
+| 5 | Plugin Host: lê `plugins.json` e carrega os plugins em ordem topológica de dependências, com empate desfeito pela ordem lexicográfica do id (SDK §5.1), chamando `_vn_init(ctx)` em todos e depois `_vn_ready()` em todos | Falha de um plugin: segue sem ele (§9) |
 | 6 | Calcula `sys.ui.*`. Se `project.content_filter.ask_on_first_launch` estiver ligado e `settings.json` ainda não tiver `content_filter` (primeira vez), pergunta se o jogador quer o modo stream (`runtime/content_filter/ask`, com `ask_yes`/`ask_no`) e grava a resposta em `settings.json` **sempre**, mesmo quando ela é igual ao padrão, porque é o campo gravado que marca a pergunta como feita (§5.5, §8.5). Depois abre a tela `title` | — |
 
 Nada de narrativa roda antes do passo 6; plugins não recebem eventos `sys.*` antes de `_vn_ready`.
+
+**Integridade dos plugins.** O runtime não confere o código dos plugins. O `integrity` do lock é o hash do pacote `.vnplugin`, e quem o confere é o Build System, ao montar o staging (B002, Build System §3.2). No jogo, os scripts dos plugins ficam no PCK junto com os do runtime, com as mesmas proteções (Build System §8). Um hash guardado no mesmo PCK não protegeria nada a mais. O que o jogo confere é o `plugins.vnb`, com a lista de plugins, as concessões e a configuração (Build System §8.2).
 
 ### 3.1. Novo jogo
 
@@ -321,7 +323,7 @@ Guarda contra laço infinito: mais de 10 000 nós instantâneos seguidos sem um 
 
 Durante uma atividade a cena está suspensa: nenhum nó avança e o Scheduler não roda.
 
-**Modo livre.** A ação de menu `play_activity` (UI Spec §4) roda uma atividade fora da história (Plugin SDK §6.1): só os passos 1, 2, 4 e 5 acima, com `handle.mode = free_play`, sem cena, sem autosave e sem `on_result`; escritas narrativas são recusadas com `INVALID_STATE`, exceto as variáveis `profile` do próprio plugin. Ao terminar, volta à tela que a abriu, com `sys.ui.last_activity_outcome` igual ao `outcome` (ou `cancelled`/`failed`) e, se a atividade enviou recorde, `sys.ui.last_record_rank` com a posição (0 se não entrou no quadro). O modo livre só existe fora de uma partida: com `sys.ui.in_game` verdadeiro (pausa, HUD ou telas abertas a partir delas), botões com `play_activity` ficam ocultos e a ação é recusada (o validador avisa com U010).
+**Modo livre.** A ação de menu `play_activity` (UI Spec §4) roda uma atividade fora da história (Plugin SDK §6.1): só os passos 1, 2, 4 e 5 acima, com `handle.mode = free_play`, sem cena, sem autosave e sem `on_result`; escritas narrativas são recusadas com `INVALID_STATE`, exceto as variáveis `profile` do próprio plugin. Ao terminar, volta à tela que a abriu, com `sys.ui.last_activity_outcome` igual ao `outcome` do `complete`, a `failed` ou a `cancelled` (o quadro de valores e a saída do jogador por `vn_menu` estão no Plugin SDK §6.1) e, se a atividade enviou recorde, `sys.ui.last_record_rank` com a posição (0 se não entrou no quadro). O modo livre só existe fora de uma partida: com `sys.ui.in_game` verdadeiro (pausa, HUD ou telas abertas a partir delas), botões com `play_activity` ficam ocultos e a ação é recusada (o validador avisa com U010).
 
 **Taxa de quadros.** Fora de atividades vale `PlayerSettings.fps_limit_vn` (padrão do projeto: `settings.display.fps_limit_vn`, 60). No passo 4, antes de chamar o plugin, o runtime troca para `fps_limit_activity` (padrão 0, sem limite), elevado ao `min_fps` da atividade quando o limite vem do padrão do projeto; ao terminar, cancelar ou falhar, volta ao limite da VN. `0` = sem limite; com `vsync`, o monitor limita. No Web, o navegador decide (UI Spec §8).
 
@@ -525,7 +527,7 @@ Os arquivos, em qualquer implementação:
 | Transação de plugin falhou | `VNResult` com erro; log | Igual |
 | Atividade falhou ou expirou | Overlay + segue `on_error` | Segue `on_error` |
 | Plugin com erros repetidos (≥ 5 por sessão: erros de script reportados pelo motor, `fail` de atividade, timeout e chamadas com `PERMISSION_DENIED` ou `WRONG_THREAD`) | Marcado como *faulted* | Marcado como *faulted*: ouvintes removidos, atividades vão direto para `on_error` |
-| Plugin falhou ao carregar (hash, versão, script) | Erro bloqueante | Jogo continua sem o plugin; atividades vão para `on_error` |
+| Plugin falhou ao carregar (versão, script) | Erro bloqueante | Jogo continua sem o plugin; atividades vão para `on_error` |
 
 GDScript não tem exceções: o SDK expõe resultados explícitos (`VNResult`) e o Plugin Host detecta falhas por retorno, por timeout e pelos erros de script reportados pelo motor.
 
@@ -554,7 +556,7 @@ O runtime registra estas ações no `InputMap` ao iniciar, se o projeto Godot ai
 | `vn_quick_save` | F5 | — | — |
 | `vn_quick_load` | F9 | — | — |
 
-`vn_confirm` e `vn_advance` compartilham teclas: com uma tela ou escolha em foco vale `vn_confirm`, na caixa de texto vale `vn_advance`. Do mesmo modo, `vn_cancel` fecha a tela do topo da pilha e `vn_menu` só abre a pausa quando nenhuma tela está aberta. Durante uma atividade com `input.capture`, nenhuma dessas ações chega ao Narrative Engine (Plugin SDK §4.2).
+`vn_confirm` e `vn_advance` compartilham teclas: com uma tela ou escolha em foco vale `vn_confirm`, na caixa de texto vale `vn_advance`. Do mesmo modo, `vn_cancel` fecha a tela do topo da pilha e `vn_menu` só abre a pausa quando nenhuma tela está aberta. Durante uma atividade com `input.capture`, nenhuma dessas ações chega ao Narrative Engine (Plugin SDK §4.2). A exceção é o modo livre: lá `vn_menu` é sempre do runtime e pergunta se o jogador quer sair do minijogo (Plugin SDK §6.1).
 
 ## 11. Comunicação com o Studio (Preview)
 

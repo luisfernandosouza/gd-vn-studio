@@ -5,6 +5,7 @@
     "runtime/confirm/no": "いいえ",
     "runtime/confirm/overwrite_save": "このデータに上書きしますか？",
     "runtime/confirm/quit": "ゲームを終了しますか？",
+    "runtime/confirm/quit_activity": "ミニゲームを終了しますか？",
     "runtime/confirm/reset_profile": "すべてのゲームデータを削除しますか？エンディング、ギャラリー、記録、既読テキストが消去されます。セーブデータと設定は残ります。",
     "runtime/confirm/return_to_title": "タイトル画面に戻りますか？セーブしていない進行状況は失われます。",
     "runtime/confirm/yes": "はい",

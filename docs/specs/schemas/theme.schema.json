@@ -373,11 +373,9 @@
       "type": "string"
     },
     "preset": {
-      "description": "Ponto de partida pronto.",
+      "description": "Preset da interface (UI Spec §2.1): o tema e as telas do projeto ficam por cima dele. O v1 só tem 'classic'; outros presets entram nesta lista quando existirem.",
       "enum": [
-        "classic",
-        "modern",
-        "minimal"
+        "classic"
       ],
       "default": "classic"
     },

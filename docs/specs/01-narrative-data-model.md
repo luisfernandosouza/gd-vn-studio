@@ -162,7 +162,7 @@ Somente leitura, mantidas pelo runtime. Lista mínima do v1:
 | `sys.ui.has_save`, `sys.ui.in_game`, `sys.ui.activity` | boolean | Estado da interface: existe save, há partida em andamento, minijogo rodando (UI Spec §3.2) |
 | `sys.ui.platform` | string | `windows`, `linux`, `macos` ou `web` |
 | `sys.ui.has_minigames` | boolean | Existe ao menos uma atividade de plugin com `free_play` (UI Spec §3.2) |
-| `sys.ui.last_activity_outcome` | string | Resultado da última atividade jogada no modo livre (`completed`, `cancelled`, `failed` ou vazio) |
+| `sys.ui.last_activity_outcome` | string | Resultado da última atividade jogada no modo livre: o `outcome` declarado, `failed`, `cancelled` ou vazio (Plugin SDK §6.1) |
 | `sys.ui.last_record_rank` | integer | Posição do último recorde enviado no modo livre (0 se não entrou no quadro) |
 | `sys.ui.content_filter` | boolean | Modo stream ligado (§10.4). Só em telas e sets: cenas, capítulos e derivadas não podem ler (R022) |
 | `sys.ui.has_gallery` | boolean | O projeto tem galeria (`project.json → gallery`, §10.5) |
@@ -473,7 +473,7 @@ Fora dessa lista, o Studio converte quando pode (ex.: GIF → sequência) ou rec
 
 ### 10.3. Aparência do jogo (tema)
 
-`theme.json` (`theme.schema.json`) define **como** a interface é: fontes (com reservas por idioma), cores, caixa de diálogo (imagem com `nine_slice`, posição, altura, plaquinha de nome), botões de escolha, sons de interface e estilos de botão com nome. As telas (título, pausa, salvar/carregar, configurações, galeria, créditos, HUD e telas próprias) ficam em `ui/*.json` e dizem **onde** cada elemento fica e **o que** faz; cenários com objetos clicáveis ficam em `sets/*.json`. Tudo é opcional: o que falta vem do `preset` (`classic`, `modern`, `minimal`). O runtime monta a interface a partir desses arquivos; a artista nunca abre o Godot. Assets do tema, das telas e dos sets seguem a regra R004. Detalhes e regras U001–U008 na UI Spec ([06-ui-menus-and-interaction-specification.md](06-ui-menus-and-interaction-specification.md)).
+`theme.json` (`theme.schema.json`) define **como** a interface é: fontes (com reservas por idioma), cores, caixa de diálogo (imagem com `nine_slice`, posição, altura, plaquinha de nome), botões de escolha, sons de interface e estilos de botão com nome. As telas (título, pausa, salvar/carregar, configurações, galeria, créditos, HUD e telas próprias) ficam em `ui/*.json` e dizem **onde** cada elemento fica e **o que** faz; cenários com objetos clicáveis ficam em `sets/*.json`. Tudo é opcional: o que falta vem do preset escolhido em `theme.json → preset` (no v1, só `classic`). O runtime monta a interface a partir desses arquivos; a artista nunca abre o Godot. Assets do tema, das telas e dos sets seguem a regra R004. Detalhes e regras U001–U008 na UI Spec ([06-ui-menus-and-interaction-specification.md](06-ui-menus-and-interaction-specification.md)).
 
 ### 10.4. Modo stream (versão censurada)
 

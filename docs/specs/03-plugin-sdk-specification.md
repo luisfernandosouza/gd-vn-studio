@@ -369,7 +369,7 @@ func color(role: StringName) -> Color                     # &"text", &"accent", 
 
 Contrato entre o nó `plugin` da cena e o código do plugin.
 
-**Declaração** (manifesto): `id`, `name`, `params_schema`, `outcomes`, `outcome_labels`, `result_schema`, `suggested_effects`, `skippable`, `default_outcome` (obrigatório com `skippable: true`, e deve estar em `outcomes`). Opcional: `min_fps`, a menor taxa de quadros em que a atividade é jogável; o runtime a respeita quando o limite de FPS vem do padrão do projeto, e a escolha explícita do jogador vence (Runtime Spec §5.3, UI Spec §8).
+**Declaração** (manifesto): `id`, `name`, `params_schema`, `outcomes` (os nomes `cancelled` e `failed` são reservados, §6.1), `outcome_labels`, `result_schema`, `suggested_effects`, `skippable`, `default_outcome` (obrigatório com `skippable: true`, e deve estar em `outcomes`). Opcional: `min_fps`, a menor taxa de quadros em que a atividade é jogável; o runtime a respeita quando o limite de FPS vem do padrão do projeto, e a escolha explícita do jogador vence (Runtime Spec §5.3, UI Spec §8).
 
 **Textos para o autor.** O Studio gera o formulário da atividade a partir do `params_schema`, então cada propriedade DEVERIA ter `title` e `description`, e cada outcome um rótulo em `outcome_labels` (sem isso, aviso W007 e o Studio mostra o nome técnico). Os textos são escritos no idioma do autor do plugin e traduzidos em `plugin_locales` (`activity/<id>/param/<prop>/title`, `activity/<id>/outcome/<outcome>` etc.). O mesmo vale para `config_schema`.
 
@@ -408,7 +408,17 @@ Uma atividade com `free_play` no manifesto pode ser jogada **fora da história**
 
 - O runtime chama `_vn_start_activity` com `handle.mode == &"free_play"` e os `params` de `free_play.params`, sobrepostos pelos da ação. Não há cena, nó, `on_result` nem autosave.
 - **A história não muda.** Leituras da NarrativeAPI devolvem os valores padrão das variáveis (e os de perfil); escritas, `emit` e `scenes.request` devolvem `INVALID_STATE` (`emit` só registra no log). As variáveis do próprio plugin com `persistence: profile` são a exceção: podem ser lidas e gravadas, e vão para o perfil.
-- O que o modo livre guarda vai para o perfil: recordes e dados de perfil (§9.1). `complete` e `fail` encerram a atividade e voltam à tela que a abriu; o `payload` é ignorado, mas o `outcome` vai para `sys.ui.last_activity_outcome` e a posição do último `submit_record` para `sys.ui.last_record_rank`, para a tela mostrar "Novo recorde!" com `visible_if` (UI Spec §3.2).
+- O que o modo livre guarda vai para o perfil: recordes e dados de perfil (§9.1). `complete` e `fail` encerram a atividade e voltam à tela que a abriu; o `payload` é ignorado. A posição do último `submit_record` vai para `sys.ui.last_record_rank`, para a tela mostrar "Novo recorde!" com `visible_if` (UI Spec §3.2).
+- **Resultado** (decisão de 2026-11-22). Ao voltar, `sys.ui.last_activity_outcome` tem um destes valores, e só estes:
+
+  | Valor | Quando |
+  |---|---|
+  | o `outcome` do `complete` (um dos `outcomes` da atividade, por exemplo `won`) | O plugin terminou a atividade com `complete` |
+  | `failed` | O plugin chamou `fail`, o plugin não carregou ou está *faulted* (Runtime Spec §9) |
+  | `cancelled` | O jogador saiu antes do fim (abaixo) |
+
+  Por isso `cancelled` e `failed` não podem ser nomes de `outcomes` (o schema do manifesto recusa). Antes da primeira atividade da sessão, o valor é vazio.
+- **Sair antes do fim.** No modo livre, a ação `vn_menu` (Esc, Start/Options) é sempre do runtime, mesmo com `input.capture`: ela pausa a árvore do jogo, o que também pausa o minijogo (por isso o tempo de gameplay vem do `delta`, §5.7), e pergunta `runtime/confirm/quit_activity` ("Sair do minijogo?"). Com "Sim", o runtime encerra o handle, chama `_vn_cancel_activity` e volta à tela com `cancelled`. Recordes já enviados com `submit_record` continuam. Com "Não", o jogo despausa e o minijogo segue. As outras ações, inclusive `vn_cancel` (Backspace, B/Círculo), continuam indo para o plugin; como Esc também é `vn_cancel`, um minijogo no modo livre não recebe Esc.
 - Só fora de uma partida: durante o jogo, o botão fica oculto e a ação é recusada (Runtime Spec §5.3). Rodar o modo livre suspendendo a história fica para depois do v1.
 - `handle.rng` usa o RNG comum do motor (o modo livre nunca é reproduzível). O limite de FPS é o de minijogos (UI Spec §8).
 - O validador confere `free_play.params` contra `params_schema` (P004). Uma ação `play_activity` para atividade sem `free_play` é erro P020.

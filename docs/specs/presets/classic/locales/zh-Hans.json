@@ -5,6 +5,7 @@
     "runtime/confirm/no": "否",
     "runtime/confirm/overwrite_save": "覆盖此存档吗？",
     "runtime/confirm/quit": "退出游戏吗？",
+    "runtime/confirm/quit_activity": "退出小游戏？",
     "runtime/confirm/reset_profile": "删除所有游戏数据吗？结局、画廊、纪录和已读文本将被清除。存档和设置会保留。",
     "runtime/confirm/return_to_title": "返回标题画面吗？未保存的进度将会丢失。",
     "runtime/confirm/yes": "是",

@@ -17,7 +17,7 @@ As palavras **DEVE**, **DEVERIA** e **PODE** seguem a RFC 2119.
 2. **Estilo separado do layout.** `theme.json` diz **como** um botão é (imagens, fonte, cores, animações, sons); a tela diz **onde** ele fica e **o que** ele faz. Trocar o estilo muda todos os botões que o usam.
 3. **Interação cosmética × interação narrativa.** Clicar num objeto do cenário para acender uma lâmpada é **cosmético**: não mexe em variáveis e pode acontecer a qualquer momento. Clicar num objeto para investigar e mudar a história é **narrativo**: só acontece num nó `interact` da cena, que funciona como uma escolha espacial. Isso mantém o Scene Scheduler e o Narrative Engine como autoridades sobre a história (ADD §15).
 4. **Funciona sem mouse.** Todo elemento clicável é alcançável por teclado, gamepad e toque, com foco visível (Req §12).
-5. **Um preset sempre funciona.** Um projeto novo já vem com todas as telas prontas a partir do preset do tema (`classic`, `modern`, `minimal`); o autor só altera o que quiser.
+5. **Um preset sempre funciona.** Um projeto novo já vem com todas as telas prontas a partir do preset do tema (no v1, só `classic`); o autor só altera o que quiser.
 
 ## 2. Arquivos
 
@@ -45,7 +45,7 @@ Tela ausente em `ui/` vem do preset. O id da tela é o nome do arquivo e segue o
 
 ### 2.1. Presets
 
-Um preset é um projeto parcial, no mesmo formato e validado pelos mesmos schemas: `presets/<nome>/theme.json`, `presets/<nome>/ui/*.json` e `presets/<nome>/locales/<lang>.json`. O v1 traz o preset **`classic`** ([`presets/classic/`](presets/classic/)); `modern` e `minimal` ficam para depois. O compilador do bundle (Build System §5.1) aplica o preset assim:
+Um preset é um projeto parcial, no mesmo formato e validado pelos mesmos schemas: `presets/<nome>/theme.json`, `presets/<nome>/ui/*.json` e `presets/<nome>/locales/<lang>.json`. O v1 traz o preset **`classic`** ([`presets/classic/`](presets/classic/)); `modern` e `minimal` ficam para depois. O projeto escolhe o preset em `theme.json → preset`, e sem o campo (ou sem `theme.json`) vale `classic`. O schema só aceita presets que existem, então um nome desconhecido é erro de validação, e não uma falha do compilador. O compilador do bundle (Build System §5.1) aplica o preset assim:
 
 - **Tema:** fusão profunda do `theme.json` do preset com o do projeto; o projeto vence em cada chave. O preset define o estilo padrão de cada tipo de elemento (`button`, `choice`, `slot`, `slider`, `toggle`, `select`, `hotspot`, `label`), mais `title_label` e `hud_button`, e o layout padrão da caixa de texto, da plaquinha de nome e das escolhas.
 - **Telas:** uma tela do projeto substitui inteira a do preset com o mesmo id. O `classic` traz `title`, `pause`, `save`, `load`, `settings`, `gallery`, `credits`, `hud`, `backlog` (aberta por `open_backlog`) e `minigames`.
@@ -129,7 +129,7 @@ No título ainda não existe partida, então `visible_if`, `enabled_if` e condi�
 | `sys.ui.has_minigames` | boolean | Existe ao menos uma atividade com `free_play` (botão "Minijogos") |
 | `sys.ui.has_gallery` | boolean | O projeto tem galeria (botão "Galeria", Data Model §10.5) |
 | `sys.ui.gallery_endings`, `sys.ui.gallery_images`, `sys.ui.gallery_music` | boolean | A seção está ativa em `project.json → gallery.sections` (abas da tela `gallery`) |
-| `sys.ui.last_activity_outcome` | string | Resultado da última atividade jogada no modo livre (`completed`, `cancelled`, `failed` ou o `outcome` declarado); vazio antes da primeira |
+| `sys.ui.last_activity_outcome` | string | Resultado da última atividade jogada no modo livre: o `outcome` declarado no `complete`, `failed` ou `cancelled` (Plugin SDK §6.1); vazio antes da primeira |
 | `sys.ui.last_record_rank` | integer | Posição do último recorde enviado no modo livre; 0 se não entrou no quadro |
 | `sys.ui.content_filter` | boolean | Modo stream ligado (ex.: um selo no HUD) |
 | `sys.ui.content_filter_available` | boolean | O jogador pode ligar e desligar o modo stream (há conteúdo marcado e o build não é a edição censurada); o preset esconde o controle quando é falso |

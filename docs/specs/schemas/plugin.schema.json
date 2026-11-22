@@ -295,10 +295,16 @@
             "type": "object"
           },
           "outcomes": {
-            "description": "Resultados possíveis; o nó da cena mapeia cada um para um nó.",
+            "description": "Resultados possíveis; o nó da cena mapeia cada um para um nó. 'cancelled' e 'failed' são reservados para o modo livre (Plugin SDK §6.1).",
             "type": "array",
             "items": {
-              "$ref": "common.schema.json#/$defs/Id"
+              "$ref": "common.schema.json#/$defs/Id",
+              "not": {
+                "enum": [
+                  "cancelled",
+                  "failed"
+                ]
+              }
             },
             "minItems": 1,
             "uniqueItems": true

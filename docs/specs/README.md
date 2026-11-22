@@ -370,6 +370,18 @@ Aplicam os achados V-01 a V-14 da [revisão de 2026-11-22](../reviews/revisao-sp
 | **Demo:** cenários do Noraneko com a versão do modo stream gerada por script (`bg/train_evening_safe`), créditos no campo `credit` (Noraneko Games nos cenários e sutemo na Alice), textos que combinam com o trem; o final "Noite de festival" continua sem asset próprio | repositório `gd-vn-studio-demo`, `examples/demo-project/` |
 | 137 casos em `test_validate.py`, 39 em `test_schemas.py`, 140 vetores, 8 vetores de compilação | spec 08, este README |
 
+### Itens antigos da auditoria de 2026-11-14 (M-01, M-04, M-05, M-06)
+
+Corrigidos na mesma data, com a aprovação do Luis.
+
+| Decisão | Onde |
+|---|---|
+| **M-01.** Hash de `.vnb` diferente mostra G002; G001 fica para bundle ausente, que não decodifica ou com versão de formato não suportada | RT §3.0, BS §8.2, §13.1 |
+| **M-04.** O runtime não confere o código dos plugins: o `integrity` é do pacote `.vnplugin` e só o Build System o confere (B002); no jogo, os scripts ficam no PCK com as mesmas proteções dos do runtime, e o `plugins.vnb` é conferido pelo `content_hash` | RT §2.1, §3.0, §9, spec 09 §3.1 |
+| **M-05.** O preset é escolhido em `theme.json → preset`, e o schema só aceita `classic` no v1; um nome desconhecido é erro de validação | RT §2, DM §10.3, UI §2.1, `theme.schema.json` |
+| **M-06.** `sys.ui.last_activity_outcome` vale o `outcome` do `complete`, `failed` ou `cancelled` (nomes reservados nos `outcomes`). No modo livre, `vn_menu` (Esc, Start) é sempre do runtime e pergunta "Sair do minijogo?" (`runtime/confirm/quit_activity`); sair dá `cancelled` | SDK §6, §6.1, RT §5.3, §10.1, DM §4.3, UI §3.2, `plugin.schema.json`, preset `classic` |
+| 139 casos em `test_validate.py`; hashes de idioma dos vetores de compilação regerados (texto novo do preset) | spec 08, este README |
+
 ## Desvios em relação ao ADD
 
 1. **Referências de variáveis sempre qualificadas** (`global.player_money`), inclusive nas permissões de plugins. O ADD usa às vezes o nome curto (`player_money`); o Studio pode exibi-lo assim, mas grava o ID completo.
