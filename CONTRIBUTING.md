@@ -27,6 +27,7 @@ Cada componente tem SemVer próprio (ADD §10).
 
 - **Schemas:** `docs/specs/schemas/` é a única cópia. Studio, CLI e runtime os leem dali no build; nenhum componente mantém uma cópia editada à mão.
 - **Presets:** `docs/specs/presets/` é a fonte. O build do runtime copia para `runtime/vn_runtime/presets/`; a cópia não é editada à mão.
+- **Cópias geradas:** `python docs/specs/tools/sync_generated_copies.py` gera `runtime/vn_runtime/presets/` (com as fontes Noto em `fonts/`), `runtime/vn_runtime/licenses/` (MIT do runtime, licença do Godot e OFL das fontes), `studio/src-tauri/resources/specs/` e `cli/schemas/`. Todas ficam fora do Git; `--check` confere por hash, e a workflow `generated-copies.yml` falha se uma cópia divergir da fonte ou entrar no Git. Precisa do `fonttools` na versão de `docs/specs/tools/generated_sources.json`.
 - **Exemplo da demo:** `docs/specs/examples/demo-project/` é gerado por `docs/specs/tools/sync_demo_example.py` a partir do [`gd-vn-studio-demo`](https://github.com/luisfernandosouza/gd-vn-studio-demo), no commit de `SOURCE.json`. Uma mudança no exemplo entra primeiro na demo; depois, o pull request deste repositório roda o script com `--update-source` (spec 09 §1.1).
 
 ## Sem arte de jogo

@@ -1,0 +1,72 @@
+{
+  "_comment": "Arquivos externos das cópias geradas (tarefa M0-03, spec 09 §1 e §1.2). Lido por sync_generated_copies.py. Cada download é conferido pelo sha256; cada fonte gerada também (output_sha256), com o fontTools da versão fixada.",
+  "fonttools": "4.60.1",
+  "fonts": {
+    "repository": "https://raw.githubusercontent.com/google/fonts/06bfe0d62a98375cb09c942fa18e68bd32cff057/ofl/",
+    "items": [
+      {
+        "id": "preset/font_body",
+        "family": "Noto Sans",
+        "file": "NotoSans-Regular.ttf",
+        "source": "notosans/NotoSans[wdth,wght].ttf",
+        "source_sha256": "bfb7bb691513f12e734dc346c03a03f784912432d7e3fa8e56efcf906fe86b3d",
+        "axes": {"wght": 400, "wdth": 100},
+        "output_sha256": "16a1ee5229882c1ba577d265014a85d8a4ddbcf5e45bd30bcfbabfdaf89cabf3",
+        "license": "notosans/OFL.txt",
+        "license_sha256": "cee9892f9f0cc8fe882c9e9537ee6a89621d86ee7ceaf70b02e2b2b1c25c061a"
+      },
+      {
+        "id": "preset/font_ja",
+        "family": "Noto Sans JP",
+        "file": "NotoSansJP-Regular.ttf",
+        "source": "notosansjp/NotoSansJP[wght].ttf",
+        "source_sha256": "c2f3b4d463500a2ddcd3849cded1fceeb9fd6d1c32e6cbecd568453ba50fc68f",
+        "axes": {"wght": 400},
+        "output_sha256": "54aba28468f275bc372eda5f29b202c0d9e7b9ba2bc18a53a4c72c481c75cf9f",
+        "license": "notosansjp/OFL.txt",
+        "license_sha256": "1c05c68c34f9708415aada51f17e1b0092d2cea709bf4a94cd38114f9e73d7d9"
+      },
+      {
+        "id": "preset/font_zh_hans",
+        "family": "Noto Sans SC",
+        "file": "NotoSansSC-Regular.ttf",
+        "source": "notosanssc/NotoSansSC[wght].ttf",
+        "source_sha256": "a3041811a78c361b1de50f953c805e0244951c21c5bd412f7232ef0d899af0da",
+        "axes": {"wght": 400},
+        "output_sha256": "b7bebb49c3c6b0266362cf75dd9bdd9bf5fbe5fb390be8f7808ebedef376de76",
+        "license": "notosanssc/OFL.txt",
+        "license_sha256": "1c05c68c34f9708415aada51f17e1b0092d2cea709bf4a94cd38114f9e73d7d9"
+      },
+      {
+        "id": "preset/font_zh_hant",
+        "family": "Noto Sans TC",
+        "file": "NotoSansTC-Regular.ttf",
+        "source": "notosanstc/NotoSansTC[wght].ttf",
+        "source_sha256": "864727d210d54f2537bbe23b3a839436c3992af72de9322af5270897246bd44f",
+        "axes": {"wght": 400},
+        "output_sha256": "45a8d9d0c9928f84d6d84175e3b7a19d413be78a9e4e24860492121caaafde1a",
+        "license": "notosanstc/OFL.txt",
+        "license_sha256": "1c05c68c34f9708415aada51f17e1b0092d2cea709bf4a94cd38114f9e73d7d9"
+      },
+      {
+        "id": "preset/font_ko",
+        "family": "Noto Sans KR",
+        "file": "NotoSansKR-Regular.ttf",
+        "source": "notosanskr/NotoSansKR[wght].ttf",
+        "source_sha256": "194018e6b2b293a7964f037b25c0249ce1418bc9ab3c971060a03aa57861e252",
+        "axes": {"wght": 400},
+        "output_sha256": "5df15eafd82a08691f434a255e595b981a6118233174d540f13e9030c0b1e1de",
+        "license": "notosanskr/OFL.txt",
+        "license_sha256": "1c05c68c34f9708415aada51f17e1b0092d2cea709bf4a94cd38114f9e73d7d9"
+      }
+    ]
+  },
+  "godot": {
+    "version": "4.7.2-stable",
+    "repository": "https://raw.githubusercontent.com/godotengine/godot/4.7.2-stable/",
+    "items": [
+      {"file": "godot-LICENSE.txt", "source": "LICENSE.txt", "sha256": "b0435e3b3e4e55238f05f4b306f30524a1b2e20147810d436eaa554fa6855c80"},
+      {"file": "godot-COPYRIGHT.txt", "source": "COPYRIGHT.txt", "sha256": "cb1980c88089573bcacd7221d777c689bb8bbd778799f24c27fca0fe5f774d6d"}
+    ]
+  }
+}
