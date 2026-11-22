@@ -1,5 +1,5 @@
 {
-  "$schema": "https://schemas.vnstudio.dev/1/theme.schema.json",
+  "$schema": "https://schemas.vnstudio.dev/specs-v1.0.0/theme.schema.json",
   "fonts": {
     "dialogue": "preset/font_body",
     "name": "preset/font_body",

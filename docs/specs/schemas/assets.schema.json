@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.vnstudio.dev/1/assets.schema.json",
+  "$id": "https://schemas.vnstudio.dev/specs-v1.0.0/assets.schema.json",
   "title": "assets.json",
   "description": "Registro de assets. Conteúdo narrativo referencia assets por ID, nunca por caminho, para que renomear arquivos não quebre cenas.",
   "type": "object",

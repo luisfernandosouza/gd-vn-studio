@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.vnstudio.dev/1/bundle-plugins.schema.json",
+  "$id": "https://schemas.vnstudio.dev/specs-v1.0.0/bundle-plugins.schema.json",
   "title": "narrative/plugins.json",
   "description": "Plugins habilitados no bundle, com a permissão efetiva (pedido ∩ concessão ∩ aceite, Plugin SDK §4.1) e a configuração com os defaults do config_schema.",
   "type": "object",

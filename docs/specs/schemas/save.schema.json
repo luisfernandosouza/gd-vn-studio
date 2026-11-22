@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.vnstudio.dev/1/save.schema.json",
+  "$id": "https://schemas.vnstudio.dev/specs-v1.0.0/save.schema.json",
   "title": "Save do Visual Novel Runtime",
   "description": "Snapshot completo do estado narrativo. Gerado e lido apenas pelo Save Manager. Arquivos de perfil usam $defs/Profile e as preferências do jogador, $defs/PlayerSettings.",
   "type": "object",

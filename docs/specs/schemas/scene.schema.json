@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.vnstudio.dev/1/scene.schema.json",
+  "$id": "https://schemas.vnstudio.dev/specs-v1.0.0/scene.schema.json",
   "title": "scenes/<capitulo>/<id>.json",
   "description": "Uma cena: metadados de agendamento + grafo plano de nós. Um arquivo por cena para reduzir conflitos de merge no Git.",
   "type": "object",

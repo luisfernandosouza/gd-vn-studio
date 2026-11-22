@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.vnstudio.dev/1/theme.schema.json",
+  "$id": "https://schemas.vnstudio.dev/specs-v1.0.0/theme.schema.json",
   "title": "theme.json",
   "description": "Estilos do jogo: fontes, cores, caixa de diálogo, escolhas e estilos de botão. O layout das telas fica em ui/*.json (UI Spec). Tudo é opcional; o que faltar vem do preset.",
   "type": "object",

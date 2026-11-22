@@ -67,6 +67,8 @@ gd-vn-studio/
   | Plugin oficial | `plugin-fishing-v1.0.0` | Release com o `.vnplugin`, e entrada no índice oficial `catalog/official.json` |
   | Specs | `specs-v1.0.0` | Release; o `$id` dos schemas aponta para a versão |
 
+  O `$id` de cada schema é `https://schemas.vnstudio.dev/specs-v<versão>/<nome>.schema.json` (decisão D13 de 2026-11-22), com a versão da tag que publica a Release, hoje `specs-v1.0.0`. Cada Release publica os seus schemas num caminho próprio nesse domínio, e um caminho publicado nunca muda nem sai do ar; os arquivos de dados usam o mesmo endereço em `$schema`.
+
   `vnplugin publish` aceita `--tag-prefix plugin-<namespace>-` para o monorepo; fora dele, a tag continua `v<versão>` (Plugin SDK §13.5).
 - **Catálogo** (decisão D11 de 2026-11-22). No v1 não há catálogo de terceiros: o `catalog:official` é o índice `catalog/official.json` deste repositório, com só os plugins oficiais. A CI de release o atualiza por pull request a cada tag `plugin-<namespace>-v*`, e o mantenedor do produto faz o merge (Plugin SDK §13.2). O catálogo completo do v2, que recebe pull requests de terceiros e tem CI e permissões próprias, será um repositório separado. O índice não entra em nenhum artefato (§1.2): o Studio e a CLI o leem pela rede.
 

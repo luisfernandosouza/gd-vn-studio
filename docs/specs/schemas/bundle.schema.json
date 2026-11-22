@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.vnstudio.dev/1/bundle.schema.json",
+  "$id": "https://schemas.vnstudio.dev/specs-v1.0.0/bundle.schema.json",
   "title": "narrative/bundle.json",
   "description": "Bundle narrativo que o runtime lê (Runtime Spec §2, Build System §5.1). Gerado pelo compilador a partir do projeto já validado, com defaults resolvidos e o preset do tema aplicado. Todo mapa é ordenado por chave. content_hash = SHA-256 do JCS do bundle sem o campo content_hash.",
   "type": "object",

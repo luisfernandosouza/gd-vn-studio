@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.vnstudio.dev/1/variables.schema.json",
+  "$id": "https://schemas.vnstudio.dev/specs-v1.0.0/variables.schema.json",
   "title": "variables.json",
   "description": "Variáveis globais e de personagem do projeto. Variáveis de capítulo e de cena ficam nos próprios arquivos; as de plugin, no plugin.json.",
   "type": "object",

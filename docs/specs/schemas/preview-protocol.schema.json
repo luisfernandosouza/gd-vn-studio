@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.vnstudio.dev/1/preview-protocol.schema.json",
+  "$id": "https://schemas.vnstudio.dev/specs-v1.0.0/preview-protocol.schema.json",
   "title": "Mensagem do protocolo do Preview",
   "description": "Uma mensagem JSON-RPC 2.0 trocada entre o Studio e o runtime no Preview (spec 07). Os resultados de cada método estão em $defs/<Método>_result; a resposta em si só é validada na forma.",
   "oneOf": [

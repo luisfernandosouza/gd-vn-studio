@@ -2,12 +2,21 @@
 
 Visual Novel Studio: um editor externo (Tauri + React + TypeScript) para criar visual novels com narrativa dinâmica, um runtime em Godot 4.7.2 + GDScript e um sistema de minijogos por plugins.
 
-Por enquanto o repositório contém as especificações. O layout completo do monorepo (Studio, runtime, SDK, CLI e plugins oficiais) está na [spec 09](docs/specs/09-repositories-and-code-layout.md).
+O repositório é um monorepo, com o layout da [spec 09](docs/specs/09-repositories-and-code-layout.md). Por enquanto só as especificações têm conteúdo; as pastas dos componentes já existem e vão sendo preenchidas pelas tarefas do backlog da v1.
 
 | Pasta | Conteúdo |
 |---|---|
-| [`docs/specs/`](docs/specs/README.md) | Especificações normativas, JSON Schemas, exemplos, vetores de conformidade e ferramentas de referência |
+| [`docs/specs/`](docs/specs/README.md) | Especificações normativas, JSON Schemas, presets, exemplos, vetores de conformidade e ferramentas de referência |
 | [`docs/reviews/`](docs/reviews/) | Relatórios de revisão das especificações |
+| [`studio/`](studio/README.md) | Studio: Tauri + React + TypeScript (`src/`, `src-tauri/`, `preview/`) |
+| [`runtime/`](runtime/README.md) | Runtime: projeto Godot 4.7.2 + GDScript (`vn_runtime/`, `tests/`) |
+| [`sdk/runtime/addons/vn_runtime_sdk/`](sdk/runtime/addons/vn_runtime_sdk/) | Runtime SDK (GDScript), copiado para os projetos de plugin |
+| [`sdk/editor/`](sdk/editor/) | Editor SDK (`@vnstudio/editor-sdk`, npm) |
+| [`cli/`](cli/README.md) | CLIs `vnstudio` e `vnplugin` (TypeScript, Node) |
+| [`plugins/`](plugins/README.md) | Plugins oficiais (`vnstudio.*`); [`plugins/fishing/`](plugins/fishing/) é o minijogo de pesca |
+| [`.github/workflows/`](.github/workflows/) | CI: `specs.yml`, `repo-hygiene.yml` e as dos componentes |
+
+Como contribuir, inclusive onde pode haver mídia e o que fica fora do Git: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Conferências de referência (Python 3):
 
