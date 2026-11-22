@@ -2,7 +2,7 @@
   "$schema": "https://schemas.vnstudio.dev/1/ui-screen.schema.json",
   "id": "credits",
   "kind": "credits",
-  "background": "bg/pier_sunset",
+  "background": "bg/train_evening",
   "focus_start": "btn_back",
   "elements": [
     {

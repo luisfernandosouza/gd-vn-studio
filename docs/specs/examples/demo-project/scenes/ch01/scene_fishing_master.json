@@ -25,12 +25,12 @@
     {
       "id": "019a7a00-7530-7375-b3c2-1b5b13841bae",
       "type": "background",
-      "asset": "bg/pier_sunset"
+      "asset": "bg/train_evening"
     },
     {
       "id": "019a7a00-7918-7bc4-a75f-5cc948fd4ca0",
       "type": "line",
-      "text": "Um velho pescador observa você do píer."
+      "text": "Um velho pescador observa você do outro lado do vagão."
     },
     {
       "id": "019a7a00-7d00-77a3-b73e-826615c4050d",
