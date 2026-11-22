@@ -593,6 +593,10 @@
         "caption": {
           "description": "Legenda exibida com PlayerSettings.subtitles (ex.: '[ondas quebrando]'). Traduzível pelo caminho <cena>/<nó>.",
           "$ref": "common.schema.json#/$defs/LocalizedText"
+        },
+        "censored_caption": {
+          "description": "Modo stream: legenda mostrada no lugar de caption quando o filtro está ligado e o asset tem censored.replace_with (Data Model §10.4). Com censored.hide, nenhuma legenda aparece. Traduzível pelo caminho <cena>/<nó>/censored.",
+          "$ref": "common.schema.json#/$defs/LocalizedText"
         }
       },
       "if": {
@@ -788,6 +792,10 @@
               "label": {
                 "$ref": "common.schema.json#/$defs/LocalizedText"
               },
+              "censored_label": {
+                "description": "Modo stream: rótulo mostrado no lugar de label quando o filtro está ligado (Data Model §10.4). Traduzível pelo caminho <cena>/<nó>/<hotspot>/censored.",
+                "$ref": "common.schema.json#/$defs/LocalizedText"
+              },
               "value": {
                 "$ref": "common.schema.json#/$defs/Id"
               },
@@ -827,6 +835,10 @@
           "additionalProperties": false,
           "properties": {
             "label": {
+              "$ref": "common.schema.json#/$defs/LocalizedText"
+            },
+            "censored_label": {
+              "description": "Modo stream: rótulo da saída quando o filtro está ligado (Data Model §10.4). Traduzível pelo caminho <cena>/<nó>/exit/censored.",
               "$ref": "common.schema.json#/$defs/LocalizedText"
             },
             "goto": {

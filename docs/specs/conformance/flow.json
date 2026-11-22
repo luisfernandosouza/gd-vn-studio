@@ -1308,6 +1308,117 @@
           }
         ]
       }
+    },
+    {
+      "id": "modo_stream_ligado_no_meio",
+      "description": "o jogador liga o modo stream com a fala na tela: itens postos por passos censor: skip saem do palco, o fundo volta ao último sem censor e a fala troca para censored_text (Runtime Spec §5.5)",
+      "kind": "flow",
+      "scene": {
+        "id": "019a7b00-d000-7000-8000-000000000000",
+        "nodes": [
+          {
+            "id": "019a7b00-d001-7000-8000-000000000000",
+            "type": "background",
+            "asset": "bg/street"
+          },
+          {
+            "id": "019a7b00-d002-7000-8000-000000000000",
+            "type": "background",
+            "asset": "bg/room",
+            "censor": "skip"
+          },
+          {
+            "id": "019a7b00-d003-7000-8000-000000000000",
+            "type": "show",
+            "character": "alice",
+            "censor": "skip"
+          },
+          {
+            "id": "019a7b00-d004-7000-8000-000000000000",
+            "type": "show",
+            "character": "bob"
+          },
+          {
+            "id": "019a7b00-d005-7000-8000-000000000000",
+            "type": "audio",
+            "channel": "music",
+            "action": "play",
+            "asset": "music/theme",
+            "censor": "skip"
+          },
+          {
+            "id": "019a7b00-d006-7000-8000-000000000000",
+            "type": "line",
+            "text": "Original.",
+            "censored_text": "Censored."
+          },
+          {
+            "id": "019a7b00-d007-7000-8000-000000000000",
+            "type": "end",
+            "then": "schedule"
+          }
+        ]
+      },
+      "variables": {},
+      "locale": "en",
+      "inputs": [
+        {
+          "content_filter": true
+        },
+        "advance"
+      ],
+      "expect": {
+        "trace": [
+          {
+            "event": "sys.scene_started"
+          },
+          {
+            "node": "019a7b00-d001-7000-8000-000000000000"
+          },
+          {
+            "node": "019a7b00-d002-7000-8000-000000000000"
+          },
+          {
+            "node": "019a7b00-d003-7000-8000-000000000000"
+          },
+          {
+            "node": "019a7b00-d004-7000-8000-000000000000"
+          },
+          {
+            "node": "019a7b00-d005-7000-8000-000000000000"
+          },
+          {
+            "node": "019a7b00-d006-7000-8000-000000000000"
+          },
+          {
+            "text": "Original."
+          },
+          {
+            "event": "sys.content_filter_changed"
+          },
+          {
+            "stage": {
+              "background": "bg/street",
+              "characters": [
+                "bob"
+              ],
+              "audio": {}
+            }
+          },
+          {
+            "text": "Censored."
+          },
+          {
+            "node": "019a7b00-d007-7000-8000-000000000000"
+          },
+          {
+            "event": "sys.scene_ended"
+          },
+          {
+            "end": "schedule"
+          }
+        ]
+      }
     }
   ]
 }

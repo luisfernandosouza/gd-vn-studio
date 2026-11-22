@@ -202,9 +202,9 @@ O **Menu Editor** edita `theme.json`, as telas de `ui/` e os cenários de `sets/
 
 Decisão de 2026-11-16: a galeria só existe se o autor quiser (Data Model §10.5). O Studio oferece, sem código:
 
-- **Configurações do projeto → Galeria.** Um interruptor "Este jogo tem galeria", desligado num projeto novo, e três caixas: "Finais", "Imagens" e "Músicas". Ligar grava `project.json → gallery` com as seções marcadas; desligar apaga o campo. Ao ligar, o Studio sugere marcar os cenários usados em `then: "end_game"` e as músicas já usadas nas cenas.
+- **Configurações do projeto → Galeria.** Um interruptor "Este jogo tem galeria", desligado num projeto novo, e três caixas: "Finais", "Imagens" e "Músicas". Ligar grava `project.json → gallery` com as seções marcadas; desligar apaga o campo. Ao ligar, o Studio sugere marcar os cenários mostrados nas cenas que terminam com um final e as músicas já usadas nas cenas. O que o jogador já viu aparece desbloqueado mesmo que a galeria chegue numa atualização, porque o runtime registra as imagens e músicas vistas com ou sem galeria (Data Model §10.5).
 - **Asset Manager.** Em imagens, cenários e músicas, a caixa "Mostrar na galeria" (`gallery: true`), visível só quando a seção daquele tipo está ligada, e a ordem por arrastar (`gallery_order`). O asset ganha um selo, e o filtro "Na galeria" lista o que já entrou.
-- **Menu Editor.** A tela "Galeria" só aparece na lista quando a galeria está ligada, e o preview mostra só as abas das seções ligadas, com um interruptor "Ver como se tudo estivesse desbloqueado".
+- **Menu Editor.** A tela "Galeria" só aparece na lista quando a galeria está ligada, e o preview mostra só as abas das seções ligadas, com um interruptor "Ver como se tudo estivesse desbloqueado" (`simulate.gallery_unlock_all`, Preview Protocol §3).
 - **Validador.** Os avisos U011, U013 e U014 aparecem com um botão que resolve o caso: ligar a seção, desmarcar o asset ou ligar a galeria.
 
 ### 11.2. Modo stream (versão censurada)
@@ -212,8 +212,9 @@ Decisão de 2026-11-16: a galeria só existe se o autor quiser (Data Model §10.
 Decisão de 2026-11-15: o modo stream mostra a mesma cena com outra apresentação, e só a apresentação muda (Data Model §10.4). O Studio oferece, sem código:
 
 - **Asset Manager.** Em cada imagem, sprite ou som, o campo "Versão censurada": arrastar a substituta ou marcar "Esconder no modo stream". O asset ganha um selo, e a substituta é importada com o mesmo tipo e tamanho de tela. Marcar uma vez vale para todas as cenas, telas, galeria e minijogos.
-- **Editor de cenas.** Cada fala, pergunta e opção tem "Adicionar versão censurada", que abre um segundo campo de texto logo abaixo do original. Passos de apresentação (fala, cenário, personagem, áudio, pausa) podem ser marcados "Só sem censura" ou "Só com censura", um a um ou vários de uma vez; o passo ganha uma faixa colorida no roteiro e no grafo. Os outros tipos de passo nem mostram a opção, para o autor não precisar conhecer a regra R023.
-- **Painel "Modo stream".** Lista tudo que está marcado (assets, falas, passos), com atalho para cada um, e um interruptor "Ver como modo stream" que troca o roteiro, as miniaturas e o Menu Editor para a versão censurada. O botão do Preview que liga o modo no jogo em execução entra no Protocolo do Preview (spec 07) na próxima revisão dele.
+- **Editor de cenas.** Cada fala, pergunta, opção, legenda de som e rótulo de ponto clicável (hotspot e saída) tem "Adicionar versão censurada", que abre um segundo campo de texto logo abaixo do original. Passos de apresentação (fala, cenário, personagem, áudio, pausa) podem ser marcados "Só sem censura" ou "Só com censura", um a um ou vários de uma vez; o passo ganha uma faixa colorida no roteiro e no grafo. Os outros tipos de passo nem mostram a opção, para o autor não precisar conhecer a regra R023.
+- **Painel "Modo stream".** Lista tudo que está marcado (assets, falas, passos), com atalho para cada um, e um interruptor "Ver como modo stream" que troca o roteiro, as miniaturas e o Menu Editor para a versão censurada. O botão "Modo stream" da barra do Preview liga e desliga o modo no jogo em execução (`preview.set_setting`, Preview Protocol §3), e o Menu Editor finge o modo com `simulate.content_filter`.
+- **Validador.** Os avisos W024 e W025 (voz sem versão censurada numa fala censurada) levam ao asset ou à fala; R022 numa tela aponta a ação que depende do modo.
 - **Tradução.** A planilha (§9) traz as versões censuradas como linhas próprias, logo abaixo do original, com a coluna "versão censurada" marcada.
 - **Exportação.** O assistente (§7.1) pergunta a edição: "Completa (o jogador escolhe)" ou "Só a versão censurada" (Build System §5.4), e pode gerar as duas de uma vez.
 

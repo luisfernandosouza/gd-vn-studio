@@ -50,6 +50,7 @@ gd-vn-studio/
 - **Fonte única dos schemas.** `docs/specs/schemas/` é a única cópia. O Studio, a CLI e o runtime os leem dali no build. Nenhum componente mantém uma cópia editada à mão.
 - **Presets.** `docs/specs/presets/` é a fonte; o build do runtime copia para `runtime/vn_runtime/presets/` e acrescenta as fontes (`preset/font_*`). Como os schemas, nenhuma cópia é editada à mão.
 - **Desenvolvimento do runtime sem o Studio.** `docs/specs/tools/compile_bundle.py <projeto> --godot runtime <pastas-de-plugins…>` compila um projeto de jogo para `runtime/vn_content/` e copia os plugins para `runtime/vn_plugins/<namespace>/`; as duas pastas ficam fora do Git. Depois é só abrir `runtime/` no editor do Godot (RT §2.1). Para a demo, a pasta do plugin é `plugins/fishing/vn_plugins/fishing` ou, enquanto o código não existe, `docs/specs/examples/fishing-plugin`.
+- **Runtime do Preview.** A release do runtime gera, além dos templates de exportação, o runtime para o Preview do Studio: o export Web sem threads (`.wasm`, `.js`, `.pck`) para o painel e o pacote `runtime-preview.pck` para a janela (Preview Protocol §1.1 e §1.2). Os dois vêm embutidos no instalador do Studio, entram na conta do tamanho dele e não dependem de baixar nada.
 - **Vetores de conformidade.** A CI roda `docs/specs/tools/conformance.py` e o runner do runtime, nativo e Web, sobre `docs/specs/conformance/` em todo pull request (spec 08 §4).
 - **Exemplos.** `docs/specs/examples/` guarda só os dados que as specs e o validador usam (§1.1). `docs/specs/examples/fishing-plugin/` é o exemplo de plugin das specs. Quando o código começar, o plugin oficial passa a viver em `plugins/fishing/`, e o exemplo vira uma cópia gerada a partir dele pela CI, para não divergirem.
 - **Versões e tags.** Cada componente tem SemVer próprio (ADD §10) e uma tag com prefixo:
@@ -72,6 +73,7 @@ gd-vn-studio/
 O repositório do produto não contém um jogo de exemplo, nem arte, música ou voz de jogo, inclusive arte gerada por IA. Ele guarda código, specs e dados de teste.
 
 - **Dados de exemplo das specs.** `docs/specs/examples/demo-project/` e `demo-save.json` são o projeto mínimo que ilustra as specs e alimenta o validador, os testes (`tools/test_validate.py`) e a CI. São só JSON. `assets.json` cita caminhos (`backgrounds/beach_day.png`…), mas nenhum desses arquivos existe no repositório, e o validador de referência não exige que existam.
+- **Uma fonte para a demo** (decidido em 2026-11-17). O repositório da demo é a fonte dos dados do jogo. `docs/specs/examples/demo-project/` é uma cópia só com os JSON, numa versão fixa da demo, e a CI do produto confere que as duas não divergem. Uma mudança nas specs que mexe no exemplo entra primeiro na demo, ou nos dois pull requests juntos.
 - **Assets de teste.** Quando o runtime e o Studio precisarem de imagens e sons para testes, eles são gerados por script na CI (cores sólidas, formas, tons de áudio sintéticos) ou ficam em `runtime/tests/fixtures/` como placeholders feitos à mão, sem arte gerada por IA. A CI recusa arquivos de imagem, áudio ou vídeo fora dessas pastas.
 - **Plugins oficiais.** Os minijogos em `plugins/` seguem a mesma regra: os assets de cada plugin oficial são originais e têm a licença declarada no próprio plugin.
 - **Jogo de exemplo jogável.** Fica num repositório separado, [`gd-vn-studio-demo`](https://github.com/luisfernandosouza/gd-vn-studio-demo), com o próprio histórico e licença de assets. Ele é um repositório de jogo comum (§3) e usa os plugins oficiais pelo catálogo, como qualquer jogo. A CI do produto pode exportá-lo como teste de ponta a ponta, clonando-o numa versão fixa, sem trazer os assets para o repositório do produto.
@@ -174,7 +176,7 @@ plugins/*/vn_plugins/*/editor/dist/
 build/
 ```
 
-`.vnstudio/` reúne o que é da máquina: cache de import, Preview, `plugin-lock.local.json`, confirmações de confiança e o histórico de backups (Req §8).
+`.vnstudio/` reúne o que é da máquina: cache de import, Preview (inclusive `.vnstudio/preview/user/`, os saves do Preview quando o autor pede para mantê-los, Preview Protocol §1.4), `plugin-lock.local.json`, confirmações de confiança e o histórico de backups (Req §8).
 
 ## 4. Onde os dados dos minijogos ficam no computador do jogador
 

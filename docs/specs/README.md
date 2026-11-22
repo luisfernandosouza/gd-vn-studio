@@ -12,7 +12,7 @@ Marco da seção 16 do ADD: definir e congelar as três especificações que ser
 | 5 | [Build System](05-build-system-specification.md) | Pipeline de build, Build Staging, bundle `.vnb`, assets, presets por plataforma, PCK, proteção do conteúdo, manifesto, CLI `vnstudio build` |
 | 6 | [Menus, botões e interação](06-ui-menus-and-interaction-specification.md) | Telas montadas pelo autor (título, pausa, configurações…), ações de botões, estilos, cenários com objetos clicáveis, nó `interact`, configurações do jogador (FPS da VN × minijogos), ideias de personalização |
 | 7 | [Protocolo do Preview](07-preview-protocol.md) | Conversa Studio ↔ Runtime no Preview: sessão e token, métodos, notificações, `GameState`, `SchedulerEvaluation`, erros |
-| 8 | [Vetores de conformidade](08-conformance-vectors.md) | Formato dos casos que o Runtime e o Preview do Studio DEVEM reproduzir, conjunto de 137 casos (inclusive recordes, fluxo de cenas inteiras e modo stream) e implementação de referência |
+| 8 | [Vetores de conformidade](08-conformance-vectors.md) | Formato dos casos que o Runtime e o Preview do Studio DEVEM reproduzir, conjunto de 138 casos (inclusive recordes, fluxo de cenas inteiras e modo stream), vetores de compilação e implementações de referência |
 | 9 | [Repositórios e organização do código](09-repositories-and-code-layout.md) | Onde cada coisa mora no Git: monorepo do produto, repositório de plugin avulso e repositório de um jogo (plugins do catálogo, guardados e embutidos), `.gitignore`, onde os dados dos minijogos ficam no computador do jogador |
 
 Artefatos:
@@ -27,6 +27,7 @@ Artefatos:
 - `tools/test_schemas.py` — confere os padrões dos schemas (chaves de tradução, id de plugin, mensagens do Preview) contra os formatos que as specs mandam gravar.
 - `conformance/` e `tools/conformance.py` — vetores de conformidade e a implementação de referência que os confere.
 - `tools/compile_bundle.py` — compilador de referência do bundle narrativo (BS §5.1): transforma um projeto na forma que o runtime lê, sem precisar do Studio (RT §2.1).
+- `conformance/compile/` e `tools/test_compile.py` — vetores de compilação: variações do exemplo com o `content_hash` esperado, que o compilador do Studio também DEVE reproduzir (BS §5.1, spec 08).
 
 ```bash
 pip install jsonschema
@@ -38,7 +39,9 @@ python3 tools/test_validate.py
 python3 tools/test_schemas.py
 # padrões dos schemas contra os exemplos das specs
 python3 tools/conformance.py
-# 137/137 vetores conferem com a referência.
+# 138/138 vetores conferem com a referência.
+python3 tools/test_compile.py
+# 7/7 vetores de compilação conferem.
 python3 tools/compile_bundle.py examples/demo-project /tmp/demo-bundle examples/fishing-plugin
 # grava bundle.json, locales/<lang>.json e plugins.json; --stage copia também assets e plugins;
 # --godot <projeto-godot> grava em vn_content/ e vn_plugins/ do projeto do runtime
@@ -274,7 +277,7 @@ Aplicam os achados A-01, A-02, A-03, A-04 e M-02 da auditoria de 2026-11-14.
 
 O Preview no Studio deixa de ter um interpretador próprio em TypeScript. O Studio roda o **próprio runtime**, exportado para Web, num painel do webview; o runtime nativo, numa janela, continua para o modo desenvolvedor e para plugins sem `web`. Assim o autor vê exatamente o jogo do jogador e não há um segundo interpretador para manter igual.
 
-**Encerrada em 2026-11-16.** O resultado do teste no macOS (WKWebView, o motor do Tauri no Mac, na tabela abaixo) foi considerado suficiente, e fica decidido usar só o runtime Godot como interpretador. Não há mais pendência sobre o Preview no macOS; o teste num Mac físico não é necessário para a decisão.
+**Encerrada em 2026-11-16.** O resultado do teste no macOS (WKWebView, o motor do Tauri no Mac, na tabela abaixo) foi considerado suficiente, e fica decidido usar só o runtime Godot como interpretador. O teste num Mac físico não é necessário para a decisão. A decisão está tomada, mas ficaram pendências técnicas, que a revisão de 2026-11-17 apontou: como os assets e os plugins chegam ao Preview (D18) e os itens de "A conferir" abaixo.
 
 A decisão saiu do teste do export Web dentro dos webviews do Tauri ([`spikes/preview-web/`](../../spikes/preview-web/README.md), pasta temporária, apagada quando o projeto do Studio começar), com um bundle grande (405 cenas, 20 mil falas, 3,55 MB) e o template oficial:
 
@@ -298,7 +301,12 @@ A primeira abertura é sem cache; com o motor já compilado em cache, cai para 0
 | **Vetores no runtime nativo e no Web**; sai a suíte do interpretador do Studio e a pasta `studio/interpreter/` | spec 08 §4, spec 09 |
 | O plugin de exemplo troca o mock por um comando que abre o Preview no nó de pescaria | `examples/fishing-plugin/` |
 
-**A conferir no primeiro protótipo:** recarregar um plugin no painel trocando o seu `.pck` (`ProjectSettings.load_resource_pack`), que o teste não cobriu; e o tempo de abrir o painel com o template enxuto (o teste indicou cerca de 30% menos).
+**A conferir no primeiro protótipo** (antes de começar o Studio):
+
+- **Teste B dos assets** (D18): abrir no painel 200 imagens de 1920 × 1080 e 30 músicas pelo carregador de bytes, medir memória e tempo, e trocar um asset em uso (PP §1.3).
+- **Servir por `vnpreview://`**: o spike usou HTTP; conferir o export servido pelo protocolo próprio do Tauri, com `application/wasm`, no WebView2, na WKWebView e no WebKitGTK (PP §1.1).
+- **Plugins como `.pck`**: recarregar um plugin no painel trocando o seu `.pck` (`ProjectSettings.load_resource_pack`); conferir que scripts com `class_name` funcionam num pacote montado depois do boot; e medir o tempo de gerar o `.pck` com o Godot embutido headless a cada salvamento (PP §1.3, SDK §10.6).
+- O tempo de abrir o painel com o template enxuto (o teste indicou cerca de 30% menos).
 
 ## Decisões de 2026-11-15: modo stream (versão censurada)
 
@@ -316,11 +324,32 @@ A primeira abertura é sem cache; com o motor já compilado em cache, cai para 0
 
 | Decisão | Onde |
 |---|---|
-| **Preview: só o runtime Godot como interpretador.** O teste no macOS (WKWebView) foi suficiente; a decisão de 2026-11-15 está encerrada e não há mais pendência sobre o Preview | RT §11, ADD §3.3 (nota), seção de 2026-11-15 acima |
+| **Preview: só o runtime Godot como interpretador.** O teste no macOS (WKWebView) foi suficiente; a decisão de 2026-11-15 está encerrada. As pendências técnicas (assets, plugins e `vnpreview://`) estão na seção de 2026-11-17 | RT §11, ADD §3.3 (nota), seção de 2026-11-15 acima |
 | **Galeria opcional por projeto.** O autor liga a galeria e escolhe as seções em `project.json → gallery.sections` (`endings`, `images`, `music`); projeto novo começa sem galeria. Imagens e músicas entram uma a uma com `gallery: true` | DM §10.5, `project.schema.json`, Req §11.1 |
 | **Sem galeria, nada aparece:** o compilador tira a tela `gallery`, o botão do título some (`sys.ui.has_gallery`) e as abas mostram só as seções ativas (`sys.ui.gallery_*`) | UI §2.1, §3.2, BS §5.1, `presets/classic/ui/gallery.json`, `title.json`, `tools/compile_bundle.py` |
-| **Registro do que foi visto:** finais em `profile.endings` (sempre, com ou sem galeria); imagens e músicas em `profile.seen_assets`, só por nós `background` e `audio` de cenas, também no modo pular, ao carregar save e com o modo stream (marca o original) | RT §5.2, `save.schema.json` |
+| **Registro do que foi visto:** finais em `profile.endings` (sempre, com ou sem galeria); imagens e músicas em `profile.seen_assets` (sempre, desde D20 de 2026-11-17), só por nós `background` e `audio` de cenas, também no modo pular, ao carregar save e com o modo stream (marca o original) | RT §5.2, `save.schema.json` |
 | Códigos U011 (revisto), U012–U014; 130 casos em `test_validate.py`; a demo liga as três seções | UI §11, `examples/demo-project/` |
+
+## Decisões de 2026-11-17: revisão das bordas do Preview, do modo stream e da galeria
+
+Aplicam os achados N-01 a N-20 da [revisão de 2026-11-17](../reviews/revisao-specs-2026-11-17.md) e as decisões D18 a D21, aceitas pelo Luis.
+
+| Decisão | Onde |
+|---|---|
+| **D18. Assets no Preview por bytes.** O bundle do Preview aponta cada asset para o arquivo do autor (`vnpreview://` no painel, `file://` na janela); o runtime cria texturas, sons e fontes em memória e aplica ele mesmo as opções de import. O Preview mostra o mesmo que o jogo, salvo compressão, tempo e memória. Falta o teste B (acima) | PP §1.3, RT §2, §11, `bundle.schema.json` |
+| **D19. O palco lembra o `censor` de cada item.** Ao mudar o modo stream, ou ao carregar, o que um passo `skip`/`only` pôs no palco some se o passo não valeria no modo atual; o cenário volta ao último sem marca (`background_base`) | RT §5.5, §8.2, §8.3, DM §10.4, `save.schema.json → Stage`, vetor `modo_stream_ligado_no_meio` |
+| **D20. A galeria registra sempre.** `profile.seen_assets` guarda as imagens e músicas vistas com ou sem galeria; a tela filtra ao mostrar. Uma galeria que chega numa atualização já vem preenchida | DM §10.5, RT §5.2, Req §11.1 |
+| **D21. Saves do Preview em memória.** Por padrão nada sobrevive ao fechar o Preview; "Manter saves do Preview" grava por projeto em `.vnstudio/preview/user/` (`preview.load` com `user_data: "project"`) | PP §1.4, spec 09 §3.4 |
+| **R022 também nas telas:** `sys.ui.content_filter*` não pode decidir uma ação `effects` ou `emit` (`if`, valores, `visible_if`/`enabled_if` de quem a dispara) | DM §10.4, §11, UI §11, `tools/validate.py` |
+| **Mais textos com versão censurada:** `censored_caption` em `audio` (a legenda segue o asset) e `censored_label` em hotspots e no `exit`; nomes, títulos de capítulo e de final ficam sem versão e devem ser neutros | DM §10.4, RT §5.5, BS §5.4, `scene.schema.json` |
+| **Minijogos:** o modo stream NÃO DEVE mudar `outcome`, `payload`, escritas nem eventos; item na revisão do catálogo e `content_filter` no `VNTestHarness` | SDK §5.6, §12.1, §13.4 |
+| **Preview do modo stream e da galeria:** `preview.set_setting`, `content_filter` em `preview.start` e mais campos em `simulate` (`content_filter`, `content_filter_available`, `last_activity_outcome`, `last_record_rank`, `seen_assets`, `gallery_unlock_all`); passos pulados pelo modo não geram `node.entered` | PP §3, §4, `preview-protocol.schema.json`, Req §11.1, §11.2 |
+| **Runtime do Preview embutido no Studio:** o export Web e o `runtime-preview.pck` saem da release do runtime e funcionam sem internet, separados dos templates de exportação | PP §1.1, §1.2, RT §11, spec 09 §1 |
+| **Vetores de compilação** (`conformance/compile/`, 7 casos) e a regra de equivalência incremental na CI do Studio | BS §5.1, spec 08, `tools/test_compile.py` |
+| **Edição censurada:** asset com `hide` sai da galeria; rótulos e legendas censurados entram no lugar dos originais | BS §5.4, `tools/compile_bundle.py` |
+| **Pergunta da primeira abertura:** a resposta é sempre gravada em `settings.json`, mesmo igual ao padrão | RT §3.0, §8.5 |
+| **Uma fonte para a demo:** o repositório da demo é a fonte; `examples/demo-project/` é a cópia só com os JSON | spec 09 §1.1 |
+| Código W025 (fala censurada com voz sem `censored`); DM §11 passa a citar U001–U014; 133 casos em `test_validate.py`; 138 vetores; redação de `gallery_grid` (UI §3.1) e do Req §11.1 | DM §11, UI §3.1, Req §11.1 |
 
 ## Desvios em relação ao ADD
 

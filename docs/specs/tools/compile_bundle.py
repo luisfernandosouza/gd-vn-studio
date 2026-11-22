@@ -177,7 +177,7 @@ def compile_project(root, plugin_dirs=(), edition=None):
         s["start"] = s.get("start") or s["nodes"][0]["id"]
         s.setdefault("variables", [])
         for d in s["variables"]: d.setdefault("persistence", "save")
-        if censored_ed: s["nodes"] = censor_nodes(s["nodes"])
+        if censored_ed: s["nodes"] = censor_nodes(s["nodes"], assets)
         scenes[sid] = s
 
     # --- preset: tema, telas e textos
@@ -221,6 +221,8 @@ def compile_project(root, plugin_dirs=(), edition=None):
             if c.get("replace_with"):                        # arquivo e palco da substituta; lugar na galeria do original
                 rep = {k: v for k, v in bassets[c["replace_with"]].items() if k not in ("gallery", "gallery_order", "renamed_from")}
                 bassets[aid] = {**rep, **{k: a[k] for k in ("type", "gallery", "gallery_order", "renamed_from") if k in a}}
+            elif c.get("hide"):                              # nunca aparece nesta edição: fora da galeria (Build System §5.4)
+                for k in ("gallery", "gallery_order"): bassets[aid].pop(k, None)
 
     gallery_types = {"images": {"image", "background"}, "music": {"audio_music"}}
     for aid, a in assets.items():                            # marca de galeria sem a seção ativa é ignorada (U013)
@@ -236,8 +238,11 @@ def compile_project(root, plugin_dirs=(), edition=None):
     # --- traduções: preset (idiomas do produto) < plugins < projeto
     censored_paths = {f"{sid}/{n['id']}" for sid, s in scenes_src.items() for n in s["nodes"]
                       if n.get("censored_text") or n.get("censored_prompt")} | \
+                     {f"{sid}/{n['id']}" for sid, s in scenes_src.items() for n in s["nodes"] if n.get("censored_caption")} | \
                      {f"{sid}/{n['id']}/{o['id']}" for sid, s in scenes_src.items() for n in s["nodes"]
-                      for o in n.get("options", []) if o.get("censored_text")}
+                      for o in n.get("options", []) + n.get("hotspots", []) if o.get("censored_text") or o.get("censored_label")} | \
+                     {f"{sid}/{n['id']}/exit" for sid, s in scenes_src.items() for n in s["nodes"]
+                      if (n.get("exit") or {}).get("censored_label")}
     out_locales = {}
     for lang in locales:
         strings = {}
@@ -282,9 +287,10 @@ def compile_project(root, plugin_dirs=(), edition=None):
     return bundle, out_locales, {"plugins": bplugins}, plugin_roots
 
 
-def censor_nodes(nodes):
+def censor_nodes(nodes, assets):
     """Edição censurada: aplica o filtro uma vez, no build. Passos skip viram um desvio para o próximo
-    (o id fica, para saves e caminhos de texto continuarem válidos); o texto censurado substitui o original."""
+    (o id fica, para saves e caminhos de texto continuarem válidos); o texto censurado substitui o original.
+    A legenda de um som escondido some; a de um som trocado vira censored_caption (Data Model §10.4)."""
     out = []
     for i, n in enumerate(nodes):
         nxt = n.get("next") or (nodes[i + 1]["id"] if i + 1 < len(nodes) else None)
@@ -296,6 +302,15 @@ def censor_nodes(nodes):
         if "censored_prompt" in n: n["prompt"] = n.pop("censored_prompt")
         if "options" in n:
             n["options"] = [{**{k: v for k, v in o.items() if k != "censored_text"}, **({"text": o["censored_text"]} if "censored_text" in o else {})} for o in n["options"]]
+        if "hotspots" in n:
+            n["hotspots"] = [{**{k: v for k, v in h.items() if k != "censored_label"}, **({"label": h["censored_label"]} if "censored_label" in h else {})} for h in n["hotspots"]]
+        if "censored_label" in (n.get("exit") or {}):
+            n["exit"] = {**{k: v for k, v in n["exit"].items() if k != "censored_label"}, "label": n["exit"]["censored_label"]}
+        if n["type"] == "audio":
+            c = (assets.get(n.get("asset")) or {}).get("censored") or {}
+            cap = n.pop("censored_caption", None)
+            if c.get("hide"): n.pop("caption", None)
+            elif c.get("replace_with") and cap is not None: n["caption"] = cap
         out.append(n)
     return out
 

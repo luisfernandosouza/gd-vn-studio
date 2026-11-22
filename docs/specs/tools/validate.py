@@ -267,6 +267,18 @@ def check_ui(root, project, theme, theme_file, screens, sets, assets, resolve, c
                 ctx["conf"] += 1; text_paths.add(f"{ctx['path']}/confirm{ctx['conf']}")
                 check_markup(a["text"], where)
 
+    def reads_cf(obj):
+        """A condição ou expressão lê o estado do modo stream?"""
+        return any(f'"{v}"' in json.dumps(obj) for v in CONTENT_FILTER_VARS) if obj else False
+
+    def check_cf_guard(lst, guarded, where):
+        """R022 nas telas: o modo stream não pode decidir effects nem emit (Data Model §10.4)."""
+        for a in lst or []:
+            g = guarded or reads_cf(a.get("if"))
+            if a["do"] in ("effects", "emit") and (g or reads_cf(a.get("effects")) or reads_cf(a.get("payload"))):
+                err("R022", where, f"{a['do']} depende do modo stream: a história não pode mudar com ele (use o estado do filtro só em enfeites)")
+            for k in ("then", "else"): check_cf_guard(a.get(k), g, where)
+
     def check_setting_value(setting, value, where):
         t = SETTING_TYPES[setting]
         ok = {"number": isinstance(value, (int, float)) and not isinstance(value, bool),
@@ -299,6 +311,7 @@ def check_ui(root, project, theme, theme_file, screens, sets, assets, resolve, c
         elem_ids = set(ids)
         if scr.get("focus_start") and scr["focus_start"] not in elem_ids: err("U001", where, f"focus_start {scr['focus_start']} não existe")
         for k in ("on_open", "on_close", "back"):
+            check_cf_guard(scr.get(k), False, f"{where}/{k}")
             check_actions(scr.get(k), f"{where}/{k}", {"kind": scr["kind"], "elem_ids": elem_ids, "set": scr.get("set"),
                                                         "in_set": False, "title": title, "conf": 0, "path": f"ui/{scr_id}/{k}", "screen": scr_id})
         all_do = {a["do"] for k in ("on_open", "on_close", "back") for a in ui_actions(scr.get(k))}
@@ -311,6 +324,7 @@ def check_ui(root, project, theme, theme_file, screens, sets, assets, resolve, c
             for k in ("style", "slot_style"):
                 if e.get(k): check_style(e[k], ew)
             for k in ("actions", "on_hover"):
+                check_cf_guard(e.get(k), reads_cf(e.get("visible_if")) or reads_cf(e.get("enabled_if")), ew)
                 check_actions(e.get(k), ew, {"kind": scr["kind"], "elem_ids": elem_ids, "set": scr.get("set"),
                                              "in_set": False, "title": title, "conf": 0, "path": tp, "screen": scr_id})
                 all_do |= {a["do"] for a in ui_actions(e.get(k))}
@@ -781,6 +795,18 @@ def main(root, plugin_dirs):
                 if o.get("censored_text"):
                     marked.append(nw); text_paths.add(f"{sid}/{n['id']}/{o['id']}/censored")
                     check_markup(o["censored_text"], nw); check_text(o["censored_text"], nw, cid, s)
+            for h in n.get("hotspots", []):
+                if h.get("censored_label"):
+                    marked.append(nw); text_paths.add(f"{sid}/{n['id']}/{h['id']}/censored")
+                    check_text(h["censored_label"], nw, cid, s)
+            if (n.get("exit") or {}).get("censored_label"):
+                marked.append(nw); text_paths.add(f"{sid}/{n['id']}/exit/censored")
+                check_text(n["exit"]["censored_label"], nw, cid, s)
+            if n.get("censored_caption"):
+                marked.append(nw); text_paths.add(f"{sid}/{n['id']}/censored")
+                check_text(n["censored_caption"], nw, cid, s)
+            if n["type"] == "line" and n.get("censored_text") and n.get("voice") in assets and not assets[n["voice"]].get("censored"):
+                warn("W025", nw, f"fala com censored_text, mas a voz {n['voice']} não tem censored: no modo stream o jogador ouve a fala original")
             if n.get("unresolved"):
                 (err if EXPORT else warn)("W013", nw, f"passo incompleto: {n['unresolved'].get('reason')}")
             if n.get("speaker") and n["speaker"] not in chars: err("R010", nw, f"personagem {n['speaker']} não existe")
