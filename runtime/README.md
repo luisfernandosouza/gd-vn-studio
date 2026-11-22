@@ -10,7 +10,7 @@ Runtime das visual novels: projeto Godot 4.7.2 + GDScript ([Runtime Spec](../doc
 | `vn_runtime/presets/` | Cópia gerada de `docs/specs/presets/` + fontes embutidas; nunca editada à mão (tarefa M0-03) |
 | `vn_runtime/licenses/` | Licenças do runtime, do Godot e das fontes do preset ([Build System §4.5](../docs/specs/05-build-system-specification.md)) |
 | `tests/` | Testes e runner headless dos vetores (`--vn-test`) |
-| `tests/fixtures/` | Placeholders de teste feitos à mão: a única pasta do runtime onde pode haver mídia (spec 09 §1.1) |
+| `tests/fixtures/` | Bundles de teste com imagens e sons sintéticos, gerados por `python3 runtime/tests/fixtures/generate.py` ([README](tests/fixtures/README.md)), e placeholders feitos à mão: a única pasta do runtime onde pode haver mídia (spec 09 §1.1) |
 
 ## Rodar sem o Studio
 

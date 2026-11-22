@@ -1,0 +1,93 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/specs-v1.0.0/scene.schema.json",
+  "id": "01930001-0000-7000-8000-000000000200",
+  "chapter": "01930001-0000-7000-8000-000000000100",
+  "title": "talk",
+  "nodes": [
+    {
+      "id": "01930001-0000-7000-8000-000000000001",
+      "type": "background",
+      "asset": "bg/day",
+      "transition": {
+        "kind": "fade",
+        "duration": 0.5
+      }
+    },
+    {
+      "id": "01930001-0000-7000-8000-000000000002",
+      "type": "audio",
+      "action": "play",
+      "channel": "music",
+      "asset": "music/loop_a",
+      "loop": true,
+      "fade": 1.0
+    },
+    {
+      "id": "01930001-0000-7000-8000-000000000003",
+      "type": "show",
+      "character": "01930000-0000-7000-8000-000000000001",
+      "expression": "neutral",
+      "position": "center"
+    },
+    {
+      "id": "01930001-0000-7000-8000-000000000004",
+      "type": "line",
+      "speaker": "01930000-0000-7000-8000-000000000001",
+      "text": "Hello. This is a test line."
+    },
+    {
+      "id": "01930001-0000-7000-8000-000000000005",
+      "type": "line",
+      "speaker": "01930000-0000-7000-8000-000000000001",
+      "expression": "happy",
+      "voice": "voice/probe_001",
+      "text": "This line has a voice clip and a new expression."
+    },
+    {
+      "id": "01930001-0000-7000-8000-000000000006",
+      "type": "audio",
+      "action": "play",
+      "channel": "sfx",
+      "asset": "sfx/click",
+      "caption": "(click)"
+    },
+    {
+      "id": "01930001-0000-7000-8000-000000000007",
+      "type": "line",
+      "text": "Narration. Money: {global.money}. Affection: {character.probe.affection}."
+    },
+    {
+      "id": "01930001-0000-7000-8000-000000000008",
+      "type": "show",
+      "character": "01930000-0000-7000-8000-000000000001",
+      "expression": "sad",
+      "position": 0.25,
+      "transition": {
+        "kind": "fade",
+        "duration": 0.3
+      }
+    },
+    {
+      "id": "01930001-0000-7000-8000-000000000009",
+      "type": "wait",
+      "seconds": 0.5
+    },
+    {
+      "id": "01930001-0000-7000-8000-00000000000a",
+      "type": "hide",
+      "character": "01930000-0000-7000-8000-000000000001"
+    },
+    {
+      "id": "01930001-0000-7000-8000-00000000000b",
+      "type": "audio",
+      "action": "stop",
+      "channel": "music",
+      "fade": 0.5
+    },
+    {
+      "id": "01930001-0000-7000-8000-00000000000c",
+      "type": "end",
+      "then": "end_game"
+    }
+  ]
+}

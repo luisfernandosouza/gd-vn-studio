@@ -1,0 +1,130 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/specs-v1.0.0/plugin.schema.json",
+  "manifest_version": 1,
+  "id": "fixture_activity.probe",
+  "namespace": "probe",
+  "name": "Probe activity",
+  "version": "1.0.0",
+  "description": "Test plugin: an activity that returns its result right away. Fixture only.",
+  "default_locale": "en",
+  "license": "MIT",
+  "sdk": {
+    "runtime": "^1.0.0"
+  },
+  "compatibility": {
+    "runtime": "^1.0.0",
+    "godot": ">=4.7.0 <5.0.0",
+    "data_model": "^1.0.0",
+    "platforms": [
+      "windows",
+      "linux",
+      "macos",
+      "web"
+    ]
+  },
+  "targets": [
+    "runtime"
+  ],
+  "entrypoints": {
+    "runtime": "runtime/src/probe_plugin.gd"
+  },
+  "capabilities": {
+    "runtime": [
+      "events.emit"
+    ]
+  },
+  "config_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "speed": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10,
+        "default": 1,
+        "title": "Speed",
+        "description": "Test knob."
+      }
+    }
+  },
+  "events": {
+    "emits": [
+      {
+        "name": "probe.finished",
+        "description": "Activity finished.",
+        "payload": {
+          "type": "object",
+          "required": [
+            "score"
+          ],
+          "properties": {
+            "score": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "activities": [
+    {
+      "id": "probe_game",
+      "name": "Probe game",
+      "outcomes": [
+        "won",
+        "lost"
+      ],
+      "outcome_labels": {
+        "won": "Won",
+        "lost": "Lost"
+      },
+      "params_schema": {
+        "type": "object",
+        "required": [
+          "mode"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "enum": [
+              "win",
+              "lose",
+              "fail"
+            ],
+            "title": "Mode",
+            "description": "Which result the activity returns."
+          },
+          "target": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1,
+            "title": "Target",
+            "description": "Score to reach."
+          }
+        }
+      },
+      "result_schema": {
+        "type": "object",
+        "required": [
+          "won",
+          "score"
+        ],
+        "properties": {
+          "won": {
+            "type": "boolean"
+          },
+          "score": {
+            "type": "integer"
+          }
+        }
+      },
+      "skippable": true,
+      "default_outcome": "lost",
+      "free_play": {
+        "params": {
+          "mode": "win"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "lock_version": 1,
+  "plugins": {
+    "fixture_activity.probe": {
+      "version": "1.0.0",
+      "namespace": "probe",
+      "resolved": "path:plugins/probe",
+      "enabled": true,
+      "trust": "local",
+      "embedded": true,
+      "requested_by": [
+        "project"
+      ],
+      "dependencies": {}
+    }
+  }
+}
