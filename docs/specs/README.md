@@ -93,7 +93,7 @@ Isolamento de Editor Plugins por iframe sandbox + bridge (SDK §10.1); permissõ
 
 ### 13.6 Build e distribuição — endereçada no v1
 
-Build Staging (BS §4), conteúdo do PCK (BS §4.2, §7.2), reprodutibilidade e cache (BS §10). **Em aberto:** conteúdo externo, DLC e atualizações parciais (BS §14), catálogo e publicação comunitária (SDK §13).
+Build Staging (BS §4), conteúdo do PCK (BS §4.2, §7.2), reprodutibilidade e cache (BS §10). **Em aberto:** conteúdo externo, DLC e atualizações parciais (BS §14), catálogo de terceiros e publicação comunitária, que ficam para o v2 (D11, SDK §13.2).
 
 ### 13.7 Produto — parcialmente
 
@@ -242,7 +242,7 @@ Saíram de [`../reviews/revisao-specs-2026-11-14.md`](../reviews/revisao-specs-2
 | **Modo livre** de minijogos a partir do menu (`free_play`, ação `play_activity`, elemento `records_list`), sem mexer na história | SDK §6.1, RT §5.3, UI §3.1, §4 |
 | Novos códigos P019–P021; 112 casos em `test_validate.py` | DM §11, spec 09 §5 |
 
-**Ainda em aberto** (ver a seção "O que falta" do relatório): ~~escopo da galeria~~ (resolvido em 2026-11-16: galeria opcional por projeto, DM §10.5), quem opera o catálogo, ~~nome e domínio definitivos~~ (resolvido em 2026-11-22, D13), e os documentos E1 e E4–E15 (E2 e E3 já estão nas specs 07 e 08).
+**Ainda em aberto** (ver a seção "O que falta" do relatório): ~~escopo da galeria~~ (resolvido em 2026-11-16: galeria opcional por projeto, DM §10.5), ~~quem opera o catálogo~~ (resolvido em 2026-11-22: só o índice oficial no v1, D11), ~~nome e domínio definitivos~~ (resolvido em 2026-11-22, D13), e os documentos E1 e E4–E15 (E2 e E3 já estão nas specs 07 e 08).
 
 ## Decisões de 2026-11-14: antes do runtime (3ª e 4ª revisões)
 
@@ -260,7 +260,7 @@ Saíram de [`../reviews/revisao-specs-2026-11-14.md`](../reviews/revisao-specs-2
 | Vetores `record` e `flow`; códigos W021–W023 e U009–U011; 119 casos em `test_validate.py` | spec 08, DM §11, UI §11 |
 | `build-manifest.schema.json` | BS §9.2 |
 
-**Ainda em aberto:** quem opera o catálogo, ~~nome e domínio definitivos~~ (D11; D13 resolvida em 2026-11-22, ver abaixo) e os documentos E4–E7 e E9–E15.
+**Ainda em aberto:** ~~quem opera o catálogo~~ (D11, resolvida em 2026-11-22), ~~nome e domínio definitivos~~ (D13 resolvida em 2026-11-22, ver abaixo) e os documentos E4–E7 e E9–E15.
 
 ## Decisões de 2026-11-15: correções da auditoria documental
 
@@ -411,6 +411,18 @@ Fecha a decisão D13 da [revisão de 2026-11-14](../reviews/revisao-specs-2026-1
 | **Nome e domínio ficam como estão:** produto Visual Novel Studio, publisher oficial `vnstudio`, pacotes `@vnstudio/*` e domínio `vnstudio.dev`, que deixa de ser provisório | ADD §5.5, SDK §3, §10, §13.2, spec 09 §1 |
 | **`$id` com a versão das specs:** `https://schemas.vnstudio.dev/specs-v1.0.0/<nome>.schema.json` nos 22 schemas (antes `…/1/…`). O segmento é a tag da Release das specs que publica o schema; cada Release publica os seus num caminho próprio, e um caminho publicado nunca muda nem sai do ar | spec 09 §1, `schemas/*.schema.json` |
 | **`$schema` dos dados usa o mesmo endereço:** exemplo (e a demo, de onde ele é copiado), plugin de exemplo, save de exemplo, preset `classic`, vetores de conformidade e de compilação, e o validador de referência | `examples/`, `presets/`, `conformance/`, `tools/validate.py`, `tools/test_validate.py` |
+
+## Decisão de 2026-11-22: catálogo de plugins no v1 (D11)
+
+Fecha a decisão D11 da revisão de 2026-11-14 (issue #113). Luis escolheu a opção "só o índice oficial no monorepo".
+
+| Decisão | Onde |
+|---|---|
+| **No v1 não há catálogo de terceiros.** O `catalog:official` é o índice `catalog/official.json` do monorepo, com só os plugins oficiais (`trust: official`, `state: published`), lido de uma URL HTTPS fixa. A CI de release o atualiza por pull request a cada tag `plugin-<namespace>-v*`, e a versão aparece no Studio depois do merge. A revogação é um pull request no mesmo arquivo | SDK §13.2, §13.3, §13.5, spec 09 §1, §3.1 |
+| **Plugins de terceiros no v1** são distribuídos por `github:` ou por arquivo (`path:`), sempre `trust: local` com a confirmação por máquina. `vnplugin publish` faz só a Release, sem pedido ao catálogo | SDK §4.3, §13.1, §13.5, spec 09 §2, §3.1 |
+| **Ficam para o v2**, num repositório de catálogo separado: o nível `reviewed`, os publishers, a reserva de namespace para terceiros, a revisão do SDK §13.4, os passos 4 a 7 do SDK §13.5 (pedido, CI do catálogo, revisão humana com prazo, atualização expressa) | SDK §4.3, §13.2, §13.4, §13.5 |
+| **`plugins.schema.json` só aceita `catalog:official`** como catálogo no v1; 3 casos novos em `test_schemas.py` (51 no total) | `plugins.schema.json`, `tools/test_schemas.py` |
+| Pré-condição da v1.0.0: o índice e as Releases dos plugins oficiais são baixáveis sem token | SDK §13.2 |
 
 ## Desvios em relação ao ADD
 

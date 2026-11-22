@@ -6,7 +6,7 @@
 Este documento diz onde cada coisa mora no Git. Há três tipos de repositório:
 
 1. **O repositório do produto** (`gd-vn-studio`), com o Studio, o runtime, os SDKs, a CLI e os plugins oficiais.
-2. **O repositório de um plugin avulso**, para quem publica um minijogo no catálogo.
+2. **O repositório de um plugin avulso**, para quem publica um minijogo (no v1, por GitHub Release e `github:`; o catálogo de terceiros é do v2, Plugin SDK §13.2).
 3. **O repositório de um jogo**, com o projeto de VN e, se o autor quiser, os minijogos feitos só para ele.
 
 As palavras **DEVE**, **DEVERIA** e **PODE** seguem a RFC 2119.
@@ -41,6 +41,7 @@ gd-vn-studio/
 │   ├── runtime/addons/vn_runtime_sdk/   # Runtime SDK (GDScript), copiado para os projetos de plugin
 │   └── editor/                 # Editor SDK (@vnstudio/editor-sdk, npm)
 ├── cli/                        # CLIs vnstudio e vnplugin (TypeScript, Node)
+├── catalog/official.json       # índice dos plugins oficiais, o catalog:official do v1 (Plugin SDK §13.2)
 ├── plugins/                    # plugins oficiais (vnstudio.*), um projeto de desenvolvimento cada
 │   └── fishing/                # mesmo formato do repositório avulso (§2)
 │       ├── project.godot, sandbox/, .vnplugin/
@@ -63,13 +64,13 @@ gd-vn-studio/
   | Runtime SDK | `sdk-runtime-v1.0.0` | Release (zip do addon) |
   | Editor SDK | `sdk-editor-v1.0.0` | npm |
   | CLI | `cli-v1.0.0` | npm (`vnstudio`, `vnplugin`) |
-  | Plugin oficial | `plugin-fishing-v1.0.0` | Release com o `.vnplugin`, e catálogo |
+  | Plugin oficial | `plugin-fishing-v1.0.0` | Release com o `.vnplugin`, e entrada no índice oficial `catalog/official.json` |
   | Specs | `specs-v1.0.0` | Release; o `$id` dos schemas aponta para a versão |
 
   O `$id` de cada schema é `https://schemas.vnstudio.dev/specs-v<versão>/<nome>.schema.json` (decisão D13 de 2026-11-22), com a versão da tag que publica a Release, hoje `specs-v1.0.0`. Cada Release publica os seus schemas num caminho próprio nesse domínio, e um caminho publicado nunca muda nem sai do ar; os arquivos de dados usam o mesmo endereço em `$schema`.
 
   `vnplugin publish` aceita `--tag-prefix plugin-<namespace>-` para o monorepo; fora dele, a tag continua `v<versão>` (Plugin SDK §13.5).
-- **Catálogo.** O catálogo de plugins é um repositório separado (Plugin SDK §13.2), porque recebe pull requests de terceiros e tem CI e permissões próprias. Quem o opera ainda está em aberto (decisão D11 da revisão de 2026-11-14).
+- **Catálogo** (decisão D11 de 2026-11-22). No v1 não há catálogo de terceiros: o `catalog:official` é o índice `catalog/official.json` deste repositório, com só os plugins oficiais. A CI de release o atualiza por pull request a cada tag `plugin-<namespace>-v*`, e o mantenedor do produto faz o merge (Plugin SDK §13.2). O catálogo completo do v2, que recebe pull requests de terceiros e tem CI e permissões próprias, será um repositório separado. O índice não entra em nenhum artefato (§1.2): o Studio e a CLI o leem pela rede.
 
 ### 1.1. Sem jogo de exemplo nem arte no repositório do produto
 
@@ -162,14 +163,14 @@ meu-jogo/
 
 | Origem | `source` em `plugins.json` | O que vai para o Git | `plugin-lock.json` | Exportação |
 |---|---|---|---|---|
-| Catálogo | `catalog:official` | Só a referência | `resolved` (URL), `integrity`, `trust` | Pacote do cache, conferido pelo hash |
-| GitHub fora do catálogo | `github:owner/repo` (público ou privado) | Só a referência | `resolved` (URL da Release), `integrity`, `trust: local` | Idem |
+| Catálogo (no v1, só o índice oficial) | `catalog:official` | Só a referência | `resolved` (URL), `integrity`, `trust` | Pacote do cache, conferido pelo hash |
+| GitHub fora do catálogo (no v1, todo plugin de terceiros) | `github:owner/repo` (público ou privado) | Só a referência | `resolved` (URL da Release), `integrity`, `trust: local` | Idem |
 | Pacote guardado | `path:vendor/plugins/<arquivo>.vnplugin` | O arquivo `.vnplugin` | `resolved: path:…`, `integrity`, `trust: local` | Pacote do repositório, conferido pelo hash |
 | Embutido | `path:plugins/<pasta>` | O código-fonte do plugin | `resolved: path:…`, `embedded: true`, `trust: local`, sem `integrity` | Empacotado da pasta no build (§3.2) |
 
 Uma quinta forma, o **vínculo** de desenvolvimento (Plugin SDK §12.3), não vai para o Git: fica em `.vnstudio/plugin-lock.local.json` e aponta para a pasta de um plugin avulso em outro lugar da máquina. A exportação recusa vínculos (P013).
 
-**Plugins oficiais antes do catálogo.** Enquanto o catálogo não existe, o lock de um plugin oficial aponta para a Release do monorepo: `resolved: "https://github.com/luisfernandosouza/gd-vn-studio/releases/download/plugin-fishing-v1.0.0/vnstudio.fishing-1.0.0.vnplugin"`, com a tag do §1. O `integrity` é o hash do pacote publicado. Até a primeira Release, o `integrity` do lock da demo é provisório (o hash de um arquivo vazio) e o runtime de debug carrega o plugin copiado para `runtime/vn_plugins/` (RT §2.1). Só o Build System confere o `integrity`, e o runtime nunca o confere (RT §3.0). O lock é corrigido quando o pacote existir.
+**Plugins oficiais no v1.** O índice oficial (§1) aponta cada versão para a Release do monorepo, e o lock também: `resolved: "https://github.com/luisfernandosouza/gd-vn-studio/releases/download/plugin-fishing-v1.0.0/vnstudio.fishing-1.0.0.vnplugin"`, com a tag do §1. O `integrity` é o hash do pacote publicado. Até a primeira Release, o `integrity` do lock da demo é provisório (o hash de um arquivo vazio) e o runtime de debug carrega o plugin copiado para `runtime/vn_plugins/` (RT §2.1). Só o Build System confere o `integrity`, e o runtime nunca o confere (RT §3.0). O lock é corrigido quando o pacote existir.
 
 **Repositório privado.** `github:` aceita repositório privado, para um estúdio que reaproveita o mesmo minijogo em vários jogos sem publicá-lo: um repositório de plugin (§2), vários jogos apontando para ele. O token de leitura nunca fica no projeto: o Studio e a CLI o guardam no chaveiro do sistema (Keychain no macOS, Credential Manager no Windows, Secret Service no Linux), pedido na primeira instalação; na CI vem da variável de ambiente `VNSTUDIO_GITHUB_TOKEN`. O pacote baixado vai para o cache como qualquer outro, e a exportação não precisa do token se o cache já o tem. Sem token, a instalação para com uma mensagem que explica como criar um token só de leitura.
 
@@ -189,7 +190,7 @@ Pacotes do catálogo e do GitHub nunca vão para o repositório do jogo. Ficam n
 - **Confiança.** O plugin embutido é `trust: local`. Cada máquina confirma uma vez que o código do projeto pode rodar (Plugin SDK §4.3); a confirmação fica em `.vnstudio/`, fora do Git, para que um repositório clonado de terceiros nunca execute código sem o aviso.
 - **Exportação.** O Build System empacota a pasta `vn_plugins/<namespace>/` com as regras do `.vnplugin` reprodutível (Plugin SDK §2.1–§2.2), calcula o `integrity` e o registra no manifesto do build (Build System §9). A partir daí, o plugin segue o mesmo caminho dos outros no staging (Build System §4.5).
 - **Id.** Qualquer id válido. Recomenda-se `<id do projeto>.<nome>` (ex.: `seaside_story.quiz`), que deixa claro que o plugin é deste jogo. O namespace segue as regras de sempre (único no projeto, P001; não reservado).
-- **Publicar depois.** Para transformar um embutido em avulso: copiar `plugins/<nome>/` para um repositório próprio, publicar (Plugin SDK §13.5) e trocar `source` para `catalog:` ou `github:`. Saves continuam valendo, porque id e namespace não mudam.
+- **Publicar depois.** Para transformar um embutido em avulso: copiar `plugins/<nome>/` para um repositório próprio, publicar (Plugin SDK §13.5) e trocar `source` para `github:` (no v1) ou `catalog:` (no v2). Saves continuam valendo, porque id e namespace não mudam.
 
 ### 3.3. Pacote guardado
 
