@@ -1,0 +1,109 @@
+# Studio (Tauri + React + TypeScript): lint, typecheck, testes unitários e build nos três sistemas (M0-05).
+# O build de cada sistema abre o app com VNSTUDIO_SMOKE_TEST=1: a janela abre, a interface React
+# monta e avisa o processo nativo, que sai com 0. Sem esse aviso, o app sai com erro (src-tauri/src/smoke.rs).
+# Os ícones são gerados no build (scripts/gen-icons.mjs), porque o repositório não guarda imagens (spec 09 §1.1).
+name: Studio
+
+on:
+  pull_request:
+    paths: [studio/**, .github/workflows/studio.yml]
+  push:
+    branches: [main]
+    paths: [studio/**, .github/workflows/studio.yml]
+  workflow_dispatch:
+
+concurrency:
+  group: studio-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    working-directory: studio
+
+jobs:
+  check:
+    name: Lint, typecheck e testes
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: studio/package-lock.json
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Testes unitários
+        run: npm test
+
+  build:
+    name: Build e janela (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Dependências do Tauri no Linux
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev libayatana-appindicator3-dev xvfb
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: studio/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: studio/src-tauri
+      - run: npm ci
+      - name: Ícones gerados
+        run: npm run icons
+      - name: Formatação do Rust
+        if: runner.os == 'Linux'
+        working-directory: studio/src-tauri
+        run: cargo fmt --check
+      - name: Clippy
+        if: runner.os == 'Linux'
+        working-directory: studio/src-tauri
+        run: cargo clippy --locked --all-targets -- -D warnings
+      - name: Testes do Rust
+        working-directory: studio/src-tauri
+        run: cargo test --locked
+      - name: Build
+        run: npx tauri build --no-bundle -- --locked
+      - name: Janela abre (Linux)
+        if: runner.os == 'Linux'
+        env:
+          VNSTUDIO_SMOKE_TEST: '1'
+        run: xvfb-run -a src-tauri/target/release/vn-studio
+      - name: Janela abre (macOS)
+        if: runner.os == 'macOS'
+        env:
+          VNSTUDIO_SMOKE_TEST: '1'
+        run: src-tauri/target/release/vn-studio
+      - name: Janela abre (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          VNSTUDIO_SMOKE_TEST: '1'
+        run: |
+          $p = Start-Process -FilePath src-tauri\target\release\vn-studio.exe -Wait -PassThru
+          if ($p.ExitCode -ne 0) { Write-Error "O app saiu com $($p.ExitCode)"; exit 1 }
+          Write-Output "vnstudio-smoke: janela aberta e interface montada"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vn-studio-${{ runner.os }}
+          path: |
+            studio/src-tauri/target/release/vn-studio
+            studio/src-tauri/target/release/vn-studio.exe
+          if-no-files-found: error
+          retention-days: 7

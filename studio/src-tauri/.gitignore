@@ -1,0 +1,6 @@
+# Compilação do Rust
+/target/
+# Esquemas gerados pelo tauri-build
+/gen/schemas
+# Ícones gerados por scripts/gen-icons.mjs (spec 09 §1.1: sem imagens no Git)
+/icons/
