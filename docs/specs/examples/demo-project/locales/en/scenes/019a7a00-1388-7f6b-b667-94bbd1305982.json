@@ -1,5 +1,5 @@
 {
-  "$schema": "https://schemas.vnstudio.dev/1/locale.schema.json",
+  "$schema": "https://schemas.vnstudio.dev/specs-v1.0.0/locale.schema.json",
   "locale": "en",
   "strings": {
     "019a7a00-1388-7f6b-b667-94bbd1305982/019a7a00-3a98-732b-89dd-170487226b34": "Hi! Are you new around here? I have {global.player_money} coins, what about you?",

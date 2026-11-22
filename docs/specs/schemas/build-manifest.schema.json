@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.vnstudio.dev/1/build-manifest.schema.json",
+  "$id": "https://schemas.vnstudio.dev/specs-v1.0.0/build-manifest.schema.json",
   "title": "build-manifest.json",
   "description": "Manifesto gravado na pasta de saída de cada build (Build System §9.2). O Build Reporter e a CI o leem.",
   "type": "object",

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.vnstudio.dev/1/locale.schema.json",
+  "$id": "https://schemas.vnstudio.dev/specs-v1.0.0/locale.schema.json",
   "title": "locales/<lang>/<arquivo>.json",
   "description": "Traduções. Chave = caminho estável do texto (ex.: scene_beach/n3, scene_beach/n7/opt_fish, character/alice/name). Valor = texto traduzido. 'source_hash' detecta tradução desatualizada.",
   "type": "object",

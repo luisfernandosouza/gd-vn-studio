@@ -1,5 +1,5 @@
 {
-  "$schema": "https://schemas.vnstudio.dev/1/set.schema.json",
+  "$schema": "https://schemas.vnstudio.dev/specs-v1.0.0/set.schema.json",
   "id": "beach_title",
   "description": "Praia do menu inicial: céu muda à noite depois do final do festival; a lâmpada acende ao clicar.",
   "layers": [

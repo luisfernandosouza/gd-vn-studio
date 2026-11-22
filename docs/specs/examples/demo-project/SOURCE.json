@@ -1,5 +1,5 @@
 {
   "description": "Versão da demo copiada para este exemplo (spec 09 §1.1, decisão D23). Gerado por tools/sync_demo_example.py; a CI confere com a demo neste commit.",
   "repository": "luisfernandosouza/gd-vn-studio-demo",
-  "commit": "d1544f71ba6bb9d7d47b9f63e14478e23aba35a3"
+  "commit": "d460597fde4465bd0e8429e6d2fb447223a06476"
 }

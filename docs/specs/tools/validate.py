@@ -18,7 +18,7 @@ from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
 
 SCHEMAS = Path(__file__).resolve().parent.parent / "schemas"
-BASE = "https://schemas.vnstudio.dev/1/"
+BASE = "https://schemas.vnstudio.dev/specs-v1.0.0/"
 
 def load(p): return json.loads(Path(p).read_text(encoding="utf-8"))
 

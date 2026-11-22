@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.vnstudio.dev/1/bundle-locale.schema.json",
+  "$id": "https://schemas.vnstudio.dev/specs-v1.0.0/bundle-locale.schema.json",
   "title": "narrative/locales/<lang>.json",
   "description": "Todas as traduções de um idioma do jogo, por caminho de texto (Data Model §9): as do projeto sobre as do preset. Inclui o idioma-fonte só com os textos do preset e dos plugins, porque os do projeto estão inline no bundle.",
   "type": "object",

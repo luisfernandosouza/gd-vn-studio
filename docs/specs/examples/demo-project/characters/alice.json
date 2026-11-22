@@ -1,5 +1,5 @@
 {
-  "$schema": "https://schemas.vnstudio.dev/1/character.schema.json",
+  "$schema": "https://schemas.vnstudio.dev/specs-v1.0.0/character.schema.json",
   "id": "019a7a00-0bb8-7dc0-b468-e39508f1443d",
   "key": "alice",
   "name": "Alice",
