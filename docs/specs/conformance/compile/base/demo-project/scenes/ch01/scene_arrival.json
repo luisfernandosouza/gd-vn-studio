@@ -1,0 +1,31 @@
+{
+  "id": "019a7a00-0fa0-755e-a143-bcfdef94a367",
+  "chapter": "019a7a00-03e8-7e8e-9f34-b5a38f4a780b",
+  "title": "Chegada",
+  "scheduling": {
+    "mode": "manual"
+  },
+  "nodes": [
+    {
+      "id": "019a7a00-2328-75af-af3d-0f9fe3652ba0",
+      "type": "background",
+      "asset": "bg/train_beach"
+    },
+    {
+      "id": "019a7a00-2710-730c-a8a2-c3737040ab76",
+      "type": "line",
+      "text": "O trem segue pela costa, e o mar aparece na janela."
+    },
+    {
+      "id": "019a7a00-2af8-76d4-a476-1c690bd42b2f",
+      "type": "effects",
+      "effects": [
+        {
+          "op": "add",
+          "variable": "global.player_money",
+          "value": 100
+        }
+      ]
+    }
+  ]
+}

@@ -209,7 +209,8 @@ def compile_project(root, plugin_dirs=(), edition=None):
     if not sections: bui.pop("gallery", None)                # sem galeria, a tela não entra (UI Spec §2.1)
 
     # --- assets
-    bassets = {aid: {**a, "path": "res://vn_content/assets/" + a["path"]} for aid, a in assets.items()}
+    # credit fica fora do bundle (e do content_hash): o Build System o leva para vn_content/licenses.txt (BS §4.5)
+    bassets = {aid: {**{k: v for k, v in a.items() if k != "credit"}, "path": "res://vn_content/assets/" + a["path"]} for aid, a in assets.items()}
     for aid, (t, path) in PRESET_ASSETS.items():
         bassets.setdefault(aid, {"type": t, "path": path})
         for old in assets.get(aid, {}).get("renamed_from", []): aliases[old] = aid

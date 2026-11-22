@@ -346,17 +346,35 @@
           ]
         },
         "background_censor": {
-          "description": "Modo stream (Runtime Spec §5.5): censor do passo que pôs este item no palco. Ao mudar o modo ou ao carregar, um item cujo passo não valeria no modo atual sai do palco. Ausente = passo sem censor.",
+          "description": "Modo stream (Runtime Spec §5.5): censor do passo que pôs o cenário atual (asset ou set). Ao mudar o modo ou ao carregar, se o passo não valeria no modo atual, o palco mostra background_base. Ausente = passo sem censor.",
           "enum": [
             "skip",
             "only"
           ]
         },
         "background_base": {
-          "description": "Modo stream: último cenário posto por um passo sem censor, mostrado quando o cenário atual sai do palco por background_censor (Runtime Spec §5.5). Ausente ou null = content_filter.placeholder, senão a cor de fundo do tema.",
+          "description": "Modo stream: último cenário posto por um passo sem censor (um asset, ou um set com o estado das camadas), mostrado quando o cenário atual sai do palco por background_censor (Runtime Spec §5.5). Ausente ou null = content_filter.placeholder, senão a cor de fundo do tema.",
           "oneOf": [
             {
               "$ref": "common.schema.json#/$defs/AssetRef"
+            },
+            {
+              "type": "object",
+              "required": [
+                "set"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "set": {
+                  "$ref": "common.schema.json#/$defs/Id"
+                },
+                "set_states": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
             },
             {
               "type": "null"
@@ -389,11 +407,31 @@
                 ]
               },
               "censor": {
-                "description": "Modo stream (Runtime Spec §5.5): censor do passo que pôs este item no palco. Ao mudar o modo ou ao carregar, um item cujo passo não valeria no modo atual sai do palco. Ausente = passo sem censor.",
+                "description": "Modo stream (Runtime Spec §5.5): censor do passo show que deixou a personagem como está. Ao mudar o modo ou ao carregar, se o passo não valeria no modo atual, a personagem volta a base ou, sem base, sai do palco. Ausente = passo sem censor.",
                 "enum": [
                   "skip",
                   "only"
                 ]
+              },
+              "base": {
+                "description": "Modo stream: o estado da personagem antes do passo censurado (último show sem censor). Ausente = a personagem não estava no palco antes; ela some enquanto o passo não vale.",
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "expression": {
+                    "$ref": "common.schema.json#/$defs/Id"
+                  },
+                  "position": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ]
+                  }
+                }
               }
             }
           }
@@ -417,11 +455,30 @@
                 "type": "number"
               },
               "censor": {
-                "description": "Modo stream (Runtime Spec §5.5): censor do passo que pôs este item no palco. Ao mudar o modo ou ao carregar, um item cujo passo não valeria no modo atual sai do palco. Ausente = passo sem censor.",
+                "description": "Modo stream (Runtime Spec §5.5): censor do passo audio play que pôs este som no canal. Ao mudar o modo ou ao carregar, se o passo não valeria no modo atual, o canal volta a base ou, sem base, silencia. Ausente = passo sem censor.",
                 "enum": [
                   "skip",
                   "only"
                 ]
+              },
+              "base": {
+                "description": "Modo stream: o som que tocava no canal antes do passo censurado (último play sem censor). Ausente = o canal estava em silêncio.",
+                "type": "object",
+                "required": [
+                  "asset"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "asset": {
+                    "$ref": "common.schema.json#/$defs/AssetRef"
+                  },
+                  "loop": {
+                    "type": "boolean"
+                  },
+                  "volume": {
+                    "type": "number"
+                  }
+                }
               }
             }
           }

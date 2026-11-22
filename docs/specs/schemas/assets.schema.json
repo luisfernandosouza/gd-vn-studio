@@ -132,6 +132,36 @@
                 }
               }
             ]
+          },
+          "credit": {
+            "description": "Crédito de um asset de terceiros (Data Model §10, Build System §4.5): o Build System reúne em vn_content/licenses.txt o crédito de cada asset que entra no staging, e a tela de créditos o mostra com licenses_list (UI Spec §3.1). Assets que não entram no jogo não aparecem. Não entra no bundle.json nem no content_hash.",
+            "type": "object",
+            "required": [
+              "author"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "author": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Quem deve ser creditado, como a licença pede (ex.: \"Noraneko Games\")."
+              },
+              "license": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Nome curto ou resumo dos termos (ex.: \"CC BY 4.0\", \"termos do pacote, ver ReadMe.txt\")."
+              },
+              "url": {
+                "type": "string",
+                "format": "uri",
+                "description": "Página do autor ou do pacote."
+              },
+              "notice": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Texto exato que a licença pede para mostrar, quando houver; senão o crédito mostra author e license."
+              }
+            }
           }
         }
       }

@@ -1,7 +1,7 @@
 {
   "$schema": "https://schemas.vnstudio.dev/1/chapter.schema.json",
   "id": "019a7a00-03e8-7e8e-9f34-b5a38f4a780b",
-  "title": "A praia",
+  "title": "Rumo à praia",
   "variables": [
     {
       "key": "days_passed",

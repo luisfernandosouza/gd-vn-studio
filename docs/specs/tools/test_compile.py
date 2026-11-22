@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Vetores de compilação (spec 08 §1, Build System §5.1).
 
-Cada caso parte de examples/demo-project e examples/fishing-plugin, aplica as
+Cada caso parte do projeto congelado em conformance/compile/base/ (demo-project e
+fishing-plugin, uma cópia fixa do exemplo das specs que não acompanha a demo), aplica as
 trocas de `edits` (JSON Pointer, RFC 6901) e compila com tools/compile_bundle.py.
 O resultado tem de bater com `expect`: o content_hash do bundle.json, o hash do
 JCS de cada locales/<lang>.json e de plugins.json, e os ponteiros que precisam
@@ -22,6 +23,7 @@ import compile_bundle as cb  # noqa: E402
 
 SPECS = HERE.parent
 CASES = SPECS / "conformance" / "compile" / "cases.json"
+BASE = SPECS / "conformance" / "compile" / "base"
 
 
 def unescape(tok): return tok.replace("~1", "/").replace("~0", "~")
@@ -57,8 +59,8 @@ def run(case):
     tmp = Path(tempfile.mkdtemp())
     try:
         proj = tmp / "demo"; plug = tmp / "fishing"
-        shutil.copytree(SPECS / case.get("project", "examples/demo-project"), proj)
-        shutil.copytree(SPECS / "examples" / "fishing-plugin", plug)
+        shutil.copytree(BASE / case.get("project", "demo-project"), proj)
+        shutil.copytree(BASE / "fishing-plugin", plug)
         for e in case.get("edits", []): apply_edit(proj, e)
         bundle, locales, plugins, _ = cb.compile_project(proj, [plug], case.get("edition"))
         got = {"content_hash": bundle["content_hash"],

@@ -1400,7 +1400,9 @@
             "stage": {
               "background": "bg/street",
               "characters": [
-                "bob"
+                {
+                  "id": "bob"
+                }
               ],
               "audio": {}
             }
@@ -1410,6 +1412,227 @@
           },
           {
             "node": "019a7b00-d007-7000-8000-000000000000"
+          },
+          {
+            "event": "sys.scene_ended"
+          },
+          {
+            "end": "schedule"
+          }
+        ]
+      }
+    },
+    {
+      "id": "modo_stream_volta_a_base",
+      "description": "passos censurados sobre itens que já estavam no palco: ao ligar o modo, a personagem volta à expressão anterior e o canal volta à música anterior, em vez de sumirem; ao desligar, a versão censurada volta (Runtime Spec §5.5)",
+      "kind": "flow",
+      "scene": {
+        "id": "019a7b00-e000-7000-8000-000000000000",
+        "nodes": [
+          {
+            "id": "019a7b00-e001-7000-8000-000000000000",
+            "type": "background",
+            "asset": "bg/street"
+          },
+          {
+            "id": "019a7b00-e002-7000-8000-000000000000",
+            "type": "show",
+            "character": "alice",
+            "expression": "neutral"
+          },
+          {
+            "id": "019a7b00-e003-7000-8000-000000000000",
+            "type": "audio",
+            "channel": "music",
+            "action": "play",
+            "asset": "music/theme"
+          },
+          {
+            "id": "019a7b00-e004-7000-8000-000000000000",
+            "type": "show",
+            "character": "alice",
+            "expression": "spicy",
+            "censor": "skip"
+          },
+          {
+            "id": "019a7b00-e005-7000-8000-000000000000",
+            "type": "audio",
+            "channel": "music",
+            "action": "play",
+            "asset": "music/spicy",
+            "censor": "skip"
+          },
+          {
+            "id": "019a7b00-e006-7000-8000-000000000000",
+            "type": "line",
+            "text": "Original."
+          },
+          {
+            "id": "019a7b00-e007-7000-8000-000000000000",
+            "type": "end",
+            "then": "schedule"
+          }
+        ]
+      },
+      "variables": {},
+      "locale": "en",
+      "inputs": [
+        {
+          "content_filter": true
+        },
+        {
+          "content_filter": false
+        },
+        "advance"
+      ],
+      "expect": {
+        "trace": [
+          {
+            "event": "sys.scene_started"
+          },
+          {
+            "node": "019a7b00-e001-7000-8000-000000000000"
+          },
+          {
+            "node": "019a7b00-e002-7000-8000-000000000000"
+          },
+          {
+            "node": "019a7b00-e003-7000-8000-000000000000"
+          },
+          {
+            "node": "019a7b00-e004-7000-8000-000000000000"
+          },
+          {
+            "node": "019a7b00-e005-7000-8000-000000000000"
+          },
+          {
+            "node": "019a7b00-e006-7000-8000-000000000000"
+          },
+          {
+            "text": "Original."
+          },
+          {
+            "event": "sys.content_filter_changed"
+          },
+          {
+            "stage": {
+              "background": "bg/street",
+              "characters": [
+                {
+                  "id": "alice",
+                  "expression": "neutral"
+                }
+              ],
+              "audio": {
+                "music": "music/theme"
+              }
+            }
+          },
+          {
+            "text": "Original."
+          },
+          {
+            "event": "sys.content_filter_changed"
+          },
+          {
+            "stage": {
+              "background": "bg/street",
+              "characters": [
+                {
+                  "id": "alice",
+                  "expression": "spicy"
+                }
+              ],
+              "audio": {
+                "music": "music/spicy"
+              }
+            }
+          },
+          {
+            "text": "Original."
+          },
+          {
+            "node": "019a7b00-e007-7000-8000-000000000000"
+          },
+          {
+            "event": "sys.scene_ended"
+          },
+          {
+            "end": "schedule"
+          }
+        ]
+      }
+    },
+    {
+      "id": "modo_stream_set_como_base",
+      "description": "cenário composto (set) como base: um cenário censurado posto sobre um set volta ao set quando o modo é ligado (Runtime Spec §5.5)",
+      "kind": "flow",
+      "scene": {
+        "id": "019a7b00-f000-7000-8000-000000000000",
+        "nodes": [
+          {
+            "id": "019a7b00-f001-7000-8000-000000000000",
+            "type": "background",
+            "set": "beach_title"
+          },
+          {
+            "id": "019a7b00-f002-7000-8000-000000000000",
+            "type": "background",
+            "asset": "bg/room",
+            "censor": "skip"
+          },
+          {
+            "id": "019a7b00-f003-7000-8000-000000000000",
+            "type": "line",
+            "text": "Original."
+          },
+          {
+            "id": "019a7b00-f004-7000-8000-000000000000",
+            "type": "end",
+            "then": "schedule"
+          }
+        ]
+      },
+      "variables": {},
+      "locale": "en",
+      "inputs": [
+        {
+          "content_filter": true
+        },
+        "advance"
+      ],
+      "expect": {
+        "trace": [
+          {
+            "event": "sys.scene_started"
+          },
+          {
+            "node": "019a7b00-f001-7000-8000-000000000000"
+          },
+          {
+            "node": "019a7b00-f002-7000-8000-000000000000"
+          },
+          {
+            "node": "019a7b00-f003-7000-8000-000000000000"
+          },
+          {
+            "text": "Original."
+          },
+          {
+            "event": "sys.content_filter_changed"
+          },
+          {
+            "stage": {
+              "background": "beach_title",
+              "characters": [],
+              "audio": {}
+            }
+          },
+          {
+            "text": "Original."
+          },
+          {
+            "node": "019a7b00-f004-7000-8000-000000000000"
           },
           {
             "event": "sys.scene_ended"

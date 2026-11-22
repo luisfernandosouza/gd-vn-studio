@@ -24,7 +24,7 @@
       "gallery": true
     },
     "bg/train_evening_safe": {
-      "path": "backgrounds/noraneko/Train_Transparent.png",
+      "path": "backgrounds/noraneko/train_evening_safe.png",
       "type": "background"
     },
     "char/alice/neutral": {

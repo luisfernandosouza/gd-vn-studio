@@ -1,0 +1,91 @@
+{
+  "id": "019a7a00-1b58-719e-a5e5-9bc09a99b364",
+  "chapter": "019a7a00-03e8-7e8e-9f34-b5a38f4a780b",
+  "title": "Um dia tranquilo",
+  "scheduling": {
+    "mode": "manual",
+    "max_plays": null
+  },
+  "nodes": [
+    {
+      "id": "019a7a00-a0ec-7c1e-9d2a-5e7f3b1c4d60",
+      "type": "background",
+      "set": "beach_title",
+      "transition": {
+        "kind": "fade",
+        "duration": 0.5
+      }
+    },
+    {
+      "id": "019a7a00-9088-71af-8838-e61aedc9ea8d",
+      "type": "line",
+      "text": "O dia passa sem novidades."
+    },
+    {
+      "id": "019a7a00-a0f0-7c1e-9d2a-5e7f3b1c4d61",
+      "type": "interact",
+      "prompt": "O que você quer olhar?",
+      "hotspots": [
+        {
+          "id": "019a7a00-a0fc-7c1e-9d2a-5e7f3b1c4d64",
+          "label": "Concha",
+          "area": {
+            "rect": [
+              0.55,
+              0.82,
+              0.05,
+              0.05
+            ]
+          },
+          "cursor": "look",
+          "once": true,
+          "goto": "019a7a00-a0f4-7c1e-9d2a-5e7f3b1c4d62"
+        },
+        {
+          "id": "019a7a00-a100-7c1e-9d2a-5e7f3b1c4d65",
+          "label": "Lâmpada",
+          "area": {
+            "layer": "lamp"
+          },
+          "cursor": "use",
+          "once": true,
+          "effects": [
+            {
+              "op": "add",
+              "variable": "global.player_money",
+              "value": 5
+            }
+          ],
+          "goto": "019a7a00-a0f8-7c1e-9d2a-5e7f3b1c4d63"
+        }
+      ],
+      "exit": {
+        "label": "Voltar para casa",
+        "goto": "019a7a00-9470-75fe-a728-21a6012716b3"
+      }
+    },
+    {
+      "id": "019a7a00-a0f4-7c1e-9d2a-5e7f3b1c4d62",
+      "type": "line",
+      "text": "Uma concha bonita. Você guarda no bolso.",
+      "next": "019a7a00-a0f0-7c1e-9d2a-5e7f3b1c4d61"
+    },
+    {
+      "id": "019a7a00-a0f8-7c1e-9d2a-5e7f3b1c4d63",
+      "type": "line",
+      "text": "Embaixo da lâmpada havia {global.player_money} moedas… ou quase isso.",
+      "next": "019a7a00-a0f0-7c1e-9d2a-5e7f3b1c4d61"
+    },
+    {
+      "id": "019a7a00-9470-75fe-a728-21a6012716b3",
+      "type": "effects",
+      "effects": [
+        {
+          "op": "add",
+          "variable": "chapter.days_passed",
+          "value": 1
+        }
+      ]
+    }
+  ]
+}

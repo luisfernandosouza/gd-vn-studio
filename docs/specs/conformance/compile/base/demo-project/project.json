@@ -1,0 +1,97 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/1/project.schema.json",
+  "format_version": "1.0.0",
+  "id": "seaside_story",
+  "title": "Seaside Story",
+  "version": "0.1.0",
+  "default_locale": "pt-BR",
+  "locales": [
+    "pt-BR",
+    "en"
+  ],
+  "start_chapter": "019a7a00-03e8-7e8e-9f34-b5a38f4a780b",
+  "chapters": [
+    "019a7a00-03e8-7e8e-9f34-b5a38f4a780b",
+    "019a7a00-07d0-79cc-8832-8bb38a8122f3"
+  ],
+  "runtime": {
+    "min_version": "1.0.0",
+    "godot": ">=4.7.0 <5.0.0"
+  },
+  "scheduler": {
+    "tie_breaker": "deterministic"
+  },
+  "settings": {
+    "resolution": [
+      1920,
+      1080
+    ],
+    "autosave": "selection_point",
+    "display": {
+      "resolutions": [
+        [
+          1280,
+          720
+        ],
+        [
+          1600,
+          900
+        ],
+        [
+          1920,
+          1080
+        ],
+        [
+          2560,
+          1440
+        ]
+      ],
+      "display_mode": "windowed",
+      "vsync": true,
+      "fps_limit_vn": 60,
+      "fps_limit_activity": 0
+    }
+  },
+  "endings": [
+    {
+      "id": "festival_ending",
+      "title": "Noite de festival",
+      "description": "Você foi ao festival com Alice.",
+      "image": "bg/onsen_night"
+    }
+  ],
+  "content_filter": {
+    "default": false,
+    "ask_on_first_launch": true
+  },
+  "gallery": {
+    "sections": [
+      "endings",
+      "images",
+      "music"
+    ]
+  },
+  "events": [
+    {
+      "name": "story.met_master",
+      "description": "O jogador conheceu o mestre pescador.",
+      "payload": {
+        "type": "object",
+        "properties": {
+          "skill": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  ],
+  "build": {
+    "executable_name": "Seaside Story",
+    "icon": "ui/icon",
+    "company": "Seaside Team",
+    "platforms": [
+      "windows",
+      "linux"
+    ]
+  }
+}

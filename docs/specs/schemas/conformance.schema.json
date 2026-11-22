@@ -883,7 +883,7 @@
                       },
                       "stage": {
                         "type": "object",
-                        "description": "Palco visível depois de mudar o modo: background (id ou null = placeholder), characters (ids, na ordem de entrada) e audio (canal → asset)."
+                        "description": "Palco visível depois de mudar o modo: background (id do asset ou do set; null = placeholder), characters (na ordem de entrada, cada uma com id e, se houver, expression) e audio (canal → asset)."
                       }
                     },
                     "additionalProperties": false

@@ -51,7 +51,7 @@ SYS_FIXED = {"sys.chapter.id": "string", "sys.scene.id": "string", "sys.selectio
              "sys.ui.gallery_music": "boolean"}
 # Modo stream (Data Model §10.4): estado do filtro só nas telas (R022); censor só em passos de apresentação (R023)
 CONTENT_FILTER_VARS = {"sys.ui.content_filter", "sys.ui.content_filter_available"}
-CENSORABLE_NODES = {"line", "background", "show", "hide", "audio", "wait"}
+CENSORABLE_NODES = {"line", "background", "show", "audio", "wait"}   # hide e audio sem play não: só a entrada de um item muda com o modo (Runtime Spec §5.5)
 # UI Spec §4, §5.1, §8
 COSMETIC = {"set_state", "toggle_state", "play_animation", "play_sfx", "show", "hide", "toggle_visible"}
 TITLE_ONLY = {"new_game", "continue"}
@@ -315,6 +315,14 @@ def check_ui(root, project, theme, theme_file, screens, sets, assets, resolve, c
             check_actions(scr.get(k), f"{where}/{k}", {"kind": scr["kind"], "elem_ids": elem_ids, "set": scr.get("set"),
                                                         "in_set": False, "title": title, "conf": 0, "path": f"ui/{scr_id}/{k}", "screen": scr_id})
         all_do = {a["do"] for k in ("on_open", "on_close", "back") for a in ui_actions(scr.get(k))}
+        # R022: a guarda de um container (visible_if/enabled_if que lê o modo stream) vale para tudo que ele contém
+        cf_parent = {}
+        def mark_cf(es, g):
+            for x in es:
+                cf_parent[x["id"]] = g
+                if x.get("type") == "container":
+                    mark_cf(x.get("children", []), g or reads_cf(x.get("visible_if")) or reads_cf(x.get("enabled_if")))
+        mark_cf(scr["elements"], False)
         for e in elems:
             ew = f"{where}#{e['id']}"; tp = f"ui/{scr_id}/{e['id']}"
             for k in ("visible_if", "enabled_if"):
@@ -324,7 +332,7 @@ def check_ui(root, project, theme, theme_file, screens, sets, assets, resolve, c
             for k in ("style", "slot_style"):
                 if e.get(k): check_style(e[k], ew)
             for k in ("actions", "on_hover"):
-                check_cf_guard(e.get(k), reads_cf(e.get("visible_if")) or reads_cf(e.get("enabled_if")), ew)
+                check_cf_guard(e.get(k), cf_parent.get(e["id"], False) or reads_cf(e.get("visible_if")) or reads_cf(e.get("enabled_if")), ew)
                 check_actions(e.get(k), ew, {"kind": scr["kind"], "elem_ids": elem_ids, "set": scr.get("set"),
                                              "in_set": False, "title": title, "conf": 0, "path": tp, "screen": scr_id})
                 all_do |= {a["do"] for a in ui_actions(e.get(k))}
@@ -365,8 +373,13 @@ def check_ui(root, project, theme, theme_file, screens, sets, assets, resolve, c
                     warn("U007", ew, f"elemento sai da tela na resolução base {base[0]}x{base[1]}")
         if scr["kind"] == "title" and "new_game" not in all_do: err("U006", where, "tela de título sem ação new_game")
         licensed = [m["id"] for m in manifests.values() if m.get("license")]
-        if scr["kind"] == "credits" and licensed and not any(e["type"] == "licenses_list" for e in elems):
-            warn("U009", where, f"créditos sem licenses_list, mas os plugins {', '.join(sorted(licensed))} têm licença (Build System §4.5)")
+        credited = sorted(aid for aid, a in assets.items() if a.get("credit"))
+        if scr["kind"] == "credits" and (licensed or credited) and not any(e["type"] == "licenses_list" for e in elems):
+            quem = ([f"os plugins {', '.join(sorted(licensed))} têm licença"] if licensed else []) + ([f"os assets {', '.join(credited)} têm credit"] if credited else [])
+            warn("U009", where, f"créditos sem licenses_list, mas {' e '.join(quem)} (Build System §4.5)")
+        for e in elems:
+            if scr["kind"] == "credits" and e["type"] == "licenses_list" and credited and "assets" not in e.get("include", ["plugins", "fonts", "assets"]):
+                warn("U009", f"{where}#{e['id']}", f"licenses_list sem assets, mas os assets {', '.join(credited)} têm credit")
         if scr["kind"] == "pause" and not ({"close_screen", "back"} & all_do) and "back" not in scr:
             err("U006", where, "tela de pausa sem close_screen nem back")
 
@@ -786,7 +799,9 @@ def main(root, plugin_dirs):
             if n.get("censor"):
                 marked.append(nw)
                 if n["type"] not in CENSORABLE_NODES:
-                    err("R023", nw, f"censor num passo {n['type']}: só line, background, show, hide, audio e wait podem mudar com o modo stream")
+                    err("R023", nw, f"censor num passo {n['type']}: só line, background, show, audio (play) e wait podem mudar com o modo stream")
+                elif n["type"] == "audio" and n.get("action") != "play":
+                    err("R023", nw, f"censor num audio com action {n.get('action')}: só a entrada de um som pode depender do modo stream, não a saída (Runtime Spec §5.5)")
             for k in ("censored_text", "censored_prompt"):
                 if n.get(k):
                     marked.append(nw); text_paths.add(f"{sid}/{n['id']}/censored")
