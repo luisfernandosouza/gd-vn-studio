@@ -16,7 +16,6 @@ on:
 
 env:
   GODOT_VERSION: 4.7.2-stable
-  GODOT_DIR: ${{ github.workspace }}/../godot
 
 jobs:
   godot:
@@ -26,9 +25,9 @@ jobs:
       - uses: actions/checkout@v5
       - name: Cache do Godot ${{ env.GODOT_VERSION }}
         id: cache-godot
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
-          path: ${{ env.GODOT_DIR }}
+          path: ~/.cache/godot-bin
           key: godot-${{ env.GODOT_VERSION }}-linux-x86_64
       - name: Baixa o Godot ${{ env.GODOT_VERSION }}
         if: steps.cache-godot.outputs.cache-hit != 'true'
@@ -36,12 +35,12 @@ jobs:
           set -euo pipefail
           url="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
           curl -fsSL --retry 3 -o "$RUNNER_TEMP/godot.zip" "$url"
-          mkdir -p "$GODOT_DIR"
-          unzip -q "$RUNNER_TEMP/godot.zip" -d "$GODOT_DIR"
+          mkdir -p ~/.cache/godot-bin
+          unzip -q "$RUNNER_TEMP/godot.zip" -d ~/.cache/godot-bin
       - name: Instala o Godot
         run: |
           set -euo pipefail
-          install -m 755 "$GODOT_DIR/Godot_v${GODOT_VERSION}_linux.x86_64" /usr/local/bin/godot
+          install -m 755 ~/.cache/godot-bin/"Godot_v${GODOT_VERSION}_linux.x86_64" /usr/local/bin/godot
           godot --headless --version
       - name: Importa o projeto
         run: godot --headless --path runtime --import 2>&1 | tee "$RUNNER_TEMP/import.log"
