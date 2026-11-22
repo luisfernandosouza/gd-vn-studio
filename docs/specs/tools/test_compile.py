@@ -62,11 +62,12 @@ def run(case):
         shutil.copytree(BASE / case.get("project", "demo-project"), proj)
         shutil.copytree(BASE / "fishing-plugin", plug)
         for e in case.get("edits", []): apply_edit(proj, e)
-        bundle, locales, plugins, _ = cb.compile_project(proj, [plug], case.get("edition"))
+        bundle, locales, plugins, _, licenses = cb.compile_project(proj, [plug], case.get("edition"))
         got = {"content_hash": bundle["content_hash"],
                "locales": {k: cb.sri(cb.jcs(v).encode("utf-8")) for k, v in sorted(locales.items())},
-               "plugins": cb.sri(cb.jcs(plugins).encode("utf-8"))}
-        return got, bundle
+               "plugins": cb.sri(cb.jcs(plugins).encode("utf-8")),
+               "licenses": cb.sri(cb.jcs(licenses).encode("utf-8"))}
+        return got, bundle, licenses
     finally:
         shutil.rmtree(tmp)
 
@@ -75,9 +76,10 @@ def main(argv):
     data = json.loads(CASES.read_text(encoding="utf-8"))
     fails = 0
     for c in data["cases"]:
-        got, bundle = run(c)
+        got, bundle, licenses = run(c)
         exp = c["expect"]
-        bad = [k for k in ("content_hash", "locales", "plugins") if k in exp and exp[k] != got[k]]
+        bad = [k for k in ("content_hash", "locales", "plugins", "licenses") if k in exp and exp[k] != got[k]]
+        if "license_entries" in exp and exp["license_entries"] != licenses["entries"]: bad.append("license_entries")
         bad += [f"present {p}" for p in exp.get("present", []) if resolve(bundle, p) is None]
         bad += [f"absent {p}" for p in exp.get("absent", []) if resolve(bundle, p) is not None]
         if "--print" in argv: print(c["id"], json.dumps(got))

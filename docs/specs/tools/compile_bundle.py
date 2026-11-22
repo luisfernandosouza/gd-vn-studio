@@ -10,6 +10,7 @@ preset do tema e grava a forma canônica que o runtime lê:
   <saída>/bundle.json
   <saída>/locales/<lang>.json   (um por idioma do jogo)
   <saída>/plugins.json
+  <saída>/licenses.json         (licenças de plugins e créditos de assets, Build System §4.5)
 
 Com --stage, também copia os assets para <saída>/assets/ e cada plugin para
 <saída>/vn_plugins/<namespace>/.
@@ -209,7 +210,7 @@ def compile_project(root, plugin_dirs=(), edition=None):
     if not sections: bui.pop("gallery", None)                # sem galeria, a tela não entra (UI Spec §2.1)
 
     # --- assets
-    # credit fica fora do bundle (e do content_hash): o Build System o leva para vn_content/licenses.txt (BS §4.5)
+    # credit fica fora do bundle (e do content_hash): vai para licenses.json (BS §4.5, build_licenses)
     bassets = {aid: {**{k: v for k, v in a.items() if k != "credit"}, "path": "res://vn_content/assets/" + a["path"]} for aid, a in assets.items()}
     for aid, (t, path) in PRESET_ASSETS.items():
         bassets.setdefault(aid, {"type": t, "path": path})
@@ -285,7 +286,43 @@ def compile_project(root, plugin_dirs=(), edition=None):
                          "variables": {"read": sorted(grants.get("variables", {}).get("read", [])),
                                        "write": sorted(grants.get("variables", {}).get("write", []))},
                          "scenes": sorted(grants.get("scenes", [])), "config": conf}
-    return bundle, out_locales, {"plugins": bplugins}, plugin_roots
+    licenses = build_licenses(root, bundle, assets, {pid: manifests[pid] for pid in bplugins}, plugin_roots)
+    return bundle, out_locales, {"plugins": bplugins}, plugin_roots, licenses
+
+
+def build_licenses(root, bundle, assets, manifests, plugin_roots):
+    """licenses.json (Build System §4.5, bundle-licenses.schema.json): plugins habilitados e o credit dos
+    assets que entram no jogo, com créditos iguais agrupados. O aviso do motor e do runtime não entra:
+    o runtime o acrescenta sempre (UI Spec §3.1, include engine). Esta referência não faz a poda de
+    assets sem uso do B008; entram todos os do bundle, menos os escondidos na edição censurada."""
+    censored_ed = bundle["project"]["content_filter"]["edition"] == "censored"
+    entries = []
+    for pid, m in sorted(manifests.items()):
+        e = {"kind": "plugin", "title": m["name"] if isinstance(m["name"], str) else m["name"].get(m.get("default_locale", "en"), pid)}
+        if m.get("author", {}).get("name"): e["author"] = m["author"]["name"]
+        if m.get("license"): e["license"] = m["license"]
+        if m.get("homepage"): e["url"] = m["homepage"]
+        lic = plugin_roots[pid] / "LICENSE"
+        if lic.is_file(): e["text"] = lic.read_text(encoding="utf-8")
+        entries.append(e)
+    groups = {}
+    for aid, a in sorted(assets.items()):
+        c = a.get("credit")
+        if not c or aid not in bundle["assets"]: continue
+        if censored_ed and a.get("censored", {}).get("hide"): continue      # não entra nesta edição
+        key = tuple(c.get(k) for k in ("author", "license", "url", "notice", "license_file"))
+        groups.setdefault(key, []).append((aid, a["type"]))
+    for (author, lic, url, notice, lfile), items in groups.items():
+        e = {"kind": "font" if all(t == "font" for _, t in items) else "asset", "title": author, "author": author}
+        if lic: e["license"] = lic
+        if url: e["url"] = url
+        if notice: e["notice"] = notice
+        if lfile and (Path(root) / "assets" / lfile).is_file(): e["text"] = (Path(root) / "assets" / lfile).read_text(encoding="utf-8")
+        e["assets"] = sorted(aid for aid, _ in items)
+        entries.append(e)
+    order = {"plugin": 0, "font": 1, "asset": 2}
+    entries.sort(key=lambda e: (order[e["kind"]], e["title"], e.get("author", ""), e.get("assets", [""])[0] if e.get("assets") else ""))
+    return {"entries": entries}
 
 
 def censor_nodes(nodes, assets):
@@ -316,8 +353,9 @@ def censor_nodes(nodes, assets):
     return out
 
 
-def write(out, bundle, locales, plugins):
+def write(out, bundle, locales, plugins, licenses):
     out = Path(out); (out / "locales").mkdir(parents=True, exist_ok=True)
+    (out / "licenses.json").write_text(jcs(licenses), encoding="utf-8")
     (out / "bundle.json").write_text(jcs(bundle), encoding="utf-8")
     for lang, doc in locales.items(): (out / "locales" / f"{lang}.json").write_text(jcs(doc), encoding="utf-8")
     (out / "plugins.json").write_text(jcs(plugins), encoding="utf-8")
@@ -361,8 +399,8 @@ if __name__ == "__main__":
     if godot:                                                # recomeça do zero: nada velho fica no projeto
         for d in (out, godot / "vn_plugins"):
             if d.exists(): shutil.rmtree(d)
-    b, l, p, roots = compile_project(args[0], args[2:], edition)
-    write(out, b, l, p)
+    b, l, p, roots, lic = compile_project(args[0], args[2:], edition)
+    write(out, b, l, p, lic)
     if do_stage or godot: stage(args[0], out, b, roots, list(p["plugins"]))
     if godot:
         if (out / "vn_plugins").exists(): shutil.move(str(out / "vn_plugins"), str(godot / "vn_plugins"))

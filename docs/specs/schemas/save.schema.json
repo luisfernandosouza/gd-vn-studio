@@ -343,10 +343,11 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "Asset do cenário atual; null quando o cenário é um set (aí set e set_states ficam preenchidos)."
         },
         "background_censor": {
-          "description": "Modo stream (Runtime Spec §5.5): censor do passo que pôs o cenário atual (asset ou set). Ao mudar o modo ou ao carregar, se o passo não valeria no modo atual, o palco mostra background_base. Ausente = passo sem censor.",
+          "description": "Modo stream (Runtime Spec §5.5): censor do passo que pôs o cenário atual (background ou, se for set, set e set_states). Ao mudar o modo ou ao carregar, se o passo não valeria no modo atual, o palco mostra background_base. Ausente = passo sem censor.",
           "enum": [
             "skip",
             "only"
@@ -414,7 +415,7 @@
                 ]
               },
               "base": {
-                "description": "Modo stream: o estado da personagem antes do passo censurado (último show sem censor). Ausente = a personagem não estava no palco antes; ela some enquanto o passo não vale.",
+                "description": "Modo stream: expressão e posição da personagem imediatamente antes do passo censurado (Runtime Spec §5.5). Um hide sem censor tira a personagem e a base junto. Ausente = ela não estava no palco nesse momento; some enquanto o passo não vale.",
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
@@ -462,7 +463,7 @@
                 ]
               },
               "base": {
-                "description": "Modo stream: o som que tocava no canal antes do passo censurado (último play sem censor). Ausente = o canal estava em silêncio.",
+                "description": "Modo stream: o som que tocava no canal imediatamente antes do passo censurado (Runtime Spec §5.5). Um stop sem censor silencia o canal e apaga a base. Ausente = o canal estava em silêncio.",
                 "type": "object",
                 "required": [
                   "asset"

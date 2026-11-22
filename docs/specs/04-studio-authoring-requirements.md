@@ -222,10 +222,10 @@ Decisão de 2026-11-15: o modo stream mostra a mesma cena com outra apresentaç�
 
 Decisão de 2026-11-22: o crédito de arte, música ou som feito por outra pessoa fica no próprio asset (`credit`, Data Model §10.1), e não num texto digitado na tela de créditos.
 
-- **Ao importar**, o Asset Manager pergunta "De onde veio?": "Fiz eu / minha equipe" (sem crédito) ou "De outra pessoa ou pacote", que abre os campos Autor, Licença, Link e "Texto que a licença pede". Ao importar uma pasta inteira, a resposta vale para todos os arquivos dela, e um `ReadMe.txt`, `LICENSE` ou `CREDITS` na pasta é oferecido como texto da licença.
+- **Ao importar**, o Asset Manager pergunta "De onde veio?": "Fiz eu / minha equipe" (sem crédito) ou "De outra pessoa ou pacote", que abre os campos Autor, Licença, Link, "Texto que a licença pede" e "Arquivo da licença". Ao importar uma pasta inteira, a resposta vale para todos os arquivos dela, e um `ReadMe.txt`, `LICENSE`, `OFL.txt` ou `CREDITS` na pasta é oferecido como arquivo da licença (`license_file`). Uma fonte importada de um pacote OFL já vem com o `OFL.txt` como arquivo da licença.
 - **No Asset Manager**, um asset com crédito ganha um selo, e o filtro "De terceiros" lista todos, para o autor conferir antes de publicar.
-- **Na tela de créditos**, o Menu Editor mostra a `licenses_list` com os créditos dos assets usados no jogo. Um asset sem uso não aparece, como no build (Build System §4.5).
-- **Validador.** U009 avisa quando há assets com crédito e a tela de créditos não os mostra.
+- **Na tela de créditos**, o Menu Editor e o Preview mostram a `licenses_list` com o aviso do motor e os créditos dos assets usados no jogo, a partir do `licenses.json` que o Studio grava junto com o bundle do Preview. Um asset sem uso não aparece, como no build (Build System §4.5).
+- **Validador.** U009 avisa quando a tela de créditos não mostra as licenças, e na exportação vira erro, porque o aviso do motor é obrigatório.
 
 ## 12. Acessibilidade
 

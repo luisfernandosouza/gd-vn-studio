@@ -704,6 +704,25 @@
         {
           "type": "object",
           "required": [
+            "do"
+          ],
+          "additionalProperties": false,
+          "description": "Pula o minijogo da história em curso com o default_outcome (Runtime Spec §5.3, passo 7). Só na tela pause aberta durante uma atividade skippable (UI Spec §4).",
+          "properties": {
+            "do": {
+              "const": "skip_activity"
+            },
+            "if": {
+              "$ref": "common.schema.json#/$defs/ConditionList"
+            },
+            "else": {
+              "$ref": "#/$defs/ActionList"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
             "do",
             "activity"
           ],
@@ -1300,10 +1319,11 @@
           "const": "licenses_list"
         },
         "include": {
-          "description": "O que listar: plugins (licenças dos plugins), fonts (licenças das fontes do tema) e assets (o credit dos assets de terceiros que entram no jogo), todos reunidos em vn_content/licenses.txt. Padrão: os três.",
+          "description": "O que listar, a partir do licenses.json do bundle (Build System §4.5): engine (o aviso de licença do Godot, das bibliotecas dele, do runtime e das fontes do preset, que o runtime acrescenta e mostra sempre, mesmo fora da lista), plugins (licenças dos plugins), fonts (credit dos assets do tipo font) e assets (credit dos demais assets que entram no jogo). Padrão: os quatro.",
           "type": "array",
           "items": {
             "enum": [
+              "engine",
               "plugins",
               "fonts",
               "assets"

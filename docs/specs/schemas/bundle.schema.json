@@ -174,7 +174,7 @@
     },
     "assets": {
       "type": "object",
-      "description": "Assets por id. No bundle do build, path é reescrito para res://vn_content/assets/<path> (assets do projeto) ou aponta para res://vn_runtime/… (assets do preset). No bundle do Preview, os assets do projeto ficam com o caminho relativo a assets/, como em assets.json, e o runtime o junta com preview.load → assets_base (spec 07 §1.3); fora do modo preview, o runtime recusa caminho relativo (Runtime Spec §2, Build System §12). O campo credit de assets.json não entra no bundle.",
+      "description": "Assets por id. path é reescrito para res://vn_content/assets/<path> (assets do projeto) ou aponta para res://vn_runtime/… (assets do preset). O bundle do Preview é o mesmo do build: em modo preview, o runtime troca o prefixo res://vn_content/assets/ por preview.load → assets_base (spec 07 §1.3). O campo credit de assets.json não entra no bundle (vai para licenses.json, Build System §4.5).",
       "propertyNames": {
         "$ref": "common.schema.json#/$defs/AssetRef"
       },
@@ -187,8 +187,8 @@
         "properties": {
           "path": {
             "type": "string",
-            "pattern": "^(res://.+|(?!/)(?![A-Za-z][A-Za-z0-9+.-]*:)(?!(.*/)?\\.\\.(/|$))[^\\\\]+)$",
-            "description": "res://… (build, e assets do preset em qualquer bundle) ou caminho relativo a assets/, sem esquema, sem barra inicial e sem .. (só no bundle do Preview)."
+            "pattern": "^res://.+",
+            "description": "Caminho res:// no pacote do jogo (o mesmo no Preview, spec 07 §1.3)."
           }
         }
       }

@@ -158,7 +158,7 @@
           }
         },
         "censor": {
-          "description": "Modo stream (Data Model §10.4): skip = o passo só acontece com o filtro desligado; only = só com o filtro ligado. Quando o passo não vale, o runtime segue 'next' (ou o nó seguinte) sem executá-lo. Só em passos de apresentação que põem algo na tela ou no som: line, background, show, audio com action play e wait (R023). hide e audio que para um som não aceitam: o que muda com o modo é a entrada de um item, não a saída (Runtime Spec §5.5).",
+          "description": "Modo stream (Data Model §10.4): skip = o passo só acontece com o filtro desligado; only = só com o filtro ligado. Quando o passo não vale, o runtime segue 'next' (ou o nó seguinte) sem executá-lo. Só nestes passos de apresentação: line, background, show, audio com action play e wait (R023). hide e audio com action stop não aceitam: o que muda com o modo é a entrada de um item, não a saída (Runtime Spec §5.5).",
           "enum": [
             "skip",
             "only"

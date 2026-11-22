@@ -45,6 +45,7 @@ PAIRED, SINGLE = {"b", "i", "color", "speed"}, {"pause"}
 SYS_FIXED = {"sys.chapter.id": "string", "sys.scene.id": "string", "sys.selection_count": "integer",
              "sys.locale": "string", "sys.save_modified": "boolean",
              "sys.ui.has_save": "boolean", "sys.ui.in_game": "boolean", "sys.ui.platform": "string", "sys.ui.activity": "boolean",
+             "sys.ui.activity_skippable": "boolean",
              "sys.ui.has_minigames": "boolean", "sys.ui.last_activity_outcome": "string", "sys.ui.last_record_rank": "integer",
              "sys.ui.content_filter": "boolean", "sys.ui.content_filter_available": "boolean",
              "sys.ui.has_gallery": "boolean", "sys.ui.gallery_endings": "boolean", "sys.ui.gallery_images": "boolean",
@@ -104,8 +105,12 @@ def satisfies(version, rng):
     return False
 
 # ---------- código dos plugins (P011, P012, W009, W016) ----------
-BANNED_API = re.compile(r"\b(OS\.(execute|create_process|create_instance|shell_open|kill)|HTTPRequest|HTTPClient|StreamPeerTCP|TCPServer|PacketPeerUDP|UDPServer|WebSocketPeer|Engine\.get_singleton|ProjectSettings\.set_setting|JavaScriptBridge)\b")
-ABS_FS = re.compile(r"\b(FileAccess|DirAccess)\.\w+\(\s*\"(?!user://|res://)")
+# Plugin SDK §12.2 (tabela de W009)
+BANNED_API = re.compile(r"\b(OS\.(execute|create_process|create_instance|shell_open|kill|get_environment|set_environment|get_user_data_dir)|HTTPRequest|HTTPClient|StreamPeerTCP|TCPServer|PacketPeerUDP|UDPServer|WebSocketPeer"
+                        r"|Engine\.get_singleton|ProjectSettings\.set_setting|JavaScriptBridge|JavaScriptObject|ResourceSaver\.save|PROCESS_MODE_ALWAYS)\b"
+                        r"|process_mode\s*=\s*3\b")
+# arquivos: só res:// (desde 2026-11-22, user:// também é vetado: os dados do plugin vão pelo VNStorage, Runtime Spec §8.5)
+ABS_FS = re.compile(r"\b(FileAccess|DirAccess)\.\w+\(\s*\"(?!res://)|\.(save|save_png|save_jpg|save_webp|save_exr)\(\s*\"(?!res://)")
 I18N_KEY = re.compile(r"\.text\(\s*\"(runtime/[^\"]+)\"")
 def check_plugin_code(pid, m, root):
     ns = m["namespace"]; pascal = "".join(w.capitalize() for w in ns.split("_"))
@@ -119,6 +124,8 @@ def check_plugin_code(pid, m, root):
             where = f"{rel}:{i}"
             for path in re.findall(r"res://[^\"' )]+", line):
                 if not any(path.startswith(a) for a in allowed): err("P012", where, f"caminho {path} fora de res://vn_plugins/{ns}/")
+            if f.suffix != ".gd" and re.match(r"\s*process_mode\s*=\s*3\b", line):   # cena com nó PROCESS_MODE_ALWAYS (W009)
+                warn("W009", where, "nó com process_mode ALWAYS continua rodando com o jogo pausado")
             if f.suffix != ".gd" or line.lstrip().startswith("#"): continue
             cm = re.match(r"\s*class_name\s+(\w+)", line)
             if cm and not cm.group(1).startswith(pascal): err("P011", where, f"class_name {cm.group(1)} sem o prefixo {pascal}")
@@ -242,6 +249,7 @@ def check_ui(root, project, theme, theme_file, screens, sets, assets, resolve, c
                     warn("U014", where, "open_screen abre a galeria, mas project.json não tem gallery: a ação não faz nada")
                 opens.setdefault(ctx.get("screen"), set()).add(a["screen"])
             if do == "reset_profile" and ctx["kind"] in ("pause", "hud"): err("U004", where, "reset_profile não vale durante o jogo")
+            if do == "skip_activity" and ctx["kind"] != "pause": err("U004", where, "skip_activity só vale na tela de pausa (aberta durante um minijogo)")
             if "target" in a:
                 states = check_target(a["target"], where, ctx["elem_ids"], ctx["set"], ctx["in_set"])
                 for stn in ([a["state"]] if "state" in a else a.get("states", [])):
@@ -374,12 +382,17 @@ def check_ui(root, project, theme, theme_file, screens, sets, assets, resolve, c
         if scr["kind"] == "title" and "new_game" not in all_do: err("U006", where, "tela de título sem ação new_game")
         licensed = [m["id"] for m in manifests.values() if m.get("license")]
         credited = sorted(aid for aid, a in assets.items() if a.get("credit"))
-        if scr["kind"] == "credits" and (licensed or credited) and not any(e["type"] == "licenses_list" for e in elems):
-            quem = ([f"os plugins {', '.join(sorted(licensed))} têm licença"] if licensed else []) + ([f"os assets {', '.join(credited)} têm credit"] if credited else [])
-            warn("U009", where, f"créditos sem licenses_list, mas {' e '.join(quem)} (Build System §4.5)")
+        # U009: todo jogo leva o aviso de licença do motor e do runtime (UI Spec §3.1, Build System §4.5); sem licenses_list
+        # na tela de créditos o jogo não cumpre a licença, e na exportação isso é erro
+        if scr["kind"] == "credits" and not any(e["type"] == "licenses_list" for e in elems):
+            quem = ["o aviso de licença do motor (Godot) e do runtime é obrigatório"] + ([f"os plugins {', '.join(sorted(licensed))} têm licença"] if licensed else []) + ([f"os assets {', '.join(credited)} têm credit"] if credited else [])
+            (err if EXPORT else warn)("U009", where, f"créditos sem licenses_list: {'; '.join(quem)} (Build System §4.5)")
         for e in elems:
-            if scr["kind"] == "credits" and e["type"] == "licenses_list" and credited and "assets" not in e.get("include", ["plugins", "fonts", "assets"]):
+            if scr["kind"] != "credits" or e["type"] != "licenses_list" or "include" not in e: continue
+            if credited and "assets" not in e["include"]:
                 warn("U009", f"{where}#{e['id']}", f"licenses_list sem assets, mas os assets {', '.join(credited)} têm credit")
+            if "engine" not in e["include"]:
+                warn("U009", f"{where}#{e['id']}", "licenses_list sem engine: o runtime mostra o aviso do motor mesmo assim")
         if scr["kind"] == "pause" and not ({"close_screen", "back"} & all_do) and "back" not in scr:
             err("U006", where, "tela de pausa sem close_screen nem back")
 

@@ -1,0 +1,31 @@
+# Sem arte, música ou vídeo de jogo no repositório do produto (spec 09 §1.1, decisão D22).
+# Roda em todo pull request e push na main, sem filtro de caminho: uma imagem pode entrar por qualquer pasta.
+# Mídia só é aceita nas pastas da lista da spec 09 §1.1:
+#   runtime/tests/fixtures/                placeholders de teste feitos à mão
+#   plugins/*/vn_plugins/*/runtime/        assets originais dos plugins oficiais
+#   plugins/*/sandbox/                     cena de teste do projeto de desenvolvimento de um plugin oficial
+name: Repo hygiene
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  media:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Mídia só nas pastas permitidas
+        run: |
+          set -euo pipefail
+          ext='png|jpe?g|webp|gif|bmp|tga|svg|psd|kra|xcf|exr|hdr|ogg|oga|mp3|wav|flac|opus|m4a|aac|mp4|webm|ogv|mov|avi|mkv'
+          allowed='^(runtime/tests/fixtures/|plugins/[^/]+/vn_plugins/[^/]+/runtime/|plugins/[^/]+/sandbox/)'
+          bad=$(git ls-files | grep -iE "\.(${ext})$" | grep -vE "$allowed" || true)
+          if [ -n "$bad" ]; then
+            echo "::error title=Mídia fora das pastas permitidas::Arte, áudio e vídeo de jogo não entram no repositório do produto (spec 09 §1.1)."
+            echo "$bad"
+            exit 1
+          fi
+          echo "Nenhum arquivo de mídia fora das pastas permitidas."

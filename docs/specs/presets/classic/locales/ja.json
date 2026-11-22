@@ -50,6 +50,7 @@
     "ui/pause/btn_resume": "ゲームに戻る",
     "ui/pause/btn_save": "セーブ",
     "ui/pause/btn_settings": "設定",
+    "ui/pause/btn_skip_activity": "ミニゲームをスキップ",
     "ui/pause/btn_title": "タイトルに戻る",
     "ui/pause/lbl_title": "一時停止",
     "ui/save/btn_back": "戻る",

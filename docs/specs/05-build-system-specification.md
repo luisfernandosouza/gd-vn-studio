@@ -100,6 +100,7 @@ staging/
     ├── narrative.vnb             # bundle narrativo (§5)
     ├── locales/<lang>.vnb        # um por idioma incluído
     ├── plugins.vnb               # plugins habilitados, concessões e config
+    ├── licenses.vnb              # licenças de plugins e créditos de assets (§4.5)
     ├── build.json                # manifesto resumido (§9.2)
     └── assets/...                # assets processados, mesma árvore de assets/ do projeto
 ```
@@ -135,7 +136,11 @@ De cada `.vnplugin` são copiados para `vn_plugins/<namespace>/` somente:
 - `plugin.json`, `LICENSE`;
 - `runtime/` inteiro (scripts, cenas e assets).
 
-Não entram no jogo: `editor/`, `tests/`, `docs/`, `README.md`, `CHANGELOG.md` (SDK §2.1). As licenças de todos os plugins e das fontes do tema, e o `credit` de cada asset do projeto que entra no staging (Data Model §10.1, decisão de 2026-11-22), são reunidos em `vn_content/licenses.txt`. Créditos iguais (mesmo `author`, `license`, `url` e `notice`) viram uma entrada só. Um asset que fica de fora do jogo (B008) não aparece, e nenhum asset de teste ou de outro projeto entra. A tela de créditos mostra a lista com o elemento `licenses_list` (UI Spec §3.1), que o preset `classic` já traz; um projeto com tela `credits` própria sem esse elemento recebe o aviso U009.
+Não entram no jogo: `editor/`, `tests/`, `docs/`, `README.md`, `CHANGELOG.md` (SDK §2.1).
+
+**Licenças e créditos** (decisões de 2026-11-22). O compilador grava `licenses.json` junto com o bundle (`licenses.vnb` em release, com hash em `CONTENT_HASHES` como os outros `.vnb`, §8.2; schema [`bundle-licenses.schema.json`](schemas/bundle-licenses.schema.json)). Ele tem uma entrada por plugin habilitado (nome, autor, licença SPDX e o texto do `LICENSE` do pacote) e uma por crédito de asset (Data Model §10.1): o `credit` de cada asset do projeto que **entra no jogo**, com os créditos iguais (mesmo `author`, `license`, `url`, `notice` e `license_file`) numa entrada só, que lista os assets. Créditos só de fontes viram entradas `font`; o texto de `license_file` vai inteiro, como a OFL pede. Um asset que fica de fora do jogo (B008), ou que a edição censurada tira (§5.4), não aparece, e nenhum asset de teste ou de outro projeto entra.
+
+**Aviso do motor.** Todo jogo leva também o aviso de licença do Godot, das bibliotecas que ele inclui, do runtime (MIT) e das fontes do preset (OFL). Ele não fica em `licenses.json`: o runtime o monta na hora de mostrar, com `Engine.get_license_text()`, `Engine.get_copyright_info()` e os textos que a release do runtime traz em `res://vn_runtime/licenses/` (spec 09 §1.2). A tela de créditos mostra tudo com o elemento `licenses_list` (UI Spec §3.1), que o preset `classic` já traz. Uma tela `credits` própria sem esse elemento recebe U009, que é erro na exportação, porque sem ele o jogo não cumpre a licença do motor.
 
 ## 5. Bundle narrativo
 
@@ -145,7 +150,7 @@ O compilador produz primeiro a forma canônica em JSON, exatamente como descrita
 
 **Compilador de referência.** [`tools/compile_bundle.py`](tools/compile_bundle.py) implementa esta seção em Python e é a primeira peça do Build System: `python3 tools/compile_bundle.py <projeto> <saída> [pastas-de-plugins…] [--stage] [--edition standard|censored]`. Ele roda o validador antes (para em erro) e grava a forma canônica com o `content_hash`. Com `--stage`, copia também os assets e os plugins; com `--godot <projeto-godot>`, grava tudo em `vn_content/` e `vn_plugins/` desse projeto, para rodar o jogo no editor do Godot sem o Studio (RT §2.1). O compilador do Studio DEVE gerar o mesmo `bundle.json`, byte a byte, para o mesmo projeto.
 
-**Vetores de compilação.** Com um interpretador só (RT §11), o código de jogo que existe em duas linguagens é o compilador (e o validador). [`conformance/compile/cases.json`](conformance/compile/cases.json) traz projetos pequenos, cada um uma variação de um projeto **congelado** em [`conformance/compile/base/`](conformance/compile/base/) (decisão de 2026-11-22): uma cópia do exemplo das specs e do plugin de pesca num dado momento, que não acompanha a demo. Assim os hashes só mudam quando o compilador muda. As variações cobrem preset, galeria ligada, desligada ou só com finais, `--edition censored`, `renamed_from`, idioma fora do produto, asset escondido na galeria, `credit` fora do bundle), com o `content_hash`, o hash de cada idioma e o de `plugins.json` esperados. [`tools/test_compile.py`](tools/test_compile.py) confere a referência contra eles; o compilador do Studio passa nos mesmos casos (spec 08). Na CI do Studio vale também a **equivalência incremental**: para cada caso, compilar entidade por entidade e aplicar os patches de `preview.reload` (Preview Protocol §3) sobre o bundle anterior dá o mesmo `bundle.json` que compilar tudo de novo.
+**Vetores de compilação.** Com um interpretador só (RT §11), o código de jogo que existe em duas linguagens é o compilador (e o validador). [`conformance/compile/cases.json`](conformance/compile/cases.json) traz projetos pequenos, cada um uma variação de um projeto **congelado** em [`conformance/compile/base/`](conformance/compile/base/) (decisão de 2026-11-22): uma cópia do exemplo das specs e do plugin de pesca num dado momento, que não acompanha a demo. Assim os hashes só mudam quando o compilador muda. As variações cobrem preset, galeria ligada, desligada ou só com finais, `--edition censored`, `renamed_from`, idioma fora do produto, asset escondido na galeria, `credit` fora do bundle), com o `content_hash`, o hash de cada idioma, o de `plugins.json` e o de `licenses.json` esperados. [`tools/test_compile.py`](tools/test_compile.py) confere a referência contra eles; o compilador do Studio passa nos mesmos casos (spec 08). Na CI do Studio vale também a **equivalência incremental**: para cada caso, compilar entidade por entidade e aplicar os patches de `preview.reload` (Preview Protocol §3) sobre o bundle anterior dá o mesmo `bundle.json` que compilar tudo de novo.
 
 **JSON canônico:** UTF-8, chaves ordenadas, sem espaços, números no formato mais curto que preserva o valor, strings com escape mínimo (RFC 8785, JCS). `content_hash` = SHA-256 do `bundle.json` canônico, como no RT §2. Ele independe da codificação final, então o mesmo conteúdo tem o mesmo hash no Preview e no jogo.
 
@@ -238,7 +243,7 @@ O `export_presets.cfg` é gerado no staging, um preset por plataforma de `build.
 | Opção | Valor |
 |---|---|
 | `export_filter` | `all_resources` |
-| `exclude_filter` | `*.md, *.txt, tests/*, docs/*` (exceto `vn_content/licenses.txt`) |
+| `exclude_filter` | `*.md, *.txt, tests/*, docs/*` (as licenças vão em `vn_content/licenses.vnb`, §4.5, e não precisam de exceção) |
 | `script_export_mode` | Tokens binários comprimidos (valor numérico a confirmar no Godot 4.7.2, §15) |
 | `binary_format/embed_pck` | `true` onde a plataforma permite (§7.2) |
 | `encryption/*` | Ligados só com criptografia do PCK (§8.4) |
@@ -408,7 +413,7 @@ O build de debug **não** leva a `SAVE_KEY` real, porque é enviado a testadores
 Antes de exportar, o Build System roda `godot --headless --path staging -- --vn-selfcheck`. O runtime, nesse modo:
 
 1. Carrega e confere todos os `.vnb` (§8.2).
-2. Confere se todo caminho de asset do bundle começa com `res://` e existe no staging. Um caminho relativo (a forma do bundle do Preview, Preview Protocol §1.3) ou com outro esquema é B018.
+2. Confere se todo caminho de asset do bundle começa com `res://` e existe no staging. Um caminho com outro esquema, ou relativo, é B018 (não deveria acontecer: o bundle do Preview também usa `res://`, Preview Protocol §1.3).
 3. Carrega os scripts e cenas de todos os plugins (pega erro de sintaxe ou dependência ausente) e chama `_vn_init` com uma NarrativeAPI de verificação.
 4. Inicia um novo jogo e roda até o primeiro ponto de seleção, sem renderizar, em modo automático: falas avançam sozinhas, escolhas pegam a primeira opção habilitada e atividades completam na hora com o `default_outcome` (ou o primeiro de `outcomes`) e payload vazio. Com `settings.reproducible_rng`, usa seed fixo. Limite de 60 s; estourar é B006.
 

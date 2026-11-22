@@ -1401,7 +1401,8 @@
               "background": "bg/street",
               "characters": [
                 {
-                  "id": "bob"
+                  "id": "bob",
+                  "position": "center"
                 }
               ],
               "audio": {}
@@ -1424,7 +1425,7 @@
     },
     {
       "id": "modo_stream_volta_a_base",
-      "description": "passos censurados sobre itens que já estavam no palco: ao ligar o modo, a personagem volta à expressão anterior e o canal volta à música anterior, em vez de sumirem; ao desligar, a versão censurada volta (Runtime Spec §5.5)",
+      "description": "passos censurados sobre itens que já estavam no palco: ao ligar o modo, a personagem volta à expressão e à posição anteriores e o canal volta à música anterior, em vez de sumirem; ao desligar, a versão censurada volta (Runtime Spec §5.5)",
       "kind": "flow",
       "scene": {
         "id": "019a7b00-e000-7000-8000-000000000000",
@@ -1452,7 +1453,8 @@
             "type": "show",
             "character": "alice",
             "expression": "spicy",
-            "censor": "skip"
+            "censor": "skip",
+            "position": "left"
           },
           {
             "id": "019a7b00-e005-7000-8000-000000000000",
@@ -1520,7 +1522,8 @@
               "characters": [
                 {
                   "id": "alice",
-                  "expression": "neutral"
+                  "expression": "neutral",
+                  "position": "center"
                 }
               ],
               "audio": {
@@ -1540,7 +1543,8 @@
               "characters": [
                 {
                   "id": "alice",
-                  "expression": "spicy"
+                  "expression": "spicy",
+                  "position": "left"
                 }
               ],
               "audio": {
@@ -1623,7 +1627,9 @@
           },
           {
             "stage": {
-              "background": "beach_title",
+              "background": {
+                "set": "beach_title"
+              },
               "characters": [],
               "audio": {}
             }
@@ -1633,6 +1639,231 @@
           },
           {
             "node": "019a7b00-f004-7000-8000-000000000000"
+          },
+          {
+            "event": "sys.scene_ended"
+          },
+          {
+            "end": "schedule"
+          }
+        ]
+      }
+    },
+    {
+      "id": "modo_stream_base_apos_hide",
+      "description": "um hide sem censor tira a personagem e a base junto: depois de show → hide → show censurado, a personagem não tem base e some ao ligar o modo, em vez de voltar à expressão de antes do hide (Runtime Spec §5.5)",
+      "kind": "flow",
+      "scene": {
+        "id": "019a7b01-a000-7000-8000-000000000000",
+        "nodes": [
+          {
+            "id": "019a7b01-a001-7000-8000-000000000000",
+            "type": "background",
+            "asset": "bg/street"
+          },
+          {
+            "id": "019a7b01-a002-7000-8000-000000000000",
+            "type": "show",
+            "character": "alice",
+            "expression": "neutral"
+          },
+          {
+            "id": "019a7b01-a003-7000-8000-000000000000",
+            "type": "hide",
+            "character": "alice"
+          },
+          {
+            "id": "019a7b01-a004-7000-8000-000000000000",
+            "type": "show",
+            "character": "alice",
+            "expression": "spicy",
+            "censor": "skip"
+          },
+          {
+            "id": "019a7b01-a005-7000-8000-000000000000",
+            "type": "line",
+            "text": "Original."
+          },
+          {
+            "id": "019a7b01-a006-7000-8000-000000000000",
+            "type": "end",
+            "then": "schedule"
+          }
+        ]
+      },
+      "variables": {},
+      "locale": "en",
+      "inputs": [
+        {
+          "content_filter": true
+        },
+        "advance"
+      ],
+      "expect": {
+        "trace": [
+          {
+            "event": "sys.scene_started"
+          },
+          {
+            "node": "019a7b01-a001-7000-8000-000000000000"
+          },
+          {
+            "node": "019a7b01-a002-7000-8000-000000000000"
+          },
+          {
+            "node": "019a7b01-a003-7000-8000-000000000000"
+          },
+          {
+            "node": "019a7b01-a004-7000-8000-000000000000"
+          },
+          {
+            "node": "019a7b01-a005-7000-8000-000000000000"
+          },
+          {
+            "text": "Original."
+          },
+          {
+            "event": "sys.content_filter_changed"
+          },
+          {
+            "stage": {
+              "background": "bg/street",
+              "characters": [],
+              "audio": {}
+            }
+          },
+          {
+            "text": "Original."
+          },
+          {
+            "node": "019a7b01-a006-7000-8000-000000000000"
+          },
+          {
+            "event": "sys.scene_ended"
+          },
+          {
+            "end": "schedule"
+          }
+        ]
+      }
+    },
+    {
+      "id": "modo_stream_base_apos_stop",
+      "description": "um stop sem censor silencia o canal e apaga a base: depois de play → stop → play censurado, o canal fica em silêncio ao ligar o modo; dois passos censurados seguidos voltam ao estado de antes do primeiro (Runtime Spec §5.5)",
+      "kind": "flow",
+      "scene": {
+        "id": "019a7b01-b000-7000-8000-000000000000",
+        "nodes": [
+          {
+            "id": "019a7b01-b001-7000-8000-000000000000",
+            "type": "audio",
+            "channel": "music",
+            "action": "play",
+            "asset": "music/theme"
+          },
+          {
+            "id": "019a7b01-b002-7000-8000-000000000000",
+            "type": "audio",
+            "channel": "music",
+            "action": "stop"
+          },
+          {
+            "id": "019a7b01-b003-7000-8000-000000000000",
+            "type": "audio",
+            "channel": "music",
+            "action": "play",
+            "asset": "music/spicy",
+            "censor": "skip"
+          },
+          {
+            "id": "019a7b01-b004-7000-8000-000000000000",
+            "type": "audio",
+            "channel": "ambient",
+            "action": "play",
+            "asset": "amb/waves"
+          },
+          {
+            "id": "019a7b01-b005-7000-8000-000000000000",
+            "type": "audio",
+            "channel": "ambient",
+            "action": "play",
+            "asset": "amb/club",
+            "censor": "skip"
+          },
+          {
+            "id": "019a7b01-b006-7000-8000-000000000000",
+            "type": "audio",
+            "channel": "ambient",
+            "action": "play",
+            "asset": "amb/club_loud",
+            "censor": "skip"
+          },
+          {
+            "id": "019a7b01-b007-7000-8000-000000000000",
+            "type": "line",
+            "text": "Original."
+          },
+          {
+            "id": "019a7b01-b008-7000-8000-000000000000",
+            "type": "end",
+            "then": "schedule"
+          }
+        ]
+      },
+      "variables": {},
+      "locale": "en",
+      "inputs": [
+        {
+          "content_filter": true
+        },
+        "advance"
+      ],
+      "expect": {
+        "trace": [
+          {
+            "event": "sys.scene_started"
+          },
+          {
+            "node": "019a7b01-b001-7000-8000-000000000000"
+          },
+          {
+            "node": "019a7b01-b002-7000-8000-000000000000"
+          },
+          {
+            "node": "019a7b01-b003-7000-8000-000000000000"
+          },
+          {
+            "node": "019a7b01-b004-7000-8000-000000000000"
+          },
+          {
+            "node": "019a7b01-b005-7000-8000-000000000000"
+          },
+          {
+            "node": "019a7b01-b006-7000-8000-000000000000"
+          },
+          {
+            "node": "019a7b01-b007-7000-8000-000000000000"
+          },
+          {
+            "text": "Original."
+          },
+          {
+            "event": "sys.content_filter_changed"
+          },
+          {
+            "stage": {
+              "background": null,
+              "characters": [],
+              "audio": {
+                "ambient": "amb/waves"
+              }
+            }
+          },
+          {
+            "text": "Original."
+          },
+          {
+            "node": "019a7b01-b008-7000-8000-000000000000"
           },
           {
             "event": "sys.scene_ended"

@@ -50,6 +50,7 @@
     "ui/pause/btn_resume": "Resume",
     "ui/pause/btn_save": "Save",
     "ui/pause/btn_settings": "Settings",
+    "ui/pause/btn_skip_activity": "Skip minigame",
     "ui/pause/btn_title": "Return to title",
     "ui/pause/lbl_title": "Paused",
     "ui/save/btn_back": "Back",

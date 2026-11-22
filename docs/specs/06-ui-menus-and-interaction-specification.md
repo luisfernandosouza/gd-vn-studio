@@ -114,7 +114,7 @@ Todo elemento tem `id` (legível, único na tela), `type` e uma **posição**:
 | `backlog_list` | Histórico de falas | `max_items` |
 | `container` | Agrupa e alinha elementos | `layout` (`row`, `column`, `grid`), `spacing`, `children` |
 | `records_list` | Quadro de recordes de um minijogo (Plugin SDK §9.1) | `board` (`<namespace>.<quadro>`), `max_items`, `empty_text` |
-| `licenses_list` | Licenças e créditos de terceiros, para a tela de créditos (Build System §4.5) | `include` (`plugins`, `fonts`, `assets`; padrão: os três). `assets` lista o `credit` dos assets do projeto que entram no jogo (Data Model §10.1) |
+| `licenses_list` | Licenças e créditos de terceiros, para a tela de créditos, a partir do `licenses.json` do bundle (Build System §4.5) | `include` (`engine`, `plugins`, `fonts`, `assets`; padrão: os quatro). `engine` é o aviso de licença do Godot, das bibliotecas dele, do runtime e das fontes do preset; o runtime o mostra sempre, mesmo fora da lista. `fonts` e `assets` listam o `credit` dos assets que entram no jogo, agrupado por crédito (Data Model §10.1) |
 
 ### 3.2. Condições no menu
 
@@ -126,6 +126,7 @@ No título ainda não existe partida, então `visible_if`, `enabled_if` e condi�
 | `sys.ui.in_game` | boolean | Há uma partida em andamento (pausa, HUD) |
 | `sys.ui.platform` | string | `windows`, `linux`, `macos`, `web` (ex.: esconder "Sair" no Web) |
 | `sys.ui.activity` | boolean | Um minijogo está rodando |
+| `sys.ui.activity_skippable` | boolean | O minijogo da história em curso pode ser pulado (`skippable`); falso fora de atividade e no modo livre. Mostra o botão "Pular minijogo" da pausa |
 | `sys.ui.has_minigames` | boolean | Existe ao menos uma atividade com `free_play` (botão "Minijogos") |
 | `sys.ui.has_gallery` | boolean | O projeto tem galeria (botão "Galeria", Data Model §10.5) |
 | `sys.ui.gallery_endings`, `sys.ui.gallery_images`, `sys.ui.gallery_music` | boolean | A seção está ativa em `project.json → gallery.sections` (abas da tela `gallery`) |
@@ -176,6 +177,7 @@ Botões, hotspots e eventos de tela executam uma **lista de ações**, em ordem.
 | `emit` | `event` (`story.*`), `payload` | Jogo |
 | `open_url` | `url` | Qualquer; sempre pede confirmação; desligado no Web e com `build.allow_urls: false` |
 | `confirm` | `text`, `then`, `else` | Qualquer: caixa de confirmação do tema |
+| `skip_activity` | — | Só na tela `pause` aberta durante um minijogo da história com `skippable`: pula com o `default_outcome`, sem `on_result.effects` (RT §5.3, passo 7). Sem atividade pulável, o botão fica oculto e a ação é recusada (o preset usa `visible_if` com `sys.ui.activity_skippable`) |
 | `play_activity` | `activity` (`<namespace>.<atividade>`), `params` | Fora do jogo (título e telas abertas a partir dele): joga o minijogo no modo livre (Plugin SDK §6.1) e volta à tela. Com uma partida em andamento, o botão fica oculto e a ação é recusada, mesmo numa tela própria aberta da pausa (RT §5.3) |
 | `reset_profile` | `text` (opcional; padrão `runtime/confirm/reset_profile`) | Só fora do jogo (título e telas abertas a partir dele): pede confirmação e apaga o perfil, ou seja, finais, galeria, textos lidos, variáveis `profile` e recordes. Os saves ficam (RT §8.5) |
 
@@ -393,12 +395,12 @@ Os mesmos valores estão como `default` em `save.schema.json → PlayerSettings`
 | U001 | erro | Ação, `target`, `focus`, `focus_start`, `set`, área ou `board` cita elemento, camada, estado, set, tela ou quadro de recordes inexistente; id de tela ou set diferente do nome do arquivo; id repetido na tela ou no set |
 | U002 | erro | Estilo inexistente no tema, ou ciclo em `extends` |
 | U003 | erro | Condição de tela de título usa variável que não é `profile`, `sys.endings.*` nem `sys.ui.*` |
-| U004 | erro | Ação não cosmética em hotspot de set; ação fora do lugar onde vale (§4), inclusive `play_activity` ou `reset_profile` em `pause` ou `hud`; `effects` no título em variável que não é `profile` |
+| U004 | erro | Ação não cosmética em hotspot de set; ação fora do lugar onde vale (§4), inclusive `play_activity` ou `reset_profile` em `pause` ou `hud` e `skip_activity` fora de `pause`; `effects` no título em variável que não é `profile` |
 | U005 | erro | Controle ou valor que não combina com a configuração: `toggle` em configuração não booleana, `slider` em não numérica, opção de `select` ou `set_setting` com tipo errado, idioma fora de `project.json → locales` (configuração desconhecida já é barrada pelo schema) |
 | U006 | erro | Tela obrigatória sem botão para sair: título sem `new_game`, pausa sem `close_screen`/`back` |
 | U007 | aviso | Elemento com `size` que sai da tela na resolução base. Conferido pelo Studio; o validador de referência não calcula o tamanho de elementos sem `size` |
 | U008 | aviso | Elemento clicável sem texto nem `tooltip` (sem nome para teclado e acessibilidade) |
-| U009 | aviso | A tela `credits` não tem `licenses_list`, mas algum plugin habilitado ou fonte do tema traz licença, ou algum asset tem `credit`; ou a `licenses_list` deixa `assets` de fora de `include` e algum asset tem `credit` |
+| U009 | aviso (erro na exportação, no primeiro caso) | A tela `credits` não tem `licenses_list`: sem ela o jogo não mostra o aviso de licença do motor, que é obrigatório (Build System §4.5). Também avisa quando `include` deixa de fora `assets` e algum asset tem `credit`, ou deixa de fora `engine` (que aparece mesmo assim). O validador de referência conta todo asset com `credit`, não só os que entram no jogo |
 | U010 | aviso | Um `play_activity` pode ser alcançado a partir da pausa ou do HUD (por uma cadeia de `open_screen`); o botão vai ficar oculto durante a partida |
 | U011 | aviso | Uma seção ativa da galeria está vazia: `endings` sem finais em `project.json → endings`, `images` ou `music` sem nenhum asset desse tipo com `gallery: true` |
 | U012 | erro | `gallery_grid` com `source` que não está em `project.json → gallery.sections` (inclusive num projeto sem galeria) |

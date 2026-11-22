@@ -141,6 +141,9 @@ CASES = [
     ("W007", "parâmetro sem title", lambda w: w.edit("plugin.json", lambda d: d["activities"][0]["params_schema"]["properties"]["target_fish"].pop("title"), plugin=True), False),
     ("W008", "plataforma fora do plugin", lambda w: w.edit("plugin.json", lambda d: d["compatibility"].update(platforms=["web"]), plugin=True), False),
     ("W009", "API vetada", lambda w: w.text("runtime/src/fishing_plugin.gd", lambda s: s + "\nfunc _x() -> void:\n\tOS.execute(\"ls\", [])\n"), False),
+    ("W009", "gravar direto em user://", lambda w: w.text("runtime/src/fishing_plugin.gd", lambda s: s + "\nfunc _x() -> void:\n\tvar f := FileAccess.open(\"user://peixes.json\", FileAccess.WRITE)\n"), False),
+    ("W009", "JavaScriptBridge no plugin", lambda w: w.text("runtime/src/fishing_plugin.gd", lambda s: s + "\nfunc _x() -> void:\n\tJavaScriptBridge.eval(\"1\")\n"), False),
+    ("W009", "nó que ignora a pausa", lambda w: w.text("runtime/scenes/fishing_game.tscn", lambda s: s + "\n[node name=\"Sempre\" type=\"Node\" parent=\".\"]\nprocess_mode = 3\n"), False),
     ("W010", "fallback que não progride", lambda w: w.edit(QUIET, lambda d: nodes_of(d, "effects")[0]["effects"].__setitem__(0, {"op": "add", "variable": "global.player_money", "value": 1})), False),
     ("W011", "ending sem end_game", lambda w: w.edit("scenes/ch02/scene_festival.json", lambda d: nodes_of(d, "end")[0].update(then="schedule")), False),
     ("W012", "subscribes sem capacidade", lambda w: w.edit("plugin.json", lambda d: d["events"].update(subscribes=["story.*"]), plugin=True), False),
@@ -190,6 +193,7 @@ CASES = [
     ("W023", "tradução de cena fora do arquivo da cena", lambda w: w.edit("locales/en/outros.json", lambda d: d.update({"$schema": "https://schemas.vnstudio.dev/1/locale.schema.json", "locale": "en", "strings": {"019a7a00-1388-7f6b-b667-94bbd1305982/019a7a00-3a98-732b-89dd-170487226b34": "Hi!"}})), False),
     ("U009", "licenses_list sem assets, com asset de terceiros creditado", lambda w: (w.edit("assets.json", lambda d: d["assets"]["bg/train_beach"].update(credit={"author": "Autor de teste"})), w.edit("ui/credits.json", lambda d: [e.update(include=["plugins", "fonts"]) for e in d["elements"] if e["type"] == "licenses_list"])), False),
     ("U009", "créditos sem licenses_list", lambda w: w.edit("ui/credits.json", lambda d: d.update(elements=[e for e in d["elements"] if e["type"] != "licenses_list"])), False),
+    ("U009", "créditos sem licenses_list bloqueiam a exportação (aviso do motor)", lambda w: w.edit("ui/credits.json", lambda d: d.update(elements=[e for e in d["elements"] if e["type"] != "licenses_list"])), True),
     ("U010", "minijogo numa tela aberta pela pausa", lambda w: w.edit("ui/pause.json", lambda d: d.update({"id": "pause", "kind": "pause", "elements": [{"id": "btn_resume", "type": "button", "text": "Voltar", "actions": [{"do": "back"}], "position": [0.5, 0.4]}, {"id": "btn_extras", "type": "button", "text": "Extras", "actions": [{"do": "open_screen", "screen": "extras"}], "position": [0.5, 0.6]}]})), False),
     # 2026-11-16: galeria opcional por projeto
     ("U011", "seção de imagens da galeria sem assets marcados", lambda w: w.edit("assets.json", lambda d: [a.pop("gallery", None) for a in d["assets"].values() if a["type"] != "audio_music"]), False),
@@ -201,6 +205,7 @@ CASES = [
     ("R022", "botão do HUD que só aparece com o modo stream e emite evento", lambda w: w.edit("ui/hud.json", lambda d: d.update({"id": "hud", "kind": "hud", "elements": [{"id": "btn_map", "type": "button", "text": "Mapa", "position": [0.9, 0.1], "visible_if": [{"variable": "sys.ui.content_filter", "operator": "equals", "value": False}], "actions": [{"do": "emit", "event": "story.met_master"}]}]})), False),
     ("W025", "fala censurada com voz sem versão censurada", lambda w: (w.edit("assets.json", lambda d: d["assets"].update({"voice/alice_01": {"path": "voice/alice_01.ogg", "type": "audio_voice"}})), w.edit(BEACH, lambda d: [n.update(voice="voice/alice_01") for n in d["nodes"] if n.get("censored_text")])), False),
     ("U004", "reset_profile na pausa", lambda w: w.edit("ui/pause.json", lambda d: d.update({"id": "pause", "kind": "pause", "elements": [{"id": "btn_resume", "type": "button", "text": "Voltar", "actions": [{"do": "back"}], "position": [0.5, 0.4]}, {"id": "btn_reset", "type": "button", "text": "Apagar", "actions": [{"do": "reset_profile"}], "position": [0.5, 0.6]}]})), False),
+    ("U004", "skip_activity fora da pausa", lambda w: w.edit("ui/title.json", lambda d: d["elements"].append({"id": "btn_skip", "type": "button", "text": "Pular", "actions": [{"do": "skip_activity"}], "position": [0.1, 0.1]})), False),
 ]
 
 
