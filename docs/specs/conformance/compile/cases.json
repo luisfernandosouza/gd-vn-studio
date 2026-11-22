@@ -11,17 +11,18 @@
       "id": "demo",
       "description": "exemplo das specs, edição completa",
       "expect": {
-        "content_hash": "sha256-rvQH4GAOzZU9NsO/62jhjZjp4KCZmGwfZ1x8VUrWMiE=",
+        "content_hash": "sha256-S3bocb0yIA2Veo6e0HSGilZI1Ux/Z4qXfKC4/lfasII=",
         "locales": {
-          "en": "sha256-+ULXuTpmKK7qnz6X8FjEBD62Ce+bDxxaldHyQaxQb9I=",
-          "pt-BR": "sha256-BRgci0unPMsjMzSrhX24ZYDynNhuTLXBzAxc9aop21k="
+          "en": "sha256-otgOzXZzwg+IVuq9V3UPIMndhkHLtmqXxYmrCVSwNzY=",
+          "pt-BR": "sha256-mQtr2QofTJ8jrVidvC32MXGIcuzj7KxFkcYbLbYkAog="
         },
         "plugins": "sha256-6bbziWicmrjC0stBozX38VsinQV7SUpvd0Z0yFqiQvc=",
         "present": [
           "/ui/gallery",
           "/assets/bg~1train_beach/gallery",
           "/ui/minigames"
-        ]
+        ],
+        "licenses": "sha256-gm2T+eJ+EW1XSh4Plt44mWXwHkLiLh2mIoAtlFVCEfY="
       }
     },
     {
@@ -29,15 +30,16 @@
       "description": "edição censurada: texto censurado no lugar do original, substituta no lugar do asset",
       "edition": "censored",
       "expect": {
-        "content_hash": "sha256-5Jc6+v30KV+J0C86MV+Mtyxw4oS/pJwWNRU0w0NJgqM=",
+        "content_hash": "sha256-LP+z6D9A4L6wwcyNpDuQoceOL7CsNwoJm1JWFY54V+A=",
         "locales": {
-          "en": "sha256-sjEJmjeKeY2Nu4MB8PxA5yXMm4wxdegxSBt6egVE4H8=",
-          "pt-BR": "sha256-BRgci0unPMsjMzSrhX24ZYDynNhuTLXBzAxc9aop21k="
+          "en": "sha256-TZkDrNpykij3Cz9s98ZJ0Jj/rTYYNpGp2+JYctCy7BA=",
+          "pt-BR": "sha256-mQtr2QofTJ8jrVidvC32MXGIcuzj7KxFkcYbLbYkAog="
         },
         "plugins": "sha256-6bbziWicmrjC0stBozX38VsinQV7SUpvd0Z0yFqiQvc=",
         "present": [
           "/assets/bg~1train_evening"
-        ]
+        ],
+        "licenses": "sha256-gm2T+eJ+EW1XSh4Plt44mWXwHkLiLh2mIoAtlFVCEfY="
       }
     },
     {
@@ -50,10 +52,10 @@
         }
       ],
       "expect": {
-        "content_hash": "sha256-J7/UUFlwALh4vpVD2jI5WM1BoRZXVyiWMFWnDXAhCjg=",
+        "content_hash": "sha256-MUX7PI+431WAsK9xppzPw4AXqidXAVDfdJIqoxFJSn8=",
         "locales": {
-          "en": "sha256-+ULXuTpmKK7qnz6X8FjEBD62Ce+bDxxaldHyQaxQb9I=",
-          "pt-BR": "sha256-BRgci0unPMsjMzSrhX24ZYDynNhuTLXBzAxc9aop21k="
+          "en": "sha256-otgOzXZzwg+IVuq9V3UPIMndhkHLtmqXxYmrCVSwNzY=",
+          "pt-BR": "sha256-mQtr2QofTJ8jrVidvC32MXGIcuzj7KxFkcYbLbYkAog="
         },
         "plugins": "sha256-6bbziWicmrjC0stBozX38VsinQV7SUpvd0Z0yFqiQvc=",
         "absent": [
@@ -61,7 +63,8 @@
           "/project/gallery",
           "/assets/bg~1train_beach/gallery",
           "/assets/music~1waves/gallery"
-        ]
+        ],
+        "licenses": "sha256-gm2T+eJ+EW1XSh4Plt44mWXwHkLiLh2mIoAtlFVCEfY="
       }
     },
     {
@@ -77,10 +80,10 @@
         }
       ],
       "expect": {
-        "content_hash": "sha256-QGALN+gPpooWpGrW2qYewAGI5A12wOeQLQEOePMPNxw=",
+        "content_hash": "sha256-F0xKzq8nkOfP+sXKfJfns2nIU4zX9eitwQDedDeXtf8=",
         "locales": {
-          "en": "sha256-+ULXuTpmKK7qnz6X8FjEBD62Ce+bDxxaldHyQaxQb9I=",
-          "pt-BR": "sha256-BRgci0unPMsjMzSrhX24ZYDynNhuTLXBzAxc9aop21k="
+          "en": "sha256-otgOzXZzwg+IVuq9V3UPIMndhkHLtmqXxYmrCVSwNzY=",
+          "pt-BR": "sha256-mQtr2QofTJ8jrVidvC32MXGIcuzj7KxFkcYbLbYkAog="
         },
         "plugins": "sha256-6bbziWicmrjC0stBozX38VsinQV7SUpvd0Z0yFqiQvc=",
         "present": [
@@ -90,7 +93,8 @@
         "absent": [
           "/assets/bg~1train_beach/gallery",
           "/assets/music~1waves/gallery"
-        ]
+        ],
+        "licenses": "sha256-gm2T+eJ+EW1XSh4Plt44mWXwHkLiLh2mIoAtlFVCEfY="
       }
     },
     {
@@ -106,15 +110,16 @@
         }
       ],
       "expect": {
-        "content_hash": "sha256-1tnuj1XMVXgVJrnATe2Eg+sqoo8mQPETC9uZ78THn4g=",
+        "content_hash": "sha256-ePS3ZhTjIzwv66Uqj5hqbQuyDNZSKrGFvPCoIi8Nmk4=",
         "locales": {
-          "en": "sha256-+ULXuTpmKK7qnz6X8FjEBD62Ce+bDxxaldHyQaxQb9I=",
-          "pt-BR": "sha256-BRgci0unPMsjMzSrhX24ZYDynNhuTLXBzAxc9aop21k="
+          "en": "sha256-otgOzXZzwg+IVuq9V3UPIMndhkHLtmqXxYmrCVSwNzY=",
+          "pt-BR": "sha256-mQtr2QofTJ8jrVidvC32MXGIcuzj7KxFkcYbLbYkAog="
         },
         "plugins": "sha256-6bbziWicmrjC0stBozX38VsinQV7SUpvd0Z0yFqiQvc=",
         "present": [
           "/aliases/global.money"
-        ]
+        ],
+        "licenses": "sha256-gm2T+eJ+EW1XSh4Plt44mWXwHkLiLh2mIoAtlFVCEfY="
       }
     },
     {
@@ -128,13 +133,14 @@
         }
       ],
       "expect": {
-        "content_hash": "sha256-VfWCA6zAOwuX965LCBv210zLUz4a/uoXipHpyrv/25A=",
+        "content_hash": "sha256-IzEybCD0H+89ugsu17Gmg0ewxNF3Uzm+PsntokA+Kjw=",
         "locales": {
-          "en": "sha256-+ULXuTpmKK7qnz6X8FjEBD62Ce+bDxxaldHyQaxQb9I=",
-          "ko": "sha256-9t50cPY+ch3B7uQhhqOK4m4eAHJj2HW0Zhz5BlbQSPQ=",
-          "pt-BR": "sha256-BRgci0unPMsjMzSrhX24ZYDynNhuTLXBzAxc9aop21k="
+          "en": "sha256-otgOzXZzwg+IVuq9V3UPIMndhkHLtmqXxYmrCVSwNzY=",
+          "ko": "sha256-MF+bSQ21nYRxdoSDM368JEDHvrZJcsP9w3Ix6RdkSHY=",
+          "pt-BR": "sha256-mQtr2QofTJ8jrVidvC32MXGIcuzj7KxFkcYbLbYkAog="
         },
-        "plugins": "sha256-6bbziWicmrjC0stBozX38VsinQV7SUpvd0Z0yFqiQvc="
+        "plugins": "sha256-6bbziWicmrjC0stBozX38VsinQV7SUpvd0Z0yFqiQvc=",
+        "licenses": "sha256-gm2T+eJ+EW1XSh4Plt44mWXwHkLiLh2mIoAtlFVCEfY="
       }
     },
     {
@@ -156,10 +162,10 @@
         }
       ],
       "expect": {
-        "content_hash": "sha256-0aTuZ1FB8tXDy3DRtfCMTgh3ziF7hiBdGYFUbTnBIB8=",
+        "content_hash": "sha256-4kCR+hK8KeKw6Um1EFUriAfjADhPh4yS4R6kk7zy270=",
         "locales": {
-          "en": "sha256-sjEJmjeKeY2Nu4MB8PxA5yXMm4wxdegxSBt6egVE4H8=",
-          "pt-BR": "sha256-BRgci0unPMsjMzSrhX24ZYDynNhuTLXBzAxc9aop21k="
+          "en": "sha256-TZkDrNpykij3Cz9s98ZJ0Jj/rTYYNpGp2+JYctCy7BA=",
+          "pt-BR": "sha256-mQtr2QofTJ8jrVidvC32MXGIcuzj7KxFkcYbLbYkAog="
         },
         "plugins": "sha256-6bbziWicmrjC0stBozX38VsinQV7SUpvd0Z0yFqiQvc=",
         "present": [
@@ -167,32 +173,79 @@
         ],
         "absent": [
           "/assets/bg~1sea/gallery"
-        ]
+        ],
+        "licenses": "sha256-gm2T+eJ+EW1XSh4Plt44mWXwHkLiLh2mIoAtlFVCEfY="
       }
     },
     {
       "id": "credito_fora_do_bundle",
-      "description": "credit de um asset de terceiros não entra no bundle nem no content_hash (Build System §4.5): o hash é o mesmo do caso demo",
+      "description": "credit de assets de terceiros não entra no bundle nem no content_hash (o hash é o mesmo do caso demo) e vai para licenses.json, com créditos iguais agrupados e fontes à parte (Build System §4.5)",
       "edits": [
         {
           "file": "assets.json",
           "pointer": "/assets/bg~1train_beach/credit",
           "value": {
             "author": "Noraneko Games",
-            "license": "Termos do pacote"
+            "license": "Pack terms, see ReadMe.txt"
+          }
+        },
+        {
+          "file": "assets.json",
+          "pointer": "/assets/bg~1train_evening/credit",
+          "value": {
+            "author": "Noraneko Games",
+            "license": "Pack terms, see ReadMe.txt"
+          }
+        },
+        {
+          "file": "assets.json",
+          "pointer": "/assets/font~1body/credit",
+          "value": {
+            "author": "Vernon Adams",
+            "license": "OFL-1.1",
+            "license_file": "fonts/OFL-Nunito.txt"
           }
         }
       ],
       "expect": {
-        "content_hash": "sha256-rvQH4GAOzZU9NsO/62jhjZjp4KCZmGwfZ1x8VUrWMiE=",
+        "content_hash": "sha256-S3bocb0yIA2Veo6e0HSGilZI1Ux/Z4qXfKC4/lfasII=",
         "locales": {
-          "en": "sha256-+ULXuTpmKK7qnz6X8FjEBD62Ce+bDxxaldHyQaxQb9I=",
-          "pt-BR": "sha256-BRgci0unPMsjMzSrhX24ZYDynNhuTLXBzAxc9aop21k="
+          "en": "sha256-otgOzXZzwg+IVuq9V3UPIMndhkHLtmqXxYmrCVSwNzY=",
+          "pt-BR": "sha256-mQtr2QofTJ8jrVidvC32MXGIcuzj7KxFkcYbLbYkAog="
         },
         "plugins": "sha256-6bbziWicmrjC0stBozX38VsinQV7SUpvd0Z0yFqiQvc=",
         "absent": [
-          "/assets/bg~1train_beach/credit"
-        ]
+          "/assets/bg~1train_beach/credit",
+          "/assets/font~1body/credit"
+        ],
+        "license_entries": [
+          {
+            "kind": "plugin",
+            "title": "Fishing Minigame",
+            "author": "Visual Novel Studio Team",
+            "license": "MIT"
+          },
+          {
+            "kind": "font",
+            "title": "Vernon Adams",
+            "author": "Vernon Adams",
+            "license": "OFL-1.1",
+            "assets": [
+              "font/body"
+            ]
+          },
+          {
+            "kind": "asset",
+            "title": "Noraneko Games",
+            "author": "Noraneko Games",
+            "license": "Pack terms, see ReadMe.txt",
+            "assets": [
+              "bg/train_beach",
+              "bg/train_evening"
+            ]
+          }
+        ],
+        "licenses": "sha256-7BtuTt2YMIo1uCONzDcJGSKSGnsfYerFazLgMojrqvQ="
       }
     }
   ]

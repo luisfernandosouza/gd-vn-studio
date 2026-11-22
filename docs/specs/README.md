@@ -12,12 +12,12 @@ Marco da seção 16 do ADD: definir e congelar as três especificações que ser
 | 5 | [Build System](05-build-system-specification.md) | Pipeline de build, Build Staging, bundle `.vnb`, assets, presets por plataforma, PCK, proteção do conteúdo, manifesto, CLI `vnstudio build` |
 | 6 | [Menus, botões e interação](06-ui-menus-and-interaction-specification.md) | Telas montadas pelo autor (título, pausa, configurações…), ações de botões, estilos, cenários com objetos clicáveis, nó `interact`, configurações do jogador (FPS da VN × minijogos), ideias de personalização |
 | 7 | [Protocolo do Preview](07-preview-protocol.md) | Conversa Studio ↔ Runtime no Preview: sessão e token, métodos, notificações, `GameState`, `SchedulerEvaluation`, erros |
-| 8 | [Vetores de conformidade](08-conformance-vectors.md) | Formato dos casos que o Runtime e o Preview do Studio DEVEM reproduzir, conjunto de 140 casos (inclusive recordes, fluxo de cenas inteiras e modo stream), vetores de compilação e implementações de referência |
+| 8 | [Vetores de conformidade](08-conformance-vectors.md) | Formato dos casos que o Runtime e o Preview do Studio DEVEM reproduzir, conjunto de 142 casos (inclusive recordes, fluxo de cenas inteiras e modo stream), vetores de compilação e implementações de referência |
 | 9 | [Repositórios e organização do código](09-repositories-and-code-layout.md) | Onde cada coisa mora no Git: monorepo do produto, repositório de plugin avulso e repositório de um jogo (plugins do catálogo, guardados e embutidos), `.gitignore`, onde os dados dos minijogos ficam no computador do jogador |
 
 Artefatos:
 
-- `schemas/` — 21 JSON Schemas (draft 2020-12): `common`, `project`, `variables`, `character`, `chapter`, `scene`, `assets`, `locale`, `save`, `plugin`, `plugins`, `plugin-lock`, `theme`, `ui-screen`, `set`, `preview-protocol`, `conformance`, `build-manifest` e os três do bundle compilado (`bundle`, `bundle-locale`, `bundle-plugins`). O domínio `schemas.vnstudio.dev` nos `$id` é provisório.
+- `schemas/` — 22 JSON Schemas (draft 2020-12): `common`, `project`, `variables`, `character`, `chapter`, `scene`, `assets`, `locale`, `save`, `plugin`, `plugins`, `plugin-lock`, `theme`, `ui-screen`, `set`, `preview-protocol`, `conformance`, `build-manifest` e os quatro do bundle compilado (`bundle`, `bundle-locale`, `bundle-plugins`, `bundle-licenses`). O domínio `schemas.vnstudio.dev` nos `$id` é provisório.
 - `examples/demo-project/` — dados de exemplo, só JSON e sem arte (o jogo jogável fica num repositório separado, spec 09 §1.1): projeto pequeno com 2 capítulos, 5 cenas, escolhas, branch, variável derivada, grupo de exclusividade, uso do Fishing Minigame, menu inicial com cenário clicável (`ui/title.json`, `sets/beach_title.json`), tela de configurações com FPS separado para VN e minijogos (`ui/settings.json`), créditos e um nó `interact`. É a cópia dos JSON da demo, sem o campo `credit` dos assets (spec 09 §1.1).
 - `presets/classic/` — preset de interface do v1: tema, as telas que o projeto não define (título, pausa, salvar, carregar, configurações, galeria, créditos, HUD, histórico e minijogos) e os textos traduzidos para os 9 idiomas do produto (UI Spec §2.1).
 - `examples/fishing-plugin/` — plugin de referência completo: manifesto, GDScript de runtime, cena, testes com `VNTestHarness`, comando de editor, README e CHANGELOG. Corresponde a `vn_plugins/fishing/` do projeto de desenvolvimento.
@@ -29,6 +29,7 @@ Artefatos:
 - `tools/compile_bundle.py` — compilador de referência do bundle narrativo (BS §5.1): transforma um projeto na forma que o runtime lê, sem precisar do Studio (RT §2.1).
 - `conformance/compile/` e `tools/test_compile.py` — vetores de compilação: variações de um projeto congelado (`conformance/compile/base/`) com o `content_hash` esperado, que o compilador do Studio também DEVE reproduzir (BS §5.1, spec 08).
 - `tools/sync_demo_example.py` e `examples/demo-project/SOURCE.json` — gera o exemplo a partir do repositório da demo, sem os créditos de terceiros, e confere a cópia na CI (`.github/workflows/specs.yml`, spec 09 §1.1).
+- `.github/workflows/repo-hygiene.yml` — recusa arte, áudio e vídeo fora das pastas permitidas do repositório do produto (spec 09 §1.1).
 
 ```bash
 pip install jsonschema
@@ -40,11 +41,11 @@ python3 tools/test_validate.py
 python3 tools/test_schemas.py
 # padrões dos schemas contra os exemplos das specs
 python3 tools/conformance.py
-# 140/140 vetores conferem com a referência.
+# 142/142 vetores conferem com a referência.
 python3 tools/test_compile.py
 # 8/8 vetores de compilação conferem.
 python3 tools/compile_bundle.py examples/demo-project /tmp/demo-bundle examples/fishing-plugin
-# grava bundle.json, locales/<lang>.json e plugins.json; --stage copia também assets e plugins;
+# grava bundle.json, locales/<lang>.json, plugins.json e licenses.json; --stage copia também assets e plugins;
 # --godot <projeto-godot> grava em vn_content/ e vn_plugins/ do projeto do runtime
 ```
 
@@ -381,6 +382,25 @@ Corrigidos na mesma data, com a aprovação do Luis.
 | **M-05.** O preset é escolhido em `theme.json → preset`, e o schema só aceita `classic` no v1; um nome desconhecido é erro de validação | RT §2, DM §10.3, UI §2.1, `theme.schema.json` |
 | **M-06.** `sys.ui.last_activity_outcome` vale o `outcome` do `complete`, `failed` ou `cancelled` (nomes reservados nos `outcomes`). No modo livre, `vn_menu` (Esc, Start) é sempre do runtime e pergunta "Sair do minijogo?" (`runtime/confirm/quit_activity`); sair dá `cancelled` | SDK §6, §6.1, RT §5.3, §10.1, DM §4.3, UI §3.2, `plugin.schema.json`, preset `classic` |
 | 139 casos em `test_validate.py`; hashes de idioma dos vetores de compilação regerados (texto novo do preset) | spec 08, este README |
+
+## Decisões de 2026-11-22: segunda revisão (licenças, Preview e minijogos)
+
+Aplicam os achados X-01 a X-13 da [segunda revisão de 2026-11-22](../reviews/revisao-specs-2026-11-22-2.md) e as decisões D24, D25 e D26, aceitas pelo Luis com as opções recomendadas. Algumas linhas mudam decisões da seção anterior, que fica como histórico.
+
+| Decisão | Onde |
+|---|---|
+| **D24. O bundle do Preview é o mesmo do build** (desfaz os caminhos relativos): os assets ficam em `res://vn_content/assets/…`, e em modo preview o runtime troca esse prefixo por `assets_base`. O `content_hash` do Preview e o do jogo são iguais, e `bundle.schema.json` volta a exigir `res://` | PP §1.3, RT §2, §11, BS §12, `bundle.schema.json`, `preview-protocol.schema.json` |
+| **D25. Os saves mantidos do Preview ficam em `.vnstudio/preview/user/` nos dois modos.** Na janela, por `--vn-user-dir`; no painel, o runtime manda `storage.write`/`storage.delete` e o Studio grava, e `preview.load` traz `user_files`. Nada do Preview fica em `user://` | PP §1.2, §1.4, §4, RT §8.5, §11 |
+| **D26. `vn_menu` é sempre do runtime durante um minijogo**, nos dois modos: na história abre a pausa (salvar, carregar, configurações, título e "Pular minijogo" com `skippable`, ação `skip_activity`, `sys.ui.activity_skippable`); no modo livre pergunta "Sair do minijogo?" | SDK §4.2, §6.1, RT §5.3, §10.1, UI §3.2, §4, DM §4.3, preset `classic` (`pause`, 9 idiomas) |
+| **Aviso de licença do motor em todo jogo:** o runtime mostra sempre a licença do Godot, das bibliotecas dele, do runtime e das fontes do preset (`licenses_list.include` ganha `engine`); U009 vira erro na exportação quando a tela de créditos não tem `licenses_list` | BS §4.5, UI §3.1, §11, spec 09 §1.2, `ui-screen.schema.json` |
+| **`licenses.json` no bundle** (no lugar de `licenses.txt`; `licenses.vnb` em release, com hash): plugins e créditos de assets agrupados, com schema. Vale também no Preview e na recarga incremental. `credit` ganha `license_file` (fecha o B-20 da auditoria: as fontes OFL levam o texto da licença); `license` e `notice` não se traduzem | BS §4.5, §7.1, RT §2, DM §10.1, Req §11.3, PP §3, `bundle-licenses.schema.json`, `assets.schema.json`, `tools/compile_bundle.py` |
+| **O protocolo `vnpreview` serve só o projeto aberto** (`/runtime/`, `/project/assets/`, `/project/preview/`), sem caminho absoluto na URL; o runtime codifica os segmentos do caminho no painel | PP §1.1, §1.3 |
+| **W009 em tabela**, com `JavaScriptBridge`, `JavaScriptObject`, gravação em `user://` (`ConfigFile`, `ResourceSaver`, `Image.save_*`, `OS.get_user_data_dir`) e `PROCESS_MODE_ALWAYS` | SDK §12.2, PP §1.1, RT §8.5, `tools/validate.py` |
+| **Base do palco = estado imediatamente antes do passo censurado:** `hide` e `stop` apagam a base; a base guarda a posição; com um set, `background` é `null`. 2 vetores novos | RT §5.5, DM §10.4, `save.schema.json`, spec 08, `tools/conformance.py` |
+| **Modo livre pelo Preview:** `preview.input` com `play_activity` em `LOADED`; `skip_activity` e `cancel_activity` definidos; `activity.*` com `mode` | PP §3, §4 |
+| **Mídia no repositório do produto:** lista fechada de pastas e a workflow `repo-hygiene.yml`; `docs/` não entra nos artefatos, salvo schemas e presets copiados | spec 09 §1.1, §1.2 |
+| **Cópia da demo:** o script e a CI usam a mesma lista de arquivos, a comparação é byte a byte, o script confere o commit (`--update-source` para trocar), e a demo ganha uma workflow diária contra a `main` do produto (`PRODUCT_REPO_TOKEN`) | spec 09 §1.1, `tools/sync_demo_example.py`, `.github/workflows/specs.yml` |
+| 144 casos em `test_validate.py`, 48 em `test_schemas.py`, 142 vetores, 8 vetores de compilação (com o hash de `licenses.json`; hashes regerados pelo texto novo do preset) | spec 08, este README |
 
 ## Desvios em relação ao ADD
 

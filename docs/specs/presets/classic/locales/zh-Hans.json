@@ -50,6 +50,7 @@
     "ui/pause/btn_resume": "返回游戏",
     "ui/pause/btn_save": "保存",
     "ui/pause/btn_settings": "设置",
+    "ui/pause/btn_skip_activity": "跳过小游戏",
     "ui/pause/btn_title": "返回标题",
     "ui/pause/lbl_title": "已暂停",
     "ui/save/btn_back": "返回",

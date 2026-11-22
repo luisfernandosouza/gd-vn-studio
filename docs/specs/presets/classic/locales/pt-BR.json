@@ -50,6 +50,7 @@
     "ui/pause/btn_resume": "Voltar ao jogo",
     "ui/pause/btn_save": "Salvar",
     "ui/pause/btn_settings": "Configurações",
+    "ui/pause/btn_skip_activity": "Pular minijogo",
     "ui/pause/btn_title": "Voltar ao título",
     "ui/pause/lbl_title": "Pausado",
     "ui/save/btn_back": "Voltar",

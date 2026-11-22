@@ -50,6 +50,7 @@
     "ui/pause/btn_resume": "Weiter",
     "ui/pause/btn_save": "Speichern",
     "ui/pause/btn_settings": "Einstellungen",
+    "ui/pause/btn_skip_activity": "Minispiel überspringen",
     "ui/pause/btn_title": "Zum Titelbildschirm",
     "ui/pause/lbl_title": "Pausiert",
     "ui/save/btn_back": "Zurück",

@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.vnstudio.dev/1/bundle-licenses.schema.json",
+  "title": "narrative/licenses.json",
+  "description": "Licenças e créditos de terceiros do jogo (Build System §4.5): plugins, e o credit dos assets que entram no jogo, agrupados. A tela de créditos os mostra com licenses_list (UI Spec §3.1). Os avisos do motor e do runtime (kind engine) não ficam aqui: o runtime os acrescenta sempre, de Engine.get_license_text(), Engine.get_copyright_info() e das licenças que vêm no pacote dele.",
+  "type": "object",
+  "required": [
+    "entries"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "entries": {
+      "description": "Ordem: plugin, font, asset; dentro de cada tipo, por title e depois por author (comparação de strings por pontos de código).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "kind",
+          "title"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "plugin",
+              "font",
+              "asset"
+            ],
+            "description": "plugin: um plugin habilitado; font: credit de assets que são todos do tipo font; asset: credit dos demais assets."
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "description": "plugin: name do manifesto (no default_locale do plugin); font e asset: o author do credit."
+          },
+          "author": {
+            "type": "string"
+          },
+          "license": {
+            "type": "string",
+            "description": "SPDX no plugin; texto livre em credit.license, no idioma original, sem tradução (Data Model §10.1)."
+          },
+          "url": {
+            "type": "string"
+          },
+          "notice": {
+            "type": "string",
+            "description": "Texto exato que a licença pede para mostrar (credit.notice)."
+          },
+          "text": {
+            "type": "string",
+            "description": "Texto completo da licença: o LICENSE do plugin ou o arquivo de credit.license_file."
+          },
+          "assets": {
+            "type": "array",
+            "items": {
+              "$ref": "common.schema.json#/$defs/AssetRef"
+            },
+            "uniqueItems": true,
+            "description": "Assets que este crédito cobre, em ordem lexicográfica (font e asset)."
+          }
+        }
+      }
+    }
+  }
+}

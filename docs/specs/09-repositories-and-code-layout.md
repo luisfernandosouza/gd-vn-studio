@@ -34,7 +34,8 @@ gd-vn-studio/
 ├── runtime/                    # Runtime: projeto Godot 4.7.2 + GDScript
 │   ├── project.godot
 │   ├── vn_runtime/             # Narrative Engine, Scheduler, State Manager, UI Manager…
-│   │   └── presets/            # cópia gerada de docs/specs/presets/ + fontes embutidas (presets/fonts/)
+│   │   ├── presets/            # cópia gerada de docs/specs/presets/ + fontes embutidas (presets/fonts/)
+│   │   └── licenses/           # licenças do runtime, do Godot e das fontes do preset (Build System §4.5)
 │   └── tests/                  # testes e runner headless dos vetores (--vn-test)
 ├── sdk/
 │   ├── runtime/addons/vn_runtime_sdk/   # Runtime SDK (GDScript), copiado para os projetos de plugin
@@ -44,7 +45,7 @@ gd-vn-studio/
 │   └── fishing/                # mesmo formato do repositório avulso (§2)
 │       ├── project.godot, sandbox/, .vnplugin/
 │       └── vn_plugins/fishing/ # o plugin
-└── .github/workflows/          # CI: specs.yml (ferramentas das specs e cópia da demo), Studio, runtime, plugins
+└── .github/workflows/          # CI: specs.yml (ferramentas das specs e cópia da demo), repo-hygiene.yml (mídia), Studio, runtime, plugins
 ```
 
 - **Fonte única dos schemas.** `docs/specs/schemas/` é a única cópia. O Studio, a CLI e o runtime os leem dali no build. Nenhum componente mantém uma cópia editada à mão.
@@ -75,10 +76,18 @@ O repositório do produto não contém um jogo de exemplo, nem arte, música ou 
 - **Dados de exemplo das specs.** `docs/specs/examples/demo-project/` e `demo-save.json` são o projeto mínimo que ilustra as specs e alimenta o validador, os testes (`tools/test_validate.py`) e a CI. São só JSON. `assets.json` cita caminhos (`backgrounds/noraneko/Train_beach.png`…), mas nenhum desses arquivos existe no repositório, e o validador de referência não exige que existam. Os vetores de compilação não usam o exemplo: usam uma cópia congelada em `conformance/compile/base/` (spec 08).
 - **Uma fonte para a demo** (decidido em 2026-11-17; como fazer, decisão D23 de 2026-11-22). O repositório da demo é a fonte dos dados do jogo. `docs/specs/examples/demo-project/` é uma cópia só com os JSON, gerada por `docs/specs/tools/sync_demo_example.py` a partir da demo no commit registrado em `examples/demo-project/SOURCE.json`.
   - **Diferença permitida:** só o campo `credit` dos assets (Data Model §10.1), que o script tira. Os créditos de terceiros ficam só na demo, e o repositório do produto não guarda crédito de arte que não distribui. Tudo o mais é igual, byte a byte.
-  - **Fora da cópia:** `assets/`, `tools/`, `source/`, os `.md`, `LICENSE` e `.gitignore` da demo.
+  - **O que é copiado:** só os JSON da raiz e das pastas de dados (`chapters/`, `characters/`, `locales/`, `scenes/`, `sets/`, `ui/`). A lista fica no script, e a CI usa a mesma (`--sparse`) no checkout da demo. Fica de fora todo o resto, inclusive `assets/`, `tools/`, `source/`, `.vnstudio/`, `plugins/`, `migrations/`, os `.md`, `LICENSE` e `.gitignore`.
+  - **Versão:** o script confere com `git rev-parse HEAD` que a demo está no commit de `SOURCE.json` e para se não estiver. `--update-source` copia de outro commit de propósito e grava o commit novo em `SOURCE.json`.
   - **CI:** a workflow `specs.yml` roda as ferramentas das specs em todo pull request, faz o checkout da demo no commit de `SOURCE.json` e roda o script com `--check`, que falha se o exemplo divergir. Ela também valida a demo com as specs daquela versão. Como o repositório da demo é privado, o checkout usa o secret `DEMO_REPO_TOKEN` (token com leitura de Contents na demo). Sem o secret, a workflow avisa e pula só essa conferência.
-  - **Ordem:** uma mudança que mexe no exemplo entra primeiro na demo. Depois, o pull request do produto atualiza `SOURCE.json` e roda o script.
-- **Assets de teste** (decisão D22 de 2026-11-22). São internos: não aparecem para o jogador, não têm crédito e não existem em nenhum artefato distribuído (§1.2). Quando o runtime e o Studio precisarem de imagens e sons para testes, eles são gerados por script na CI (cores sólidas, formas, tons de áudio sintéticos) ou ficam em `runtime/tests/fixtures/` como placeholders feitos à mão, sem arte gerada por IA. **Arte de terceiros, mesmo para teste, só entra pela demo:** um teste que precisa de arte de verdade é um teste de ponta a ponta que clona a demo numa versão fixa (abaixo). Assim a licença e o crédito ficam cumpridos na demo, e o produto continua sem arte. A CI recusa arquivos de imagem, áudio ou vídeo fora dessas pastas.
+  - **Ordem:** uma mudança que mexe no exemplo entra primeiro na demo. Depois, o pull request do produto roda o script com `--update-source`.
+  - **Do lado da demo:** a workflow `specs.yml` da demo valida e compila a demo com as specs da `main` do produto em todo PR, na `main` e uma vez por dia, e mostra o que o exemplo precisaria mudar. Assim uma mudança de qualquer um dos lados que quebre a demo aparece logo, sem esperar a próxima cópia. O checkout do produto, que é privado, usa o secret `PRODUCT_REPO_TOKEN` da demo (leitura de Contents no `gd-vn-studio`); sem ele, a workflow só avisa.
+- **Assets de teste** (decisão D22 de 2026-11-22). São internos: não aparecem para o jogador, não têm crédito e não existem em nenhum artefato distribuído (§1.2). Quando o runtime e o Studio precisarem de imagens e sons para testes, eles são gerados por script na CI (cores sólidas, formas, tons de áudio sintéticos) ou ficam em `runtime/tests/fixtures/` como placeholders feitos à mão, sem arte gerada por IA. **Arte de terceiros, mesmo para teste, só entra pela demo:** um teste que precisa de arte de verdade é um teste de ponta a ponta que clona a demo numa versão fixa (abaixo). Assim a licença e o crédito ficam cumpridos na demo, e o produto continua sem arte.
+- **Onde pode haver mídia.** Arquivos de imagem, áudio ou vídeo (e fontes de arte como `.psd`) só podem estar em:
+  - `runtime/tests/fixtures/`, os placeholders de teste acima;
+  - `plugins/*/vn_plugins/*/runtime/`, os assets originais de cada plugin oficial (abaixo);
+  - `plugins/*/sandbox/`, a cena de teste do projeto de desenvolvimento de um plugin oficial.
+
+  A workflow `repo-hygiene.yml` confere isso em todo pull request, sem filtro de caminho, e falha com a lista dos arquivos fora dessas pastas. As fontes do preset (`runtime/vn_runtime/presets/fonts/`) não são arte de jogo e ficam fora da conferência.
 - **Plugins oficiais.** Os minijogos em `plugins/` seguem a mesma regra: os assets de cada plugin oficial são originais e têm a licença declarada no próprio plugin.
 - **Jogo de exemplo jogável.** Fica num repositório separado, [`gd-vn-studio-demo`](https://github.com/luisfernandosouza/gd-vn-studio-demo), com o próprio histórico e licença de assets. Ele é um repositório de jogo comum (§3) e usa os plugins oficiais pelo catálogo, como qualquer jogo. A CI do produto pode exportá-lo como teste de ponta a ponta, clonando-o numa versão fixa, sem trazer os assets para o repositório do produto. Os créditos dos assets de terceiros da demo ficam no `CREDITS.md` dela e no campo `credit` de `assets.json`, e aparecem na tela de créditos do jogo da demo.
 
@@ -88,15 +97,15 @@ Decisão de 2026-11-22. Nada que serve só para desenvolver o produto chega a qu
 
 | Artefato | Entra |
 |---|---|
-| Instalador do Studio | O Studio compilado, o runtime do Preview (export Web e `runtime-preview.pck`), o Godot embutido, os schemas e os presets |
-| Templates de exportação e `runtime-preview.pck` | `runtime/` sem `tests/`, com os presets copiados de `docs/specs/presets/` |
+| Instalador do Studio | O Studio compilado, o runtime do Preview (export Web e `runtime-preview.pck`), o Godot embutido, e os schemas e presets, que o build do Studio **copia** de `docs/specs/schemas/` e `docs/specs/presets/` |
+| Templates de exportação e `runtime-preview.pck` | `runtime/` sem `tests/`, com os presets copiados de `docs/specs/presets/` e os textos de licença em `vn_runtime/licenses/`: a licença do runtime (MIT), a do Godot com as das bibliotecas dele, e a OFL das fontes do preset. O runtime os mostra na tela de créditos de todo jogo (Build System §4.5) |
 | Addon do Runtime SDK, pacotes npm e CLIs | O código e as definições de tipos |
 | `.vnplugin` oficial | O que o Plugin SDK §2.1 manda |
 
-**Nunca entra, em nenhum artefato:** `tests/` e `*/tests/*` (inclusive `runtime/tests/fixtures/`), `docs/` (specs, exemplos, vetores e `conformance/compile/base/`), `spikes/`, os `.md` de desenvolvimento, e qualquer arquivo da demo.
+**Nunca entra, em nenhum artefato:** `tests/` e `*/tests/*` (inclusive `runtime/tests/fixtures/`), `docs/` como pasta (specs, revisões, exemplos, vetores e `conformance/compile/base/`; só os schemas e os presets entram, copiados pelo build, como na tabela), `spikes/`, os `.md`, salvo o `README.md` e o `CHANGELOG.md` que o Plugin SDK §2.1 manda pôr no `.vnplugin`, e qualquer arquivo da demo.
 
 - **Exportações do runtime.** Os presets de exportação do runtime (Web do Preview, `runtime-preview.pck` e templates) usam `exclude_filter` com `tests/*, */tests/*, docs/*, *.md`. O `exclude_filter` do Build System §7.1 vale para o jogo do autor; este vale para o produto.
-- **CI de release.** Antes de publicar, a CI lista o conteúdo de cada `.pck` e do instalador e falha se aparecer um caminho da lista acima, ou um arquivo de imagem, áudio ou vídeo fora dos presets.
+- **CI de release.** Antes de publicar, a CI lista o conteúdo de cada `.pck` e do instalador e falha se aparecer um caminho da lista acima, ou um arquivo de imagem, áudio ou vídeo fora dos presets. Ela também confere que `vn_runtime/licenses/` está nos templates e no `runtime-preview.pck`.
 
 ## 2. Repositório de um plugin avulso
 

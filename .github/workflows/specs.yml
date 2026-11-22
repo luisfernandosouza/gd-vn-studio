@@ -44,6 +44,8 @@ jobs:
           print(f"repository={s['repository']}")
           print(f"commit={s['commit']}")
           PY
+          # o sparse-checkout é a mesma lista de arquivos que o script copia (tools/sync_demo_example.py --sparse)
+          { echo "sparse<<EOF"; python tools/sync_demo_example.py --sparse; echo "EOF"; } >> "$GITHUB_OUTPUT"
       - name: Acesso ao repositório da demo
         id: demo_access
         env:
@@ -63,14 +65,7 @@ jobs:
           ref: ${{ steps.source.outputs.commit }}
           path: demo
           lfs: false
-          sparse-checkout: |
-            /*.json
-            /chapters/
-            /characters/
-            /locales/
-            /scenes/
-            /sets/
-            /ui/
+          sparse-checkout: ${{ steps.source.outputs.sparse }}
           sparse-checkout-cone-mode: false
       - name: Exemplo igual à demo (sem os créditos)
         if: steps.demo_access.outputs.ok == 'true'

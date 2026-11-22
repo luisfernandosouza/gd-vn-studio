@@ -608,14 +608,17 @@ def run_flow(c):
     def nxt(i, n): return index[n["next"]] if n.get("next") else i + 1
     cf = c.get("content_filter", False)                    # modo stream (Data Model §10.4)
     # palco com a marca censor de quem pôs cada item e a base de cada um (Runtime Spec §5.5, save.schema.json → Stage):
-    # a base é o último estado posto por um passo sem censor; um item escondido volta à base ou, sem ela, sai do palco
+    # a base é o estado do item imediatamente antes do passo censurado; hide e stop tiram o item e a base junto.
+    # Um item escondido volta à base ou, sem ela, sai do palco. O cenário é um asset (id) ou um set ({"set": id}).
     stage = {"background": None, "background_censor": None, "background_base": None, "characters": [], "audio": {}}
     def hidden(censor): return censor == ("skip" if cf else "only")
+    def view(src, ch):
+        return {"id": ch["id"], **({"expression": src["expression"]} if src.get("expression") else {}), "position": src["position"]}
     def char_view(ch):
-        if not hidden(ch.get("censor")): return {"id": ch["id"], **({"expression": ch["expression"]} if ch.get("expression") else {})}
+        if not hidden(ch.get("censor")): return view(ch, ch)
         b = ch.get("base")
         if b is None: return None
-        return {"id": ch["id"], **({"expression": b["expression"]} if b.get("expression") else {})}
+        return view(b, ch)
     def audio_view(a):
         if not hidden(a.get("censor")): return a["asset"]
         return (a.get("base") or {}).get("asset")
@@ -632,16 +635,17 @@ def run_flow(c):
     def put_on_stage(n):
         t, cen = n["type"], n.get("censor")
         if t == "background":
-            stage["background"] = n.get("asset") or n.get("set"); stage["background_censor"] = cen
+            stage["background"] = n["asset"] if n.get("asset") else {"set": n["set"]}; stage["background_censor"] = cen
             if not cen: stage["background_base"] = stage["background"]
         elif t == "show":
             old = next((ch for ch in stage["characters"] if ch["id"] == n["character"]), None)
             item = {"id": n["character"]}
             expr = n.get("expression") or (old or {}).get("expression")
             if expr: item["expression"] = expr
+            item["position"] = n.get("position") or (old or {}).get("position") or "center"   # Data Model §8.2
             if cen:
                 item["censor"] = cen
-                b = base_of(old, ("expression",))
+                b = base_of(old, ("expression", "position"))
                 if b is not None: item["base"] = b
             stage["characters"] = [ch for ch in stage["characters"] if ch["id"] != n["character"]] + [item]
         elif t == "hide":

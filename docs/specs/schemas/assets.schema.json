@@ -134,7 +134,7 @@
             ]
           },
           "credit": {
-            "description": "Crédito de um asset de terceiros (Data Model §10, Build System §4.5): o Build System reúne em vn_content/licenses.txt o crédito de cada asset que entra no staging, e a tela de créditos o mostra com licenses_list (UI Spec §3.1). Assets que não entram no jogo não aparecem. Não entra no bundle.json nem no content_hash.",
+            "description": "Crédito de um asset de terceiros (Data Model §10.1, Build System §4.5): o Build System reúne em licenses.json (um arquivo do bundle) o crédito de cada asset que entra no jogo, e a tela de créditos o mostra com licenses_list (UI Spec §3.1). Assets que não entram no jogo não aparecem. Não entra no bundle.json nem no content_hash.",
             "type": "object",
             "required": [
               "author"
@@ -149,7 +149,7 @@
               "license": {
                 "type": "string",
                 "minLength": 1,
-                "description": "Nome curto ou resumo dos termos (ex.: \"CC BY 4.0\", \"termos do pacote, ver ReadMe.txt\")."
+                "description": "Nome curto ou resumo dos termos (ex.: \"CC BY 4.0\", \"Pack terms, see ReadMe.txt\"). Fica no idioma original da licença e não é traduzido: o Studio sugere inglês."
               },
               "url": {
                 "type": "string",
@@ -159,7 +159,12 @@
               "notice": {
                 "type": "string",
                 "minLength": 1,
-                "description": "Texto exato que a licença pede para mostrar, quando houver; senão o crédito mostra author e license."
+                "description": "Texto exato que a licença pede para mostrar, quando houver; senão o crédito mostra author e license. Não é traduzido."
+              },
+              "license_file": {
+                "type": "string",
+                "pattern": "^(?!/)(?![A-Za-z][A-Za-z0-9+.-]*:)(?!(.*/)?\\.\\.(/|$))[^\\\\]+$",
+                "description": "Arquivo com o texto completo da licença, relativo a assets/ (ex.: fonts/OFL-Nunito.txt). O texto vai inteiro para licenses.json; é o caso das fontes OFL, que pedem a licença junto de cada cópia."
               }
             }
           }

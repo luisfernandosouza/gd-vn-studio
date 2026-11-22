@@ -461,6 +461,46 @@
               "const": "2.0"
             },
             "method": {
+              "const": "storage.write"
+            },
+            "params": {
+              "$ref": "#/$defs/Notify_storage_write"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "method",
+            "params"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "method": {
+              "const": "storage.delete"
+            },
+            "params": {
+              "$ref": "#/$defs/Notify_storage_delete"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "method",
+            "params"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0"
+            },
+            "method": {
               "const": "chapter.started"
             },
             "params": {
@@ -1238,13 +1278,13 @@
         },
         "bundle_url": {
           "type": "string",
-          "pattern": "^(vnpreview://|https?://vnpreview\\.localhost/)",
-          "description": "Painel (runtime Web): URL da pasta do bundle, como o Tauri a expõe naquele sistema (vnpreview://localhost/… no macOS e no Linux, http://vnpreview.localhost/… no Windows; spec 07 §1.3)."
+          "pattern": "^(vnpreview://localhost/|https?://vnpreview\\.localhost/)project/preview/",
+          "description": "Painel (runtime Web): URL /project/preview/narrative/ do protocolo vnpreview, na origem daquele sistema (vnpreview://localhost/ no macOS e no Linux, http://vnpreview.localhost/ no Windows; spec 07 §1.1 e §1.3)."
         },
         "assets_base": {
           "type": "string",
           "minLength": 1,
-          "description": "Base dos caminhos relativos de assets do bundle do Preview (spec 07 §1.3): no painel, a URL da pasta assets/ do projeto pelo protocolo vnpreview, como o Tauri a expõe naquele sistema; na janela, o caminho absoluto da pasta assets/ do projeto. O runtime junta a base e o caminho relativo."
+          "description": "Onde está a pasta assets/ do projeto (spec 07 §1.3). Em modo preview, o runtime troca o prefixo res://vn_content/assets/ dos caminhos do bundle por esta base. Painel: a URL /project/assets/ do protocolo vnpreview (o runtime codifica cada segmento do resto do caminho); janela: o caminho absoluto da pasta no sistema."
         },
         "locale": {
           "$ref": "common.schema.json#/$defs/Locale"
@@ -1255,6 +1295,18 @@
             "project"
           ],
           "description": "Onde ficam saves, perfil e configurações do Preview: memory (padrão) ou a pasta .vnstudio/preview/user/ do projeto (spec 07 §1.4)."
+        },
+        "user_files": {
+          "type": "object",
+          "description": "Só no painel com user_data 'project' (spec 07 §1.4): o conteúdo atual de .vnstudio/preview/user/, caminho relativo → bytes em base64. O VNStorage do runtime começa com esses arquivos na memória.",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^(?!/)(?!.*(^|/)\\.\\.(/|$))[^\\\\:]+$"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "contentEncoding": "base64"
+          }
         }
       },
       "additionalProperties": false,
@@ -1461,7 +1513,8 @@
             "click",
             "skip_activity",
             "cancel_activity",
-            "complete_activity"
+            "complete_activity",
+            "play_activity"
           ]
         },
         "option": {
@@ -1475,6 +1528,15 @@
         },
         "payload": {
           "type": "object"
+        },
+        "activity": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$",
+          "description": "play_activity: <namespace>.<atividade> com free_play (Plugin SDK §6.1)."
+        },
+        "params": {
+          "type": "object",
+          "description": "play_activity: sobrepõe os params de free_play."
         }
       },
       "allOf": [
@@ -1517,6 +1579,20 @@
           "then": {
             "required": [
               "outcome"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "play_activity"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "activity"
             ]
           }
         }
@@ -1609,7 +1685,7 @@
             "properties": {
               "file": {
                 "type": "string",
-                "pattern": "^(bundle\\.json|locales/[A-Za-z0-9-]+\\.json)$"
+                "pattern": "^(bundle\\.json|licenses\\.json|locales/[A-Za-z0-9-]+\\.json)$"
               },
               "pointer": {
                 "type": "string",
@@ -1624,7 +1700,7 @@
         },
         "bundle_url": {
           "type": "string",
-          "pattern": "^vnpreview://"
+          "pattern": "^(vnpreview://localhost/|https?://vnpreview\\.localhost/)project/preview/"
         },
         "changed": {
           "type": "array",
@@ -2355,8 +2431,7 @@
         "seq",
         "phase",
         "activity",
-        "scene",
-        "node"
+        "mode"
       ],
       "additionalProperties": false,
       "properties": {
@@ -2385,12 +2460,32 @@
         "activity": {
           "type": "string"
         },
+        "mode": {
+          "enum": [
+            "story",
+            "free_play"
+          ],
+          "description": "story: nó plugin de uma cena (scene e node obrigatórios); free_play: modo livre, sem cena (Plugin SDK §6.1)."
+        },
         "scene": {
           "$ref": "common.schema.json#/$defs/EntityId"
         },
         "node": {
           "$ref": "common.schema.json#/$defs/EntityId"
         }
+      },
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "story"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "scene",
+          "node"
+        ]
       }
     },
     "Notify_activity_ended": {
@@ -2399,11 +2494,10 @@
         "seq",
         "phase",
         "activity",
-        "scene",
-        "node",
         "outcome",
         "skipped",
-        "failed"
+        "failed",
+        "mode"
       ],
       "additionalProperties": false,
       "properties": {
@@ -2431,6 +2525,13 @@
         },
         "activity": {
           "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "story",
+            "free_play"
+          ],
+          "description": "story: nó plugin de uma cena (scene e node obrigatórios); free_play: modo livre, sem cena (Plugin SDK §6.1)."
         },
         "scene": {
           "$ref": "common.schema.json#/$defs/EntityId"
@@ -2446,7 +2547,8 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "O outcome do complete; no modo livre, também 'cancelled' (o jogador saiu) ou 'failed'. null quando a atividade falhou na história."
         },
         "skipped": {
           "type": "boolean"
@@ -2454,6 +2556,19 @@
         "failed": {
           "type": "boolean"
         }
+      },
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "story"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "scene",
+          "node"
+        ]
       }
     },
     "Notify_game_ended": {
@@ -2731,6 +2846,89 @@
           "type": "string"
         }
       }
+    },
+    "Notify_storage_write": {
+      "type": "object",
+      "required": [
+        "seq",
+        "phase",
+        "path",
+        "data"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "phase": {
+          "enum": [
+            "BOOT",
+            "TITLE",
+            "NEW_GAME",
+            "LOAD_GAME",
+            "CHAPTER_ENTER",
+            "SELECTION_POINT",
+            "SCENE_RUNNING",
+            "ACTIVITY",
+            "SCENE_END",
+            "CHAPTER_EXIT",
+            "GAME_END"
+          ]
+        },
+        "batch": {
+          "type": "array"
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^(?!/)(?!.*(^|/)\\.\\.(/|$))[^\\\\:]+$",
+          "description": "Caminho relativo a .vnstudio/preview/user/, com '/'. O Studio recusa o que sair da pasta (spec 07 §1.4)."
+        },
+        "data": {
+          "type": "string",
+          "contentEncoding": "base64"
+        }
+      },
+      "description": "Só no painel com user_data 'project': o VNStorage gravou ou apagou um arquivo, e o Studio aplica em .vnstudio/preview/user/ (spec 07 §1.4)."
+    },
+    "Notify_storage_delete": {
+      "type": "object",
+      "required": [
+        "seq",
+        "phase",
+        "path"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "phase": {
+          "enum": [
+            "BOOT",
+            "TITLE",
+            "NEW_GAME",
+            "LOAD_GAME",
+            "CHAPTER_ENTER",
+            "SELECTION_POINT",
+            "SCENE_RUNNING",
+            "ACTIVITY",
+            "SCENE_END",
+            "CHAPTER_EXIT",
+            "GAME_END"
+          ]
+        },
+        "batch": {
+          "type": "array"
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^(?!/)(?!.*(^|/)\\.\\.(/|$))[^\\\\:]+$",
+          "description": "Caminho relativo a .vnstudio/preview/user/, com '/'. O Studio recusa o que sair da pasta (spec 07 §1.4)."
+        }
+      },
+      "description": "Só no painel com user_data 'project': o VNStorage gravou ou apagou um arquivo, e o Studio aplica em .vnstudio/preview/user/ (spec 07 §1.4)."
     }
   }
 }

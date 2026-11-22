@@ -128,7 +128,7 @@ Na instalação, o Plugin Manager mostra o pedido em linguagem simples ("Este pl
 | `ui.overlay` | Desenhar camada própria sobre o jogo |
 | `input.capture` | Receber a entrada do jogador durante atividades, com exclusividade |
 
-**Input sem e com `input.capture`.** Sem a capacidade, a `CanvasLayer` dos overlays do plugin tem `mouse_filter = IGNORE` e o runtime não entrega a ela `_input`/`_unhandled_input`: a UI narrativa continua com o foco. Com a capacidade, durante a atividade o runtime desliga o processamento de input da UI narrativa e entrega tudo à camada do plugin; ao fim da atividade, devolve.
+**Input sem e com `input.capture`.** Sem a capacidade, a `CanvasLayer` dos overlays do plugin tem `mouse_filter = IGNORE` e o runtime não entrega a ela `_input`/`_unhandled_input`: a UI narrativa continua com o foco. Com a capacidade, durante a atividade o runtime desliga o processamento de input da UI narrativa e entrega tudo à camada do plugin, menos a ação `vn_menu`, que continua com o runtime para o jogador poder pausar ou sair (§6.1); ao fim da atividade, devolve.
 
 Variáveis do próprio namespace não precisam de capacidade.
 
@@ -418,7 +418,7 @@ Uma atividade com `free_play` no manifesto pode ser jogada **fora da história**
   | `cancelled` | O jogador saiu antes do fim (abaixo) |
 
   Por isso `cancelled` e `failed` não podem ser nomes de `outcomes` (o schema do manifesto recusa). Antes da primeira atividade da sessão, o valor é vazio.
-- **Sair antes do fim.** No modo livre, a ação `vn_menu` (Esc, Start/Options) é sempre do runtime, mesmo com `input.capture`: ela pausa a árvore do jogo, o que também pausa o minijogo (por isso o tempo de gameplay vem do `delta`, §5.7), e pergunta `runtime/confirm/quit_activity` ("Sair do minijogo?"). Com "Sim", o runtime encerra o handle, chama `_vn_cancel_activity` e volta à tela com `cancelled`. Recordes já enviados com `submit_record` continuam. Com "Não", o jogo despausa e o minijogo segue. As outras ações, inclusive `vn_cancel` (Backspace, B/Círculo), continuam indo para o plugin; como Esc também é `vn_cancel`, um minijogo no modo livre não recebe Esc.
+- **Sair antes do fim** (decisões de 2026-11-22). A ação `vn_menu` (Esc, Start/Options) é sempre do runtime durante uma atividade, nos dois modos e mesmo com `input.capture` (§4.2): ela pausa a árvore do jogo, o que também pausa o minijogo (por isso o tempo de gameplay vem do `delta`, §5.7, e nós de plugin com `PROCESS_MODE_ALWAYS` são W009). No modo livre, pergunta `runtime/confirm/quit_activity` ("Sair do minijogo?"): com "Sim", o runtime encerra o handle, chama `_vn_cancel_activity` e volta à tela com `cancelled`, e os recordes já enviados com `submit_record` continuam; com "Não", o jogo despausa e o minijogo segue. Na história, abre a tela `pause`, igual ao resto do jogo (Runtime Spec §5.3). As outras ações, inclusive `vn_cancel` (Backspace, B/Círculo), continuam indo para o plugin. Como Esc também é `vn_cancel`, um minijogo nunca recebe Esc: para voltar de um menu interno, o plugin usa `vn_cancel` pelas outras teclas e pelo gamepad. No Web, o navegador usa Esc para sair da tela cheia; lá o caminho garantido é Start/Options no gamepad ou um botão de pausa no `hud` do tema, que o preset `classic` traz.
 - Só fora de uma partida: durante o jogo, o botão fica oculto e a ação é recusada (Runtime Spec §5.3). Rodar o modo livre suspendendo a história fica para depois do v1.
 - `handle.rng` usa o RNG comum do motor (o modo livre nunca é reproduzível). O limite de FPS é o de minijogos (UI Spec §8).
 - O validador confere `free_play.params` contra `params_schema` (P004). Uma ação `play_activity` para atividade sem `free_play` é erro P020.
@@ -646,7 +646,19 @@ Os tempos de `VNScriptedInput` são segundos desde o início da atividade, no re
 ### 12.2. Testes de editor e validação
 
 - **Editor:** `@vnstudio/editor-sdk/testing` fornece um `PluginContext` falso para Vitest/Jest; `tests/editor/`.
-- `vnplugin validate` roda o schema do manifesto e confere entrypoints, namespaces de eventos e variáveis, rótulos (W007), nomes globais (P011), caminhos `res://` (P012), plataformas (W008), uso de APIs do Godot vetadas em plugins (W009: `OS.execute`, `OS.create_process`, `OS.shell_open`, `HTTPRequest`, `HTTPClient`, `StreamPeerTCP`, `PacketPeerUDP`, `WebSocketPeer`, `FileAccess`/`DirAccess` fora de `res://`; também em `user://`, desde 2026-11-22, porque os dados do plugin vão pelo save e pelo perfil (§9, §9.1) e o runtime os grava pelo `VNStorage` (Runtime Spec §8.5), o que mantém o Preview isolado por projeto, `Engine.get_singleton`, `ProjectSettings.set_setting`), e lista as capacidades pedidas. Com `--project <pasta>`, valida também o plugin dentro daquele projeto de VN.
+- `vnplugin validate` roda o schema do manifesto e confere entrypoints, namespaces de eventos e variáveis, rótulos (W007), nomes globais (P011), caminhos `res://` (P012), plataformas (W008) e uso de APIs do Godot vetadas em plugins (W009), e lista as capacidades pedidas. Com `--project <pasta>`, valida também o plugin dentro daquele projeto de VN.
+
+  **APIs vetadas (W009).** W009 é aviso no projeto e bloqueia a publicação no catálogo (§13.5, passo 6). A lista:
+
+  | Grupo | APIs | Por quê |
+  |---|---|---|
+  | Processos e sistema | `OS.execute`, `OS.create_process`, `OS.shell_open`, `OS.get_environment`, `OS.set_environment` | Saem do jogo |
+  | Rede | `HTTPRequest`, `HTTPClient`, `StreamPeerTCP`, `PacketPeerUDP`, `WebSocketPeer`, `TCPServer`, `UDPServer` | Sem rede no v1 |
+  | Página Web | `JavaScriptBridge`, `JavaScriptObject` | No painel do Preview, o plugin roda na mesma página que a ponte com o Studio e poderia se passar pelo runtime (Preview Protocol §1.1); no jogo Web, rodaria JavaScript livre na página |
+  | Arquivos | `FileAccess`, `DirAccess`, `ConfigFile.save`, `ConfigFile.load`, `ResourceSaver.save`, `Image.save_png`/`save_jpg`/`save_webp`/`save_exr`, `OS.get_user_data_dir`, em qualquer caminho fora de `res://` (inclusive `user://`, desde 2026-11-22) | Os dados do plugin vão pelo save e pelo perfil (§9, §9.1), que o runtime grava pelo `VNStorage` (Runtime Spec §8.5); é o que mantém o Preview isolado por projeto |
+  | Motor | `Engine.get_singleton`, `ProjectSettings.set_setting`, `process_mode = PROCESS_MODE_ALWAYS` (em script ou em cena) | Mexem no runtime; um nó `ALWAYS` continua rodando com o jogo pausado (§6.1) |
+
+  A conferência é por texto no código e nas cenas `.tscn` do plugin: pega o uso direto, não chamadas montadas em tempo de execução (`call("…")`, `ClassDB.instantiate`). Por isso o catálogo também lê o código (§13.4).
 
 ### 12.3. Depuração dentro de uma VN
 

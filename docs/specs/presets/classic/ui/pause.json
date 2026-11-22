@@ -36,6 +36,23 @@
           ]
         },
         {
+          "id": "btn_skip_activity",
+          "type": "button",
+          "text": "Skip minigame",
+          "actions": [
+            {
+              "do": "skip_activity"
+            }
+          ],
+          "visible_if": [
+            {
+              "variable": "sys.ui.activity_skippable",
+              "operator": "equals",
+              "value": true
+            }
+          ]
+        },
+        {
           "id": "btn_save",
           "type": "button",
           "text": "Save",
