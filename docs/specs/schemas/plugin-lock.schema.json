@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.vnstudio.dev/1/plugin-lock.schema.json",
+  "$id": "https://schemas.vnstudio.dev/specs-v1.0.0/plugin-lock.schema.json",
   "title": "plugin-lock.json",
   "description": "Gerado pelo Dependency Resolver. Versionado no Git. O Build System só usa o que está aqui e recusa pacotes cujo hash não confere. O mesmo schema vale para .vnstudio/plugin-lock.local.json, fora do Git, que guarda vínculos de desenvolvimento e sobrepõe entradas deste arquivo só naquela máquina.",
   "type": "object",

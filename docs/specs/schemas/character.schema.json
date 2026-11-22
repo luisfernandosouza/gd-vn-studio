@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.vnstudio.dev/1/character.schema.json",
+  "$id": "https://schemas.vnstudio.dev/specs-v1.0.0/character.schema.json",
   "title": "characters/<id>.json",
   "type": "object",
   "required": [

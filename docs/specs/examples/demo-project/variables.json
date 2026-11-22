@@ -1,5 +1,5 @@
 {
-  "$schema": "https://schemas.vnstudio.dev/1/variables.schema.json",
+  "$schema": "https://schemas.vnstudio.dev/specs-v1.0.0/variables.schema.json",
   "global": [
     { "key": "player_money", "name": "Dinheiro", "type": "integer", "default": 0,
       "constraints": { "min": 0, "max": 99999, "on_overflow": "reject" },

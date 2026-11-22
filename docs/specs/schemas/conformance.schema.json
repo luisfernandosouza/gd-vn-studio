@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.vnstudio.dev/1/conformance.schema.json",
+  "$id": "https://schemas.vnstudio.dev/specs-v1.0.0/conformance.schema.json",
   "title": "conformance/<grupo>.json",
   "description": "Arquivo de vetores de conformidade (spec 08). Cada caso tem entradas e o resultado esperado; os dois interpretadores DEVEM produzir exatamente o expect.",
   "type": "object",

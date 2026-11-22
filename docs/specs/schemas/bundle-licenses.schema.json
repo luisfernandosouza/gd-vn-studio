@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.vnstudio.dev/1/bundle-licenses.schema.json",
+  "$id": "https://schemas.vnstudio.dev/specs-v1.0.0/bundle-licenses.schema.json",
   "title": "narrative/licenses.json",
   "description": "Licenças e créditos de terceiros do jogo (Build System §4.5): plugins, e o credit dos assets que entram no jogo, agrupados. A tela de créditos os mostra com licenses_list (UI Spec §3.1). Os avisos do motor e do runtime (kind engine) não ficam aqui: o runtime os acrescenta sempre, de Engine.get_license_text(), Engine.get_copyright_info() e das licenças que vêm no pacote dele.",
   "type": "object",

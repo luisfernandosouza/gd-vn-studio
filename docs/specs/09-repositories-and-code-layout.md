@@ -66,6 +66,8 @@ gd-vn-studio/
   | Plugin oficial | `plugin-fishing-v1.0.0` | Release com o `.vnplugin`, e catálogo |
   | Specs | `specs-v1.0.0` | Release; o `$id` dos schemas aponta para a versão |
 
+  O `$id` de cada schema é `https://schemas.vnstudio.dev/specs-v<versão>/<nome>.schema.json` (decisão D13 de 2026-11-22), com a versão da tag que publica a Release, hoje `specs-v1.0.0`. Cada Release publica os seus schemas num caminho próprio nesse domínio, e um caminho publicado nunca muda nem sai do ar; os arquivos de dados usam o mesmo endereço em `$schema`.
+
   `vnplugin publish` aceita `--tag-prefix plugin-<namespace>-` para o monorepo; fora dele, a tag continua `v<versão>` (Plugin SDK §13.5).
 - **Catálogo.** O catálogo de plugins é um repositório separado (Plugin SDK §13.2), porque recebe pull requests de terceiros e tem CI e permissões próprias. Quem o opera ainda está em aberto (decisão D11 da revisão de 2026-11-14).
 

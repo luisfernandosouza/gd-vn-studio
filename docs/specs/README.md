@@ -17,7 +17,7 @@ Marco da seção 16 do ADD: definir e congelar as três especificações que ser
 
 Artefatos:
 
-- `schemas/` — 22 JSON Schemas (draft 2020-12): `common`, `project`, `variables`, `character`, `chapter`, `scene`, `assets`, `locale`, `save`, `plugin`, `plugins`, `plugin-lock`, `theme`, `ui-screen`, `set`, `preview-protocol`, `conformance`, `build-manifest` e os quatro do bundle compilado (`bundle`, `bundle-locale`, `bundle-plugins`, `bundle-licenses`). O domínio `schemas.vnstudio.dev` nos `$id` é provisório.
+- `schemas/` — 22 JSON Schemas (draft 2020-12): `common`, `project`, `variables`, `character`, `chapter`, `scene`, `assets`, `locale`, `save`, `plugin`, `plugins`, `plugin-lock`, `theme`, `ui-screen`, `set`, `preview-protocol`, `conformance`, `build-manifest` e os quatro do bundle compilado (`bundle`, `bundle-locale`, `bundle-plugins`, `bundle-licenses`). O `$id` de cada schema é `https://schemas.vnstudio.dev/specs-v1.0.0/<nome>.schema.json`, o endereço da versão `specs-v1.0.0` (decisão D13, spec 09 §1).
 - `examples/demo-project/` — dados de exemplo, só JSON e sem arte (o jogo jogável fica num repositório separado, spec 09 §1.1): projeto pequeno com 2 capítulos, 5 cenas, escolhas, branch, variável derivada, grupo de exclusividade, uso do Fishing Minigame, menu inicial com cenário clicável (`ui/title.json`, `sets/beach_title.json`), tela de configurações com FPS separado para VN e minijogos (`ui/settings.json`), créditos e um nó `interact`. É a cópia dos JSON da demo, sem o campo `credit` dos assets (spec 09 §1.1).
 - `presets/classic/` — preset de interface do v1: tema, as telas que o projeto não define (título, pausa, salvar, carregar, configurações, galeria, créditos, HUD, histórico e minijogos) e os textos traduzidos para os 9 idiomas do produto (UI Spec §2.1).
 - `examples/fishing-plugin/` — plugin de referência completo: manifesto, GDScript de runtime, cena, testes com `VNTestHarness`, comando de editor, README e CHANGELOG. Corresponde a `vn_plugins/fishing/` do projeto de desenvolvimento.
@@ -242,7 +242,7 @@ Saíram de [`../reviews/revisao-specs-2026-11-14.md`](../reviews/revisao-specs-2
 | **Modo livre** de minijogos a partir do menu (`free_play`, ação `play_activity`, elemento `records_list`), sem mexer na história | SDK §6.1, RT §5.3, UI §3.1, §4 |
 | Novos códigos P019–P021; 112 casos em `test_validate.py` | DM §11, spec 09 §5 |
 
-**Ainda em aberto** (ver a seção "O que falta" do relatório): ~~escopo da galeria~~ (resolvido em 2026-11-16: galeria opcional por projeto, DM §10.5), quem opera o catálogo, nome e domínio definitivos, e os documentos E1 e E4–E15 (E2 e E3 já estão nas specs 07 e 08).
+**Ainda em aberto** (ver a seção "O que falta" do relatório): ~~escopo da galeria~~ (resolvido em 2026-11-16: galeria opcional por projeto, DM §10.5), quem opera o catálogo, ~~nome e domínio definitivos~~ (resolvido em 2026-11-22, D13), e os documentos E1 e E4–E15 (E2 e E3 já estão nas specs 07 e 08).
 
 ## Decisões de 2026-11-14: antes do runtime (3ª e 4ª revisões)
 
@@ -260,7 +260,7 @@ Saíram de [`../reviews/revisao-specs-2026-11-14.md`](../reviews/revisao-specs-2
 | Vetores `record` e `flow`; códigos W021–W023 e U009–U011; 119 casos em `test_validate.py` | spec 08, DM §11, UI §11 |
 | `build-manifest.schema.json` | BS §9.2 |
 
-**Ainda em aberto:** quem opera o catálogo, nome e domínio definitivos (D11, D13) e os documentos E4–E7 e E9–E15.
+**Ainda em aberto:** quem opera o catálogo, ~~nome e domínio definitivos~~ (D11; D13 resolvida em 2026-11-22, ver abaixo) e os documentos E4–E7 e E9–E15.
 
 ## Decisões de 2026-11-15: correções da auditoria documental
 
@@ -401,6 +401,16 @@ Aplicam os achados X-01 a X-13 da [segunda revisão de 2026-11-22](../reviews/re
 | **Mídia no repositório do produto:** lista fechada de pastas e a workflow `repo-hygiene.yml`; `docs/` não entra nos artefatos, salvo schemas e presets copiados | spec 09 §1.1, §1.2 |
 | **Cópia da demo:** o script e a CI usam a mesma lista de arquivos, a comparação é byte a byte, o script confere o commit (`--update-source` para trocar), e a demo ganha uma workflow diária contra a `main` do produto (`PRODUCT_REPO_TOKEN`) | spec 09 §1.1, `tools/sync_demo_example.py`, `.github/workflows/specs.yml` |
 | 144 casos em `test_validate.py`, 48 em `test_schemas.py`, 142 vetores, 8 vetores de compilação (com o hash de `licenses.json`; hashes regerados pelo texto novo do preset) | spec 08, este README |
+
+## Decisões de 2026-11-22: nome, domínio e `$id` dos schemas (D13)
+
+Fecha a decisão D13 da [revisão de 2026-11-14](../reviews/revisao-specs-2026-11-14.md), aberta desde então.
+
+| Decisão | Onde |
+|---|---|
+| **Nome e domínio ficam como estão:** produto Visual Novel Studio, publisher oficial `vnstudio`, pacotes `@vnstudio/*` e domínio `vnstudio.dev`, que deixa de ser provisório | ADD §5.5, SDK §3, §10, §13.2, spec 09 §1 |
+| **`$id` com a versão das specs:** `https://schemas.vnstudio.dev/specs-v1.0.0/<nome>.schema.json` nos 22 schemas (antes `…/1/…`). O segmento é a tag da Release das specs que publica o schema; cada Release publica os seus num caminho próprio, e um caminho publicado nunca muda nem sai do ar | spec 09 §1, `schemas/*.schema.json` |
+| **`$schema` dos dados usa o mesmo endereço:** exemplo (e a demo, de onde ele é copiado), plugin de exemplo, save de exemplo, preset `classic`, vetores de conformidade e de compilação, e o validador de referência | `examples/`, `presets/`, `conformance/`, `tools/validate.py`, `tools/test_validate.py` |
 
 ## Desvios em relação ao ADD
 
