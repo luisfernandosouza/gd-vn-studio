@@ -2,7 +2,7 @@
   "$schema": "https://schemas.vnstudio.dev/1/ui-screen.schema.json",
   "id": "settings",
   "kind": "settings",
-  "background": "bg/beach_day",
+  "background": "bg/sitting_room",
   "focus_start": "sl_master",
   "elements": [
     {

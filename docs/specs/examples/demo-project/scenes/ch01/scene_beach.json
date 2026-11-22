@@ -2,7 +2,7 @@
   "$schema": "https://schemas.vnstudio.dev/1/scene.schema.json",
   "id": "019a7a00-1388-7f6b-b667-94bbd1305982",
   "chapter": "019a7a00-03e8-7e8e-9f34-b5a38f4a780b",
-  "title": "Encontro na praia",
+  "title": "Encontro no trem",
   "scheduling": {
     "priority": 50,
     "conditions": [
@@ -32,7 +32,7 @@
     {
       "id": "019a7a00-2ee0-78cd-b7fb-730161b48bdb",
       "type": "background",
-      "asset": "bg/beach_day",
+      "asset": "bg/train_beach",
       "transition": {
         "kind": "fade",
         "duration": 0.5

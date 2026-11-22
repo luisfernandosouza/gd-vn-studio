@@ -49,7 +49,7 @@ def main():
     k = 0
     for s in range(n_scenes):
         sid = str(uuid.UUID(int=(0x019a7b00 << 96) | (s << 64) | 0x7000_8000_0000_0000))
-        nodes = [{"asset": "bg/beach_day", "id": str(uuid.uuid5(uuid.NAMESPACE_URL, f"{sid}/bg")), "type": "background"}]
+        nodes = [{"asset": "bg/train_beach", "id": str(uuid.uuid5(uuid.NAMESPACE_URL, f"{sid}/bg")), "type": "background"}]
         for i in range(n_lines):
             nid = str(uuid.uuid5(uuid.NAMESPACE_URL, f"{sid}/{i}"))
             text = " ".join(WORDS[(k + j) % len(WORDS)] for j in range(14)).capitalize() + "."
