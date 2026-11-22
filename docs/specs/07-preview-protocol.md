@@ -32,7 +32,11 @@ As mensagens são as mesmas nos dois modos; muda só o transporte.
 
 Decisão D18 (2026-11-17). O Preview não passa pelo import do editor do Godot: o Studio não reimporta nem empacota assets a cada edição.
 
-- **Caminhos.** No bundle que o Studio grava para o Preview (`.vnstudio/preview/narrative/`), `assets.<id>.path` é uma URL `vnpreview://localhost/assets/<path>` no painel, ou uma URL `file://` absoluta para o arquivo na pasta do projeto na janela, em vez de `res://` (RT §2). É a única diferença entre esse bundle e o do build.
+- **Caminhos** (decisão de 2026-11-22). No bundle que o Studio grava para o Preview (`.vnstudio/preview/narrative/`), `assets.<id>.path` dos assets do projeto fica **relativo** à pasta `assets/`, como em `assets.json`, em vez de `res://…` (RT §2). Os assets do preset continuam em `res://`, porque vêm no pacote do runtime. `preview.load` traz a base em `assets_base`, e o runtime junta base e caminho:
+  - **Painel:** a URL da pasta `assets/` pelo protocolo `vnpreview`, como o Tauri a expõe naquele sistema: `vnpreview://localhost/assets/` no macOS e no Linux, `http://vnpreview.localhost/assets/` no Windows (WebView2). O Studio a obtém do próprio Tauri (`convertFileSrc`), nunca a monta à mão. `bundle_url` segue a mesma regra.
+  - **Janela:** o caminho absoluto da pasta `assets/` do projeto, no formato do sistema. O runtime abre o arquivo pelo caminho (o Godot não abre URLs `file://`), então acentos e espaços no caminho não precisam de codificação.
+  
+  O bundle do Preview fica igual nos três sistemas e nos dois modos. É a única diferença entre ele e o do build. Fora do modo preview, o runtime recusa caminho relativo (BS §12), e o `bundle.schema.json` só aceita caminho relativo sem esquema, sem barra inicial e sem `..`.
 - **Carregador.** Em modo preview, o runtime resolve esses caminhos pelo carregador de bytes `VNAssets`: lê os bytes e cria o recurso em memória (`ImageTexture` para PNG, JPG e WebP; SVG rasterizado na escala que o import usaria; `AudioStreamOggVorbis`, `AudioStreamMP3` ou `AudioStreamWAV`; `FontFile`). O carregador aplica ele mesmo as opções que o import do Godot aplicaria no build: o bloco `import` do asset em `assets.json`, `nine_slice`, `loop` de música, e o filtro de textura e os mipmaps do tema.
 - **Mesmo resultado.** O Preview DEVE mostrar e tocar o mesmo que o jogo exportado. Só podem diferir a compressão (o build comprime texturas e áudio conforme `import`; o Preview usa os bytes originais), o tempo de carga e a memória. Qualquer outra diferença é defeito do carregador.
 - **Troca.** Acrescentar, trocar ou apagar um asset vai em `preview.reload` com a troca `/assets/<id>` (§3). O runtime descarta o recurso em cache daquele id e redesenha o que estiver na tela com ele.
@@ -44,7 +48,7 @@ Decisão D18 (2026-11-17). O Preview não passa pelo import do editor do Godot: 
 Decisão D21 (2026-11-17). Saves, perfil e configurações do Preview nunca se misturam com os de outro projeto nem com os do jogo instalado.
 
 - **Padrão: em memória.** O runtime em modo preview usa um `user://` em memória. O perfil vem de `preview.start.profile` ou começa vazio; as configurações começam nos padrões do projeto (UI Spec §8). Nada sobrevive ao fechar o painel ou a janela.
-- **"Manter saves do Preview"**, opção por projeto no Studio: `preview.load` com `user_data: "project"`. O runtime grava como o jogo grava (RT §8.5), mas na pasta do projeto, em `.vnstudio/preview/user/` (fora do Git, spec 09 §3.4). No painel, onde `user://` é a IndexedDB da origem `vnpreview://`, comum a todos os projetos, o runtime prefixa as chaves com o `project.id`; na janela, o Studio passa o diretório com `--vn-user-dir <pasta>`.
+- **"Manter saves do Preview"**, opção por projeto no Studio: `preview.load` com `user_data: "project"`. O runtime grava como o jogo grava (RT §8.5), mas na pasta do projeto, em `.vnstudio/preview/user/` (fora do Git, spec 09 §3.4). O lugar muda pela implementação do `VNStorage` (RT §8.5), nunca por acesso direto a `user://`. No painel, onde `user://` é um sistema de arquivos guardado na IndexedDB da origem do protocolo `vnpreview`, comum a todos os projetos, o runtime grava na subpasta `user://preview/<project.id>/`; na janela, o Studio passa a pasta com `--vn-user-dir <pasta>`. No padrão em memória, o `VNStorage` guarda tudo num dicionário e nada chega a `user://`.
 - O `profile` de `preview.start`, quando vem, substitui o perfil só naquela sessão, nos dois casos: não é gravado.
 
 Mensagens do Studio para o runtime são **requisições** (com `id`) e recebem uma resposta. Mensagens do runtime para o Studio são **notificações** (sem `id`). O runtime nunca faz requisições ao Studio no v1.
@@ -73,7 +77,7 @@ O estado do motor (RT §3: `TITLE`, `SCENE_RUNNING`, `ACTIVITY`…) vem em `prev
 | Método | Estados | Parâmetros | Resultado |
 |---|---|---|---|
 | `session.hello` | `CONNECTED` | `token` (só na janela), `protocol`, `studio_version` | `runtime_version`, `godot_version`, `protocol`, `platform`, `features` |
-| `preview.load` | `READY`, `LOADED` | `bundle_path` (janela) ou `bundle_url` (painel, URL `vnpreview://`): a pasta com a forma canônica (RT §2, com os caminhos de asset do §1.3); `locale`?; `user_data`?: `memory` (padrão) ou `project` (§1.4) | `content_hash`, `format_version`, `chapters`, `scenes`, `plugins` |
+| `preview.load` | `READY`, `LOADED` | `bundle_path` (janela) ou `bundle_url` (painel, URL do protocolo `vnpreview` naquele sistema, §1.3): a pasta com a forma canônica (RT §2, com os caminhos de asset do §1.3); `assets_base`: a base dos caminhos relativos de asset (§1.3); `locale`?; `user_data`?: `memory` (padrão) ou `project` (§1.4) | `content_hash`, `format_version`, `chapters`, `scenes`, `plugins` |
 | `preview.start` | `LOADED` | `chapter`?, `scene`?, `node`?, `variables`?, `profile`?, `content_filter`?, `seed`?, `paused`? | `GameState` |
 | `preview.stop` | `RUNNING`, `PAUSED` | — | `{}` (volta a `LOADED`) |
 | `preview.pause` / `preview.resume` | `RUNNING` / `PAUSED` | — | `{ node }` |

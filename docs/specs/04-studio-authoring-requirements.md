@@ -212,11 +212,20 @@ Decisão de 2026-11-16: a galeria só existe se o autor quiser (Data Model §10.
 Decisão de 2026-11-15: o modo stream mostra a mesma cena com outra apresentação, e só a apresentação muda (Data Model §10.4). O Studio oferece, sem código:
 
 - **Asset Manager.** Em cada imagem, sprite ou som, o campo "Versão censurada": arrastar a substituta ou marcar "Esconder no modo stream". O asset ganha um selo, e a substituta é importada com o mesmo tipo e tamanho de tela. Marcar uma vez vale para todas as cenas, telas, galeria e minijogos.
-- **Editor de cenas.** Cada fala, pergunta, opção, legenda de som e rótulo de ponto clicável (hotspot e saída) tem "Adicionar versão censurada", que abre um segundo campo de texto logo abaixo do original. Passos de apresentação (fala, cenário, personagem, áudio, pausa) podem ser marcados "Só sem censura" ou "Só com censura", um a um ou vários de uma vez; o passo ganha uma faixa colorida no roteiro e no grafo. Os outros tipos de passo nem mostram a opção, para o autor não precisar conhecer a regra R023.
+- **Editor de cenas.** Cada fala, pergunta, opção, legenda de som e rótulo de ponto clicável (hotspot e saída) tem "Adicionar versão censurada", que abre um segundo campo de texto logo abaixo do original. Passos que põem algo na tela ou no som (fala, cenário, mostrar personagem, tocar áudio, pausa) podem ser marcados "Só sem censura" ou "Só com censura", um a um ou vários de uma vez; o passo ganha uma faixa colorida no roteiro e no grafo. Os outros tipos de passo, inclusive esconder personagem e parar áudio, nem mostram a opção, para o autor não precisar conhecer a regra R023. Para esconder uma personagem só no modo stream, o Studio sugere marcar o passo que a mostra.
 - **Painel "Modo stream".** Lista tudo que está marcado (assets, falas, passos), com atalho para cada um, e um interruptor "Ver como modo stream" que troca o roteiro, as miniaturas e o Menu Editor para a versão censurada. O botão "Modo stream" da barra do Preview liga e desliga o modo no jogo em execução (`preview.set_setting`, Preview Protocol §3), e o Menu Editor finge o modo com `simulate.content_filter`.
 - **Validador.** Os avisos W024 e W025 (voz sem versão censurada numa fala censurada) levam ao asset ou à fala; R022 numa tela aponta a ação que depende do modo.
 - **Tradução.** A planilha (§9) traz as versões censuradas como linhas próprias, logo abaixo do original, com a coluna "versão censurada" marcada.
 - **Exportação.** O assistente (§7.1) pergunta a edição: "Completa (o jogador escolhe)" ou "Só a versão censurada" (Build System §5.4), e pode gerar as duas de uma vez.
+
+### 11.3. Créditos de assets de terceiros
+
+Decisão de 2026-11-22: o crédito de arte, música ou som feito por outra pessoa fica no próprio asset (`credit`, Data Model §10.1), e não num texto digitado na tela de créditos.
+
+- **Ao importar**, o Asset Manager pergunta "De onde veio?": "Fiz eu / minha equipe" (sem crédito) ou "De outra pessoa ou pacote", que abre os campos Autor, Licença, Link e "Texto que a licença pede". Ao importar uma pasta inteira, a resposta vale para todos os arquivos dela, e um `ReadMe.txt`, `LICENSE` ou `CREDITS` na pasta é oferecido como texto da licença.
+- **No Asset Manager**, um asset com crédito ganha um selo, e o filtro "De terceiros" lista todos, para o autor conferir antes de publicar.
+- **Na tela de créditos**, o Menu Editor mostra a `licenses_list` com os créditos dos assets usados no jogo. Um asset sem uso não aparece, como no build (Build System §4.5).
+- **Validador.** U009 avisa quando há assets com crédito e a tela de créditos não os mostra.
 
 ## 12. Acessibilidade
 

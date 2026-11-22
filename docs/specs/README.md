@@ -12,13 +12,13 @@ Marco da seção 16 do ADD: definir e congelar as três especificações que ser
 | 5 | [Build System](05-build-system-specification.md) | Pipeline de build, Build Staging, bundle `.vnb`, assets, presets por plataforma, PCK, proteção do conteúdo, manifesto, CLI `vnstudio build` |
 | 6 | [Menus, botões e interação](06-ui-menus-and-interaction-specification.md) | Telas montadas pelo autor (título, pausa, configurações…), ações de botões, estilos, cenários com objetos clicáveis, nó `interact`, configurações do jogador (FPS da VN × minijogos), ideias de personalização |
 | 7 | [Protocolo do Preview](07-preview-protocol.md) | Conversa Studio ↔ Runtime no Preview: sessão e token, métodos, notificações, `GameState`, `SchedulerEvaluation`, erros |
-| 8 | [Vetores de conformidade](08-conformance-vectors.md) | Formato dos casos que o Runtime e o Preview do Studio DEVEM reproduzir, conjunto de 138 casos (inclusive recordes, fluxo de cenas inteiras e modo stream), vetores de compilação e implementações de referência |
+| 8 | [Vetores de conformidade](08-conformance-vectors.md) | Formato dos casos que o Runtime e o Preview do Studio DEVEM reproduzir, conjunto de 140 casos (inclusive recordes, fluxo de cenas inteiras e modo stream), vetores de compilação e implementações de referência |
 | 9 | [Repositórios e organização do código](09-repositories-and-code-layout.md) | Onde cada coisa mora no Git: monorepo do produto, repositório de plugin avulso e repositório de um jogo (plugins do catálogo, guardados e embutidos), `.gitignore`, onde os dados dos minijogos ficam no computador do jogador |
 
 Artefatos:
 
 - `schemas/` — 21 JSON Schemas (draft 2020-12): `common`, `project`, `variables`, `character`, `chapter`, `scene`, `assets`, `locale`, `save`, `plugin`, `plugins`, `plugin-lock`, `theme`, `ui-screen`, `set`, `preview-protocol`, `conformance`, `build-manifest` e os três do bundle compilado (`bundle`, `bundle-locale`, `bundle-plugins`). O domínio `schemas.vnstudio.dev` nos `$id` é provisório.
-- `examples/demo-project/` — dados de exemplo, só JSON e sem arte (o jogo jogável fica num repositório separado, spec 09 §1.1): projeto pequeno com 2 capítulos, 5 cenas, escolhas, branch, variável derivada, grupo de exclusividade, uso do Fishing Minigame, menu inicial com cenário clicável (`ui/title.json`, `sets/beach_title.json`), tela de configurações com FPS separado para VN e minijogos (`ui/settings.json`), créditos e um nó `interact`.
+- `examples/demo-project/` — dados de exemplo, só JSON e sem arte (o jogo jogável fica num repositório separado, spec 09 §1.1): projeto pequeno com 2 capítulos, 5 cenas, escolhas, branch, variável derivada, grupo de exclusividade, uso do Fishing Minigame, menu inicial com cenário clicável (`ui/title.json`, `sets/beach_title.json`), tela de configurações com FPS separado para VN e minijogos (`ui/settings.json`), créditos e um nó `interact`. É a cópia dos JSON da demo, sem o campo `credit` dos assets (spec 09 §1.1).
 - `presets/classic/` — preset de interface do v1: tema, as telas que o projeto não define (título, pausa, salvar, carregar, configurações, galeria, créditos, HUD, histórico e minijogos) e os textos traduzidos para os 9 idiomas do produto (UI Spec §2.1).
 - `examples/fishing-plugin/` — plugin de referência completo: manifesto, GDScript de runtime, cena, testes com `VNTestHarness`, comando de editor, README e CHANGELOG. Corresponde a `vn_plugins/fishing/` do projeto de desenvolvimento.
 - `examples/demo-save.json` — save válido, coerente com um caminho real do demo (chegada → praia → pescaria vencida) e assinado com uma chave de exemplo de 32 bytes zero.
@@ -27,7 +27,8 @@ Artefatos:
 - `tools/test_schemas.py` — confere os padrões dos schemas (chaves de tradução, id de plugin, mensagens do Preview) contra os formatos que as specs mandam gravar.
 - `conformance/` e `tools/conformance.py` — vetores de conformidade e a implementação de referência que os confere.
 - `tools/compile_bundle.py` — compilador de referência do bundle narrativo (BS §5.1): transforma um projeto na forma que o runtime lê, sem precisar do Studio (RT §2.1).
-- `conformance/compile/` e `tools/test_compile.py` — vetores de compilação: variações do exemplo com o `content_hash` esperado, que o compilador do Studio também DEVE reproduzir (BS §5.1, spec 08).
+- `conformance/compile/` e `tools/test_compile.py` — vetores de compilação: variações de um projeto congelado (`conformance/compile/base/`) com o `content_hash` esperado, que o compilador do Studio também DEVE reproduzir (BS §5.1, spec 08).
+- `tools/sync_demo_example.py` e `examples/demo-project/SOURCE.json` — gera o exemplo a partir do repositório da demo, sem os créditos de terceiros, e confere a cópia na CI (`.github/workflows/specs.yml`, spec 09 §1.1).
 
 ```bash
 pip install jsonschema
@@ -39,9 +40,9 @@ python3 tools/test_validate.py
 python3 tools/test_schemas.py
 # padrões dos schemas contra os exemplos das specs
 python3 tools/conformance.py
-# 138/138 vetores conferem com a referência.
+# 140/140 vetores conferem com a referência.
 python3 tools/test_compile.py
-# 7/7 vetores de compilação conferem.
+# 8/8 vetores de compilação conferem.
 python3 tools/compile_bundle.py examples/demo-project /tmp/demo-bundle examples/fishing-plugin
 # grava bundle.json, locales/<lang>.json e plugins.json; --stage copia também assets e plugins;
 # --godot <projeto-godot> grava em vn_content/ e vn_plugins/ do projeto do runtime
@@ -350,6 +351,24 @@ Aplicam os achados N-01 a N-20 da [revisão de 2026-11-17](../reviews/revisao-sp
 | **Pergunta da primeira abertura:** a resposta é sempre gravada em `settings.json`, mesmo igual ao padrão | RT §3.0, §8.5 |
 | **Uma fonte para a demo:** o repositório da demo é a fonte; `examples/demo-project/` é a cópia só com os JSON | spec 09 §1.1 |
 | Código W025 (fala censurada com voz sem `censored`); DM §11 passa a citar U001–U014; 133 casos em `test_validate.py`; 138 vetores; redação de `gallery_grid` (UI §3.1) e do Req §11.1 | DM §11, UI §3.1, Req §11.1 |
+
+## Decisões de 2026-11-22: demo, créditos, assets de teste e bordas do modo stream e do Preview
+
+Aplicam os achados V-01 a V-14 da [revisão de 2026-11-22](../reviews/revisao-specs-2026-11-22.md) e as decisões D22 e D23, aceitas pelo Luis.
+
+| Decisão | Onde |
+|---|---|
+| **D22. Assets de teste são internos.** Não aparecem para o jogador, não têm crédito e não existem em nenhum artefato distribuído. Arte de terceiros, mesmo para teste, só entra pela demo, em testes de ponta a ponta que a clonam numa versão fixa | spec 09 §1.1, §1.2 |
+| **D23. O exemplo é a cópia filtrada da demo.** `tools/sync_demo_example.py` copia os JSON da demo no commit de `SOURCE.json` e tira só o campo `credit`; a workflow `specs.yml` roda as ferramentas e confere a cópia em todo PR | spec 09 §1.1, `.github/workflows/specs.yml` |
+| **Vetores de compilação num projeto congelado** (`conformance/compile/base/`), que não acompanha o exemplo; 8 casos, inclusive `credit` fora do bundle | BS §5.1, spec 08 |
+| **Créditos de terceiros no asset:** campo `credit` em `assets.json`; o Build System reúne em `licenses.txt` só os créditos dos assets que entram no jogo; `licenses_list` ganha `assets`; U009 avisa; o Asset Manager pergunta a origem ao importar. `credit` não entra no bundle nem no `content_hash` | DM §10.1, BS §4.5, UI §3.1, §11, Req §11.3, `assets.schema.json` |
+| **Conteúdo dos artefatos:** o que entra em cada artefato do produto e o que nunca entra (`tests/`, `docs/`, `spikes/`, a demo); `exclude_filter` nas exportações do runtime e conferência na CI de release | spec 09 §1.2 |
+| **Palco do modo stream com base por item** (completa D19): personagem e canal voltam ao estado anterior ao passo censurado (expressão, música), e o cenário pode voltar a um set. `censor` não vale mais em `hide` nem em `audio` sem `play` (R023). 2 vetores novos | RT §5.5, DM §10.4, §11, `save.schema.json → Stage`, spec 08 |
+| **Caminhos do bundle do Preview relativos** (ajusta D18): `preview.load` traz `assets_base`, que o Studio obtém do Tauri em cada sistema (no Windows, `http://vnpreview.localhost/…`); o bundle do build só aceita `res://`, e o selfcheck recusa o resto (B018) | PP §1.3, §3, RT §2, §11, BS §12, §13, `bundle.schema.json`, `preview-protocol.schema.json` |
+| **`VNStorage`** (ajusta D21): o Save Manager grava por uma interface com três implementações (`user://`, memória, pasta); no painel, a pasta é `user://preview/<project.id>/`; plugins não abrem `user://` direto (W009) | RT §8.5, §11, PP §1.4, SDK §12.2 |
+| **R022 em containers:** a guarda do modo stream num `container` vale para os botões dentro dele | DM §10.4, UI §11, `tools/validate.py` |
+| **Demo:** cenários do Noraneko com a versão do modo stream gerada por script (`bg/train_evening_safe`), créditos no campo `credit` (Noraneko Games nos cenários e sutemo na Alice), textos que combinam com o trem; o final "Noite de festival" continua sem asset próprio | repositório `gd-vn-studio-demo`, `examples/demo-project/` |
+| 137 casos em `test_validate.py`, 39 em `test_schemas.py`, 140 vetores, 8 vetores de compilação | spec 08, este README |
 
 ## Desvios em relação ao ADD
 

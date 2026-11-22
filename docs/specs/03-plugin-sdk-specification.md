@@ -636,7 +636,7 @@ Os tempos de `VNScriptedInput` são segundos desde o início da atividade, no re
 ### 12.2. Testes de editor e validação
 
 - **Editor:** `@vnstudio/editor-sdk/testing` fornece um `PluginContext` falso para Vitest/Jest; `tests/editor/`.
-- `vnplugin validate` roda o schema do manifesto e confere entrypoints, namespaces de eventos e variáveis, rótulos (W007), nomes globais (P011), caminhos `res://` (P012), plataformas (W008), uso de APIs do Godot vetadas em plugins (W009: `OS.execute`, `OS.create_process`, `OS.shell_open`, `HTTPRequest`, `HTTPClient`, `StreamPeerTCP`, `PacketPeerUDP`, `WebSocketPeer`, `FileAccess`/`DirAccess` fora de `user://` e `res://`, `Engine.get_singleton`, `ProjectSettings.set_setting`), e lista as capacidades pedidas. Com `--project <pasta>`, valida também o plugin dentro daquele projeto de VN.
+- `vnplugin validate` roda o schema do manifesto e confere entrypoints, namespaces de eventos e variáveis, rótulos (W007), nomes globais (P011), caminhos `res://` (P012), plataformas (W008), uso de APIs do Godot vetadas em plugins (W009: `OS.execute`, `OS.create_process`, `OS.shell_open`, `HTTPRequest`, `HTTPClient`, `StreamPeerTCP`, `PacketPeerUDP`, `WebSocketPeer`, `FileAccess`/`DirAccess` fora de `res://`; também em `user://`, desde 2026-11-22, porque os dados do plugin vão pelo save e pelo perfil (§9, §9.1) e o runtime os grava pelo `VNStorage` (Runtime Spec §8.5), o que mantém o Preview isolado por projeto, `Engine.get_singleton`, `ProjectSettings.set_setting`), e lista as capacidades pedidas. Com `--project <pasta>`, valida também o plugin dentro daquele projeto de VN.
 
 ### 12.3. Depuração dentro de uma VN
 

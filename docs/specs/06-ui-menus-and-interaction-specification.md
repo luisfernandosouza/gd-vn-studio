@@ -114,7 +114,7 @@ Todo elemento tem `id` (legível, único na tela), `type` e uma **posição**:
 | `backlog_list` | Histórico de falas | `max_items` |
 | `container` | Agrupa e alinha elementos | `layout` (`row`, `column`, `grid`), `spacing`, `children` |
 | `records_list` | Quadro de recordes de um minijogo (Plugin SDK §9.1) | `board` (`<namespace>.<quadro>`), `max_items`, `empty_text` |
-| `licenses_list` | Licenças de terceiros, para a tela de créditos (Build System §4.5) | `include` (`plugins`, `fonts` ou os dois, padrão) |
+| `licenses_list` | Licenças e créditos de terceiros, para a tela de créditos (Build System §4.5) | `include` (`plugins`, `fonts`, `assets`; padrão: os três). `assets` lista o `credit` dos assets do projeto que entram no jogo (Data Model §10.1) |
 
 ### 3.2. Condições no menu
 
@@ -398,7 +398,7 @@ Os mesmos valores estão como `default` em `save.schema.json → PlayerSettings`
 | U006 | erro | Tela obrigatória sem botão para sair: título sem `new_game`, pausa sem `close_screen`/`back` |
 | U007 | aviso | Elemento com `size` que sai da tela na resolução base. Conferido pelo Studio; o validador de referência não calcula o tamanho de elementos sem `size` |
 | U008 | aviso | Elemento clicável sem texto nem `tooltip` (sem nome para teclado e acessibilidade) |
-| U009 | aviso | A tela `credits` não tem `licenses_list`, mas algum plugin habilitado ou fonte do tema traz licença |
+| U009 | aviso | A tela `credits` não tem `licenses_list`, mas algum plugin habilitado ou fonte do tema traz licença, ou algum asset tem `credit`; ou a `licenses_list` deixa `assets` de fora de `include` e algum asset tem `credit` |
 | U010 | aviso | Um `play_activity` pode ser alcançado a partir da pausa ou do HUD (por uma cadeia de `open_screen`); o botão vai ficar oculto durante a partida |
 | U011 | aviso | Uma seção ativa da galeria está vazia: `endings` sem finais em `project.json → endings`, `images` ou `music` sem nenhum asset desse tipo com `gallery: true` |
 | U012 | erro | `gallery_grid` com `source` que não está em `project.json → gallery.sections` (inclusive num projeto sem galeria) |
@@ -406,7 +406,7 @@ Os mesmos valores estão como `default` em `save.schema.json → PlayerSettings`
 | U014 | aviso | Projeto sem galeria com tela `ui/gallery.json` ou com uma ação `open_screen` para `gallery`: a tela não entra no jogo e a ação não faz nada |
 | W020 | aviso | Texto de um idioma usa caracteres que nem a fonte do estilo nem as reservas daquele idioma cobrem. Conferido pelo Studio, que lê os arquivos de fonte; o validador de referência não confere, porque não tem os arquivos |
 
-Telas também passam pela regra R022 do Data Model (§11 de lá): `sys.ui.content_filter` e `sys.ui.content_filter_available` podem decidir o que aparece (um selo "modo stream", um texto alternativo), mas não uma ação `effects` ou `emit`. É erro lê-las no `if` dessas ações ou de uma ação que as envolve, nos valores de `effects` e `payload`, ou no `visible_if`/`enabled_if` do elemento que dispara a lista (`actions`, `on_hover`). Assim o modo stream continua sem mudar a história (Data Model §10.4).
+Telas também passam pela regra R022 do Data Model (§11 de lá): `sys.ui.content_filter` e `sys.ui.content_filter_available` podem decidir o que aparece (um selo "modo stream", um texto alternativo), mas não uma ação `effects` ou `emit`. É erro lê-las no `if` dessas ações ou de uma ação que as envolve, nos valores de `effects` e `payload`, ou no `visible_if`/`enabled_if` do elemento que dispara a lista (`actions`, `on_hover`) ou de um `container` que o contém. Assim o modo stream continua sem mudar a história (Data Model §10.4).
 
 ## 12. Runtime
 
