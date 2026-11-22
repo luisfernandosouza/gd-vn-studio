@@ -22,6 +22,10 @@ def plugins(pid):
     return "plugins.schema.json", {"plugins": {pid: {"version": "^1.0.0", "source": "path:plugins/quiz"}}}
 
 
+def plugin_source(source):
+    return "plugins.schema.json", {"plugins": {"vnstudio.fishing": {"version": "^1.0.0", "source": source}}}
+
+
 def lock(pid):
     entry = {"version": "1.0.0", "namespace": "quiz", "resolved": "plugins/quiz", "enabled": True,
              "integrity": "sha256-" + "A" * 43 + "="}
@@ -68,6 +72,9 @@ CASES = [
     (True, "REPO §3.2 no lock", *lock("seaside_story.quiz")),
     (False, "id de plugin sem ponto", *plugins("seaside_story")),
     (False, "id de plugin com maiúscula", *plugins("Seaside.quiz")),
+    (True, "SDK §13.2 (D11): catalog:official, o índice oficial do v1", *plugin_source("catalog:official")),
+    (False, "SDK §13.2 (D11): outro catálogo não existe no v1", *plugin_source("catalog:community")),
+    (True, "REPO §3.1: plugin de terceiros por github: no v1", *plugin_source("github:acme/vn-cards")),
     (True, "PP §1.1: hello no painel, sem token", *rpc("session.hello", {"protocol": "1.0"})),
     (True, "PP §3: load no painel", *rpc("preview.load", {"bundle_url": PANEL + "preview/narrative/", "assets_base": PANEL + "assets/"})),
     (True, "PP §1.3: load no painel no Windows (WebView2)",

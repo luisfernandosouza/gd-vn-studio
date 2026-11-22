@@ -32,7 +32,7 @@ Este documento define **como um projeto do Studio vira um jogo distribuível**: 
 
 ### 2.1. Versão do runtime e do Godot
 
-O Studio instalado traz uma versão do runtime, e cada versão do runtime fixa uma versão exata do Godot. **O runtime 1.0 fixa o Godot 4.7.2** (decisão de 2026-11-14: a estável mais recente; a 4.8 ainda está em beta). Trocar a versão fixada do Godot é, no mínimo, uma versão MINOR do runtime, e a CI do catálogo roda de novo os testes dos plugins publicados contra ela antes da troca. Os campos do projeto funcionam como **restrições**, não como escolhas:
+O Studio instalado traz uma versão do runtime, e cada versão do runtime fixa uma versão exata do Godot. **O runtime 1.0 fixa o Godot 4.7.2** (decisão de 2026-11-14: a estável mais recente; a 4.8 ainda está em beta). Trocar a versão fixada do Godot é, no mínimo, uma versão MINOR do runtime, e a CI do catálogo roda de novo os testes dos plugins publicados contra ela antes da troca (no v1, sem catálogo de terceiros, é a CI do monorepo que roda os testes dos plugins oficiais; Plugin SDK §13.2). Os campos do projeto funcionam como **restrições**, não como escolhas:
 
 - `project.json → runtime.min_version`: o build falha se o runtime do Studio for menor (B014).
 - `project.json → runtime.godot`: faixa aceita pelo projeto. O build falha se a versão do Godot fixada pelo runtime estiver fora dela (B014). Isso resolve a aparente contradição entre a faixa do projeto e a versão exata do SDK: a faixa diz o que o projeto aceita, e o runtime escolhe a versão dentro dela.

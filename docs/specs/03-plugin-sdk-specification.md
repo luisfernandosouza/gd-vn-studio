@@ -150,9 +150,9 @@ Variáveis do próprio namespace não precisam de capacidade.
 
 | Nível | Origem | Comportamento |
 |---|---|---|
-| `official` | Catálogo oficial, publisher `vnstudio` | Instala e executa |
-| `reviewed` | Catálogo oficial, plugin externo aprovado na revisão | Instala e executa |
-| `local` | `path:` (pacote guardado ou plugin embutido) ou GitHub fora do catálogo | Instala, mas **não executa** até o usuário confirmar explicitamente por projeto (ADD §8.2). A confirmação fica em `.vnstudio/`, por máquina (spec 09 §3.2) |
+| `official` | Catálogo oficial, publisher `vnstudio` (no v1, o índice oficial do monorepo, §13.2) | Instala e executa |
+| `reviewed` | Catálogo oficial, plugin externo aprovado na revisão. **Reservado para o v2:** no v1 nenhum plugin recebe este nível (§13.2) | Instala e executa |
+| `local` | `path:` (pacote guardado ou plugin embutido) ou GitHub fora do catálogo (no v1, todo plugin de terceiros) | Instala, mas **não executa** até o usuário confirmar explicitamente por projeto (ADD §8.2). A confirmação fica em `.vnstudio/`, por máquina (spec 09 §3.2) |
 
 Runtime plugins rodam no processo do Godot e **não são isolados** (ADD §8.2). A verificação de permissões do SDK protege contra erro, não contra código malicioso; contra isso valem revisão, hash e revogação (§13).
 
@@ -682,10 +682,20 @@ Os tempos de `VNScriptedInput` são segundos desde o início da atividade, no re
 | `test` | Testes de runtime e editor |
 | `package` | `.vnplugin` reprodutível + `integrity` |
 | `install <fonte>` | Instala num projeto local (atualiza `plugins.json` e lock) |
-| `publish` | Cria GitHub Release com o pacote e abre pedido de inclusão no catálogo (§13.5) |
-| `revoke <versão> --reason <texto>` | Pede a revogação de uma versão publicada |
+| `publish` | Cria GitHub Release com o pacote e abre pedido de inclusão no catálogo (§13.5). No v1, só a Release, sem pedido ao catálogo: não há catálogo de terceiros, e a CLI termina mostrando como instalar o plugin por `github:` (§13.2) |
+| `revoke <versão> --reason <texto>` | Pede a revogação de uma versão publicada. No v1, só para plugins oficiais: abre o pull request no índice oficial do monorepo (§13.2) |
 
 ### 13.2. Catálogo
+
+**No v1, só o índice oficial** (decisão D11 de 2026-11-22). O v1 não tem catálogo de terceiros. O catálogo `official` é um índice que lista só os plugins oficiais (publisher `vnstudio`), guardado no próprio monorepo do produto em `catalog/official.json` (spec 09 §1):
+
+- **Formato.** O mesmo das entradas abaixo, com `trust: official` e `state: published` em toda versão; `draft` e `review` não aparecem no v1, e `revoked` continua valendo (§13.3).
+- **Endereço.** O Studio, a CLI e o Build System leem o índice de uma URL HTTPS fixa no código: `https://raw.githubusercontent.com/luisfernandosouza/gd-vn-studio/main/catalog/official.json`, provisória até a decisão de nome e domínio (D13). `source: "catalog:official"` resolve contra esse índice; outro nome depois de `catalog:` é recusado pelo `plugins.schema.json` no v1. Pré-condição da v1.0.0: o índice e as Releases dos plugins oficiais são baixáveis sem token.
+- **Quem escreve.** A CI de release do monorepo, na tag `plugin-<namespace>-v<versão>` (spec 09 §1), cria a Release e abre um pull request que acrescenta a versão ao índice com o `integrity` do pacote publicado. A versão só aparece no Studio depois do merge pelo mantenedor do produto. A revogação é outro pull request no mesmo arquivo (`vnplugin revoke`).
+- **Terceiros no v1.** Um plugin externo é distribuído por `github:owner/repo` ou por arquivo (`path:`), sempre com `trust: local` e a confirmação por máquina do §4.3. O nível `reviewed`, os publishers, a reserva de namespace no catálogo, a revisão do §13.4 e os passos 4 a 7 do §13.5 ficam para o v2, num repositório de catálogo separado.
+- **Namespaces no v1.** Sem catálogo de terceiros, nada garante que dois plugins externos tenham namespaces diferentes; a colisão aparece na instalação como P001. Os namespaces dos plugins oficiais ficam reservados no índice desde o v1.
+
+O texto abaixo descreve o catálogo completo, do v2. O índice do v1 é um subconjunto dele.
 
 JSON estático versionado num repositório do projeto e servido por HTTPS (GitHub). Cada entrada: `id`, `namespace`, versões com `url`, `integrity`, `signature` (reservado para a assinatura do v2, §13.3; ausente no v1), `state` (`draft`/`review`/`published`), `trust`, `revoked` (com motivo). O Studio só lista `published`.
 
@@ -704,6 +714,8 @@ JSON estático versionado num repositório do projeto e servido por HTTPS (GitHu
 Antes de `published`: `vnplugin validate` e testes verdes, leitura do código-fonte (runtime e editor), checagem de que o pedido de permissões é proporcional ao propósito, checagem de que o resultado, as escritas e os eventos não dependem de `ctx.content_filter` (§5.6), e conferência de que `editor/dist/` corresponde a `editor/src/` (build reprodutível na CI do catálogo).
 
 ### 13.5. Fluxo de publicação
+
+**No v1** (§13.2), `vnplugin publish` faz só os passos 1 a 3: um plugin de terceiros termina numa GitHub Release e é instalado por `github:`. Os plugins oficiais entram no índice pela CI de release do monorepo, sem a revisão do passo 6: o código deles já passou pela revisão de pull request do monorepo. Os passos 4 a 7 descrevem o catálogo do v2, e o passo 8 vale no v1 só para os oficiais.
 
 1. **Pré-condições locais.** `vnplugin publish` exige árvore Git limpa, `version` do manifesto igual à tag `v<versão>`, entrada no `CHANGELOG.md` para a versão, `repository` preenchido, `validate` sem erros e `test` verde.
 2. **Autenticação.** Login no GitHub pelo fluxo de dispositivo (ou token do `gh` já configurado). A CLI nunca guarda a senha.
