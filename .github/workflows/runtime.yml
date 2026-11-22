@@ -1,0 +1,39 @@
+# Projeto Godot do runtime abre sem erros no Godot fixado pelo runtime (Build System §2.1, tarefa M0-02).
+# A tarefa M0-04 amplia esta workflow: cache do Godot e o runner headless dos vetores (--vn-test).
+name: Runtime
+
+on:
+  pull_request:
+    paths: [runtime/**, .github/workflows/runtime.yml]
+  push:
+    branches: [main]
+    paths: [runtime/**, .github/workflows/runtime.yml]
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: 4.7.2-stable
+
+jobs:
+  godot:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Instala o Godot ${{ env.GODOT_VERSION }}
+        run: |
+          set -euo pipefail
+          url="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/godot.zip" "$url"
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP/godot"
+          install -m 755 "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}_linux.x86_64" /usr/local/bin/godot
+          godot --headless --version
+      - name: Importa o projeto
+        run: godot --headless --path runtime --import 2>&1 | tee "$RUNNER_TEMP/import.log"
+      - name: Abre e fecha o projeto
+        run: |
+          set -euo pipefail
+          godot --headless --path runtime --quit 2>&1 | tee "$RUNNER_TEMP/run.log"
+          # O Godot sai com 0 mesmo quando registra erros; qualquer ERROR no log também falha o passo.
+          if grep -hE '(^|[^A-Z_])(ERROR|SCRIPT ERROR):' "$RUNNER_TEMP/import.log" "$RUNNER_TEMP/run.log"; then
+            echo "::error title=Godot registrou erros::O projeto runtime/ deve abrir sem erros (tarefa M0-02)."
+            exit 1
+          fi
