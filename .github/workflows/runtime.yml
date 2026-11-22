@@ -1,30 +1,47 @@
-# Projeto Godot do runtime abre sem erros no Godot fixado pelo runtime (Build System §2.1, tarefa M0-02).
-# A tarefa M0-04 amplia esta workflow: cache do Godot e o runner headless dos vetores (--vn-test).
+# CI do runtime (tarefa M0-04): Godot 4.7.2 headless, com cache do binário (Build System §2.1).
+# 1. O projeto runtime/ importa e abre sem erros (tarefa M0-02).
+# 2. O executor headless roda os vetores de conformidade: godot --headless -- --vn-test (RT §12, spec 08 §4).
+#    Enquanto os módulos do runtime não existem (M1-01 em diante), todo caso sai como pulado.
+# 3. A referência Python (tools/conformance.py) roda junto: spec 08 §4 pede o runner nativo e a referência
+#    em toda mudança no runtime ou nos casos. O runner Web entra com a tarefa M4-03.
 name: Runtime
 
 on:
   pull_request:
-    paths: [runtime/**, .github/workflows/runtime.yml]
+    paths: [runtime/**, docs/specs/conformance/**, .github/workflows/runtime.yml]
   push:
     branches: [main]
-    paths: [runtime/**, .github/workflows/runtime.yml]
+    paths: [runtime/**, docs/specs/conformance/**, .github/workflows/runtime.yml]
   workflow_dispatch:
 
 env:
   GODOT_VERSION: 4.7.2-stable
+  GODOT_DIR: ${{ github.workspace }}/../godot
 
 jobs:
   godot:
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
-      - name: Instala o Godot ${{ env.GODOT_VERSION }}
+      - name: Cache do Godot ${{ env.GODOT_VERSION }}
+        id: cache-godot
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.GODOT_DIR }}
+          key: godot-${{ env.GODOT_VERSION }}-linux-x86_64
+      - name: Baixa o Godot ${{ env.GODOT_VERSION }}
+        if: steps.cache-godot.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
           url="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
           curl -fsSL --retry 3 -o "$RUNNER_TEMP/godot.zip" "$url"
-          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP/godot"
-          install -m 755 "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}_linux.x86_64" /usr/local/bin/godot
+          mkdir -p "$GODOT_DIR"
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$GODOT_DIR"
+      - name: Instala o Godot
+        run: |
+          set -euo pipefail
+          install -m 755 "$GODOT_DIR/Godot_v${GODOT_VERSION}_linux.x86_64" /usr/local/bin/godot
           godot --headless --version
       - name: Importa o projeto
         run: godot --headless --path runtime --import 2>&1 | tee "$RUNNER_TEMP/import.log"
@@ -32,8 +49,21 @@ jobs:
         run: |
           set -euo pipefail
           godot --headless --path runtime --quit 2>&1 | tee "$RUNNER_TEMP/run.log"
-          # O Godot sai com 0 mesmo quando registra erros; qualquer ERROR no log também falha o passo.
-          if grep -hE '(^|[^A-Z_])(ERROR|SCRIPT ERROR):' "$RUNNER_TEMP/import.log" "$RUNNER_TEMP/run.log"; then
-            echo "::error title=Godot registrou erros::O projeto runtime/ deve abrir sem erros (tarefa M0-02)."
+      - name: Vetores de conformidade (--vn-test)
+        run: |
+          set -euo pipefail
+          # O código de saída do executor vale: 0 sem falhas, 1 com falha, 2 com erro de uso.
+          godot --headless --path runtime -- --vn-test docs/specs/conformance 2>&1 | tee "$RUNNER_TEMP/vn-test.log"
+      - name: Sem erros no log do Godot
+        run: |
+          # O Godot sai com 0 mesmo quando registra erros de script; qualquer ERROR nos logs falha a CI.
+          if grep -hE '(^|[^A-Z_])(ERROR|SCRIPT ERROR):' "$RUNNER_TEMP"/{import,run,vn-test}.log; then
+            echo "::error title=Godot registrou erros::O runtime deve importar, abrir e rodar --vn-test sem erros (M0-02, M0-04)."
             exit 1
           fi
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Referência Python dos vetores (tools/conformance.py)
+        working-directory: docs/specs
+        run: python tools/conformance.py
