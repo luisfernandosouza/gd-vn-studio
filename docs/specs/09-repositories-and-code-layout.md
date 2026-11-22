@@ -128,10 +128,13 @@ fishing-plugin/
 ```text
 .godot/
 addons/vn_runtime_sdk/
-.vnplugin/local.json
 *.vnplugin
+!.vnplugin/
+.vnplugin/local.json
 vn_plugins/*/editor/node_modules/
 ```
+
+`*.vnplugin` ignora os pacotes gerados, mas também casaria com a pasta `.vnplugin/`, que vai para o Git. Por isso `!.vnplugin/` vem logo depois e `.vnplugin/local.json` por último.
 
 `editor/dist/` vai para o Git, porque entra no pacote e a CI do catálogo confere que ele corresponde a `editor/src/` (Plugin SDK §13.4).
 
