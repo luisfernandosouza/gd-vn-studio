@@ -5,6 +5,7 @@
     "runtime/confirm/no": "No",
     "runtime/confirm/overwrite_save": "Overwrite this save?",
     "runtime/confirm/quit": "Quit the game?",
+    "runtime/confirm/quit_activity": "Quit the minigame?",
     "runtime/confirm/reset_profile": "Delete all game data? Endings, gallery, records and read text will be erased. Saves and settings are kept.",
     "runtime/confirm/return_to_title": "Return to the title screen? Unsaved progress will be lost.",
     "runtime/confirm/yes": "Yes",

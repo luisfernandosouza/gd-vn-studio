@@ -5,6 +5,7 @@
     "runtime/confirm/no": "Nein",
     "runtime/confirm/overwrite_save": "Diesen Spielstand überschreiben?",
     "runtime/confirm/quit": "Spiel beenden?",
+    "runtime/confirm/quit_activity": "Minispiel beenden?",
     "runtime/confirm/reset_profile": "Alle Spieldaten löschen? Enden, Galerie, Rekorde und gelesener Text werden gelöscht. Spielstände und Einstellungen bleiben erhalten.",
     "runtime/confirm/return_to_title": "Zum Titelbildschirm zurückkehren? Nicht gespeicherter Fortschritt geht verloren.",
     "runtime/confirm/yes": "Ja",

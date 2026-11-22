@@ -288,7 +288,7 @@ Nenhuma chave é gravada na pasta do projeto, para não ir parar no Git.
 
 ### 8.2. Verificação do conteúdo
 
-Ao carregar cada `.vnb`, o runtime descomprime, calcula o SHA-256 do JSON e compara com o cabeçalho e com a entrada do arquivo em `build_config.CONTENT_HASHES` (para `narrative.vnb`, também com `CONTENT_HASH`). Assim trocar um idioma ou o `plugins.vnb` inteiro também é detectado. Diferença: o jogo mostra "Os arquivos do jogo estão corrompidos. Reinstale o jogo." e não inicia. Isso pega edição ingênua e corrupção de download; quem extrair a chave consegue regravar tudo de forma consistente.
+Ao carregar cada `.vnb`, o runtime descomprime, calcula o SHA-256 do JSON e compara com o cabeçalho e com a entrada do arquivo em `build_config.CONTENT_HASHES` (para `narrative.vnb`, também com `CONTENT_HASH`). Assim trocar um idioma ou o `plugins.vnb` inteiro também é detectado. Diferença: o jogo mostra a mensagem G002 (§13.1, "Os arquivos do jogo estão corrompidos. Reinstale o jogo.") e não inicia (RT §3.0, passo 2). Isso pega edição ingênua e corrupção de download; quem extrair a chave consegue regravar tudo de forma consistente.
 
 ### 8.3. Assinatura de saves e perfil
 
@@ -445,7 +445,7 @@ Erros que o **jogador** vê no jogo exportado, no idioma do jogo (traduzíveis p
 
 | Código | Quando | Mensagem (pt-BR) |
 |---|---|---|
-| G001 | `.vnb` com versão de formato desconhecida ou que não decodifica | O conteúdo do jogo está corrompido ou é de uma versão incompatível. Reinstale o jogo. |
+| G001 | Bundle ausente, ou `.vnb` com versão de formato desconhecida ou que não decodifica | O conteúdo do jogo está corrompido ou é de uma versão incompatível. Reinstale o jogo. |
 | G002 | Hash de um `.vnb` não confere (§8.2) | Os arquivos do jogo estão corrompidos. Reinstale o jogo. |
 | G003 | Save com `save_tamper: reject` e assinatura inválida (§8.3) | Este save foi modificado e não pode ser carregado. |
 | G004 | Save com `save_format` MAJOR desconhecido ou de outro projeto (RT §8.3) | Este save é de uma versão incompatível do jogo. |

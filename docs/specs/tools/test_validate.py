@@ -59,6 +59,8 @@ CASES = [
     # (código, descrição, mutação, export)
     ("S000", "campo desconhecido no projeto", lambda w: w.edit("project.json", lambda d: d.update(xyz=1)), False),
     ("S000", "namespace de plugin reservado", lambda w: w.edit("plugin.json", lambda d: d.update(namespace="story"), plugin=True), False),
+    ("S000", "outcome com nome reservado do modo livre", lambda w: w.edit("plugin.json", lambda d: d["activities"][0]["outcomes"].append("cancelled"), plugin=True), False),
+    ("S000", "preset que não existe no v1", lambda w: w.edit("theme.json", lambda d: d.update(preset="modern")), False),
     ("R001", "UUID repetido entre cena e capítulo", lambda w: w.edit(QUIET, lambda d: d.update(id=CH02)), False),
     ("R002", "variável global duplicada", lambda w: w.edit("variables.json", lambda d: d["global"].append(dict(d["global"][0]))), False),
     ("R003", "initial_values de variável inexistente", lambda w: w.edit("characters/alice.json", lambda d: d["initial_values"].update(nada=1)), False),
