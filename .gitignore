@@ -1,6 +1,24 @@
+# Python (ferramentas das specs)
 __pycache__/
 *.pyc
+
+# Estado local do Studio em projetos de jogo abertos daqui
 .vnstudio/
-# gerados por compile_bundle.py --godot (Runtime Spec §2.1)
+
+# Cache do editor do Godot
+.godot/
+
+# Gerados por compile_bundle.py --godot (Runtime Spec §2.1, spec 09 §1)
 runtime/vn_content/
 runtime/vn_plugins/
+
+# Projetos de desenvolvimento dos plugins oficiais (spec 09 §2)
+plugins/*/addons/vn_runtime_sdk/
+*.vnplugin
+# ...mas a pasta .vnplugin/ (versão do Godot) vai para o Git; só local.json fica fora
+!.vnplugin/
+plugins/*/.vnplugin/local.json
+plugins/*/vn_plugins/*/editor/node_modules/
+
+# Node (Studio, CLI, Editor SDK)
+node_modules/
