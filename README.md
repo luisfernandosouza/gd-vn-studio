@@ -14,7 +14,7 @@ O repositório é um monorepo, com o layout da [spec 09](docs/specs/09-repositor
 | [`sdk/editor/`](sdk/editor/) | Editor SDK (`@vnstudio/editor-sdk`, npm) |
 | [`cli/`](cli/README.md) | CLIs `vnstudio` e `vnplugin` (TypeScript, Node) |
 | [`plugins/`](plugins/README.md) | Plugins oficiais (`vnstudio.*`); [`plugins/fishing/`](plugins/fishing/) é o minijogo de pesca |
-| [`.github/workflows/`](.github/workflows/) | CI: `specs.yml`, `repo-hygiene.yml` e as dos componentes |
+| [`.github/workflows/`](.github/workflows/) | CI: `specs.yml`, `repo-hygiene.yml`, `studio.yml` e as dos componentes |
 
 Como contribuir, inclusive onde pode haver mídia e o que fica fora do Git: [CONTRIBUTING.md](CONTRIBUTING.md).
 

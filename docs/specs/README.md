@@ -281,7 +281,7 @@ O Preview no Studio deixa de ter um interpretador próprio em TypeScript. O Stud
 
 **Encerrada em 2026-11-16.** O resultado do teste no macOS (WKWebView, o motor do Tauri no Mac, na tabela abaixo) foi considerado suficiente, e fica decidido usar só o runtime Godot como interpretador. O teste num Mac físico não é necessário para a decisão. A decisão está tomada, mas ficaram pendências técnicas, que a revisão de 2026-11-17 apontou: como os assets e os plugins chegam ao Preview (D18) e os itens de "A conferir" abaixo.
 
-A decisão saiu do teste do export Web dentro dos webviews do Tauri ([`spikes/preview-web/`](../../spikes/preview-web/README.md), pasta temporária, apagada quando o projeto do Studio começar), com um bundle grande (405 cenas, 20 mil falas, 3,55 MB) e o template oficial:
+A decisão saiu do teste do export Web dentro dos webviews do Tauri (`spikes/preview-web/`, pasta temporária, apagada quando o projeto do Studio começou, na tarefa M0-05; o código e os resultados ficam no histórico do Git), com um bundle grande (405 cenas, 20 mil falas, 3,55 MB) e o template oficial:
 
 | Motor (máquina) | Primeira abertura | Recarga incremental, p95 | Reler o bundle inteiro, p95 |
 |---|---|---|---|
