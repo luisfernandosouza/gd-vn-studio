@@ -1,0 +1,83 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/specs-v1.0.0/scene.schema.json",
+  "id": "01930005-0000-7000-8000-000000000200",
+  "chapter": "01930005-0000-7000-8000-000000000100",
+  "title": "filtered",
+  "nodes": [
+    {
+      "id": "01930005-0000-7000-8000-000000000001",
+      "type": "background",
+      "asset": "bg/dusk"
+    },
+    {
+      "id": "01930005-0000-7000-8000-000000000002",
+      "type": "line",
+      "text": "Original text.",
+      "censored_text": "Censored text."
+    },
+    {
+      "id": "01930005-0000-7000-8000-000000000003",
+      "type": "line",
+      "text": "Only shown with the filter off.",
+      "censor": "skip"
+    },
+    {
+      "id": "01930005-0000-7000-8000-000000000004",
+      "type": "line",
+      "text": "Only shown with the filter on.",
+      "censor": "only"
+    },
+    {
+      "id": "01930005-0000-7000-8000-000000000005",
+      "type": "background",
+      "asset": "bg/secret"
+    },
+    {
+      "id": "01930005-0000-7000-8000-000000000006",
+      "type": "audio",
+      "action": "play",
+      "channel": "sfx",
+      "asset": "sfx/chime",
+      "caption": "(chime)",
+      "censored_caption": "(click)"
+    },
+    {
+      "id": "01930005-0000-7000-8000-000000000007",
+      "type": "audio",
+      "action": "play",
+      "channel": "sfx",
+      "asset": "sfx/noise",
+      "caption": "(noise)"
+    },
+    {
+      "id": "01930005-0000-7000-8000-000000000008",
+      "type": "choice",
+      "prompt": "Original prompt?",
+      "censored_prompt": "Censored prompt?",
+      "options": [
+        {
+          "id": "01930005-0000-7000-8000-000000000081",
+          "text": "Original option",
+          "censored_text": "Censored option",
+          "goto": "01930005-0000-7000-8000-000000000009"
+        },
+        {
+          "id": "01930005-0000-7000-8000-000000000082",
+          "text": "Plain option",
+          "goto": "01930005-0000-7000-8000-000000000009"
+        }
+      ]
+    },
+    {
+      "id": "01930005-0000-7000-8000-000000000009",
+      "type": "show",
+      "character": "01930000-0000-7000-8000-000000000001",
+      "censor": "skip"
+    },
+    {
+      "id": "01930005-0000-7000-8000-00000000000a",
+      "type": "end",
+      "then": "end_game"
+    }
+  ]
+}

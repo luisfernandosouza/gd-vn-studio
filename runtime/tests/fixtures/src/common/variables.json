@@ -1,0 +1,41 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/specs-v1.0.0/variables.schema.json",
+  "global": [
+    {
+      "key": "money",
+      "type": "integer",
+      "default": 0,
+      "constraints": {
+        "min": 0,
+        "max": 9999
+      }
+    },
+    {
+      "key": "won",
+      "type": "boolean",
+      "default": false
+    },
+    {
+      "key": "score",
+      "type": "integer",
+      "default": 0
+    },
+    {
+      "key": "visits",
+      "type": "integer",
+      "default": 0,
+      "persistence": "profile"
+    }
+  ],
+  "character": [
+    {
+      "key": "affection",
+      "type": "integer",
+      "default": 0,
+      "constraints": {
+        "min": -100,
+        "max": 100
+      }
+    }
+  ]
+}

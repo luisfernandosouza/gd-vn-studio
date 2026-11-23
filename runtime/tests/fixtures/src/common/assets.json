@@ -1,0 +1,120 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/specs-v1.0.0/assets.schema.json",
+  "assets": {
+    "bg/day": {
+      "path": "backgrounds/day.png",
+      "type": "background"
+    },
+    "bg/night": {
+      "path": "backgrounds/night.png",
+      "type": "background",
+      "gallery": true,
+      "gallery_order": 2
+    },
+    "bg/dusk": {
+      "path": "backgrounds/dusk.png",
+      "type": "background",
+      "gallery": true,
+      "gallery_order": 1,
+      "censored": {
+        "replace_with": "bg/dusk_safe"
+      }
+    },
+    "bg/dusk_safe": {
+      "path": "backgrounds/dusk_safe.png",
+      "type": "background"
+    },
+    "bg/secret": {
+      "path": "backgrounds/secret.png",
+      "type": "background",
+      "gallery": true,
+      "censored": {
+        "hide": true
+      }
+    },
+    "bg/placeholder": {
+      "path": "backgrounds/placeholder.png",
+      "type": "background"
+    },
+    "char/probe/neutral": {
+      "path": "characters/probe/neutral.png",
+      "type": "sprite",
+      "anchor": [
+        0.5,
+        1.0
+      ]
+    },
+    "char/probe/happy": {
+      "path": "characters/probe/happy.png",
+      "type": "sprite",
+      "anchor": [
+        0.5,
+        1.0
+      ]
+    },
+    "char/probe/sad": {
+      "path": "characters/probe/sad.png",
+      "type": "sprite",
+      "anchor": [
+        0.5,
+        1.0
+      ]
+    },
+    "obj/lamp_off": {
+      "path": "objects/lamp_off.png",
+      "type": "image"
+    },
+    "obj/lamp_on": {
+      "path": "objects/lamp_on.png",
+      "type": "image"
+    },
+    "obj/box": {
+      "path": "objects/box.png",
+      "type": "image"
+    },
+    "ui/textbox": {
+      "path": "ui/textbox.png",
+      "type": "image",
+      "nine_slice": [
+        16,
+        16,
+        16,
+        16
+      ]
+    },
+    "music/loop_a": {
+      "path": "audio/music/loop_a.wav",
+      "type": "audio_music",
+      "gallery": true,
+      "gallery_order": 1
+    },
+    "music/loop_b": {
+      "path": "audio/music/loop_b.wav",
+      "type": "audio_music",
+      "gallery": true,
+      "gallery_order": 2
+    },
+    "sfx/click": {
+      "path": "audio/sfx/click.wav",
+      "type": "audio_sfx"
+    },
+    "sfx/chime": {
+      "path": "audio/sfx/chime.wav",
+      "type": "audio_sfx",
+      "censored": {
+        "replace_with": "sfx/click"
+      }
+    },
+    "sfx/noise": {
+      "path": "audio/sfx/noise.wav",
+      "type": "audio_sfx",
+      "censored": {
+        "hide": true
+      }
+    },
+    "voice/probe_001": {
+      "path": "audio/voice/probe_001.wav",
+      "type": "audio_voice"
+    }
+  }
+}

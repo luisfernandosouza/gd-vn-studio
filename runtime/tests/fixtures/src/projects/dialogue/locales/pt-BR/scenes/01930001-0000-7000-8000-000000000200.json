@@ -1,0 +1,10 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/specs-v1.0.0/locale.schema.json",
+  "locale": "pt-BR",
+  "strings": {
+    "01930001-0000-7000-8000-000000000200/01930001-0000-7000-8000-000000000004": "Olá. Esta é uma fala de teste.",
+    "01930001-0000-7000-8000-000000000200/01930001-0000-7000-8000-000000000005": "Esta fala tem voz e uma expressão nova.",
+    "01930001-0000-7000-8000-000000000200/01930001-0000-7000-8000-000000000006": "(clique)",
+    "01930001-0000-7000-8000-000000000200/01930001-0000-7000-8000-000000000007": "Narração. Dinheiro: {global.money}. Afeição: {character.probe.affection}."
+  }
+}
