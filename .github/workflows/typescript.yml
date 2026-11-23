@@ -1,0 +1,61 @@
+# Workspace TypeScript (M0-06, spec 09 §1, Plugin SDK §10): @vnstudio/plugin-schema, @vnstudio/editor-sdk e a CLI.
+# O Studio, que também é do workspace, tem a própria workflow (studio.yml).
+# "Tipos gerados" falha se sdk/plugin-schema/generated/schemas.d.ts não for o que docs/specs/schemas/ gera hoje:
+# quem muda um schema roda `npm run generate` na raiz e faz commit do arquivo no mesmo pull request.
+name: TypeScript
+
+on:
+  pull_request:
+    paths:
+      - package.json
+      - package-lock.json
+      - docs/specs/schemas/**
+      - sdk/plugin-schema/**
+      - sdk/editor/**
+      - cli/**
+      - .github/workflows/typescript.yml
+  push:
+    branches: [main]
+    paths:
+      - package.json
+      - package-lock.json
+      - docs/specs/schemas/**
+      - sdk/plugin-schema/**
+      - sdk/editor/**
+      - cli/**
+      - .github/workflows/typescript.yml
+  workflow_dispatch:
+
+concurrency:
+  group: typescript-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    name: Tipos gerados, typecheck, build e testes
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Tipos gerados em dia com docs/specs/schemas/
+        run: npm run check:generated
+      - name: '@vnstudio/plugin-schema: typecheck'
+        run: npm run typecheck -w @vnstudio/plugin-schema
+      - name: '@vnstudio/editor-sdk: typecheck e build'
+        run: |
+          npm run typecheck -w @vnstudio/editor-sdk
+          npm run build -w @vnstudio/editor-sdk
+      - name: 'CLI: typecheck, testes e build'
+        run: |
+          npm run typecheck -w @vnstudio/cli
+          npm test -w @vnstudio/cli
+          npm run build -w @vnstudio/cli
+      - name: 'CLI: vnstudio info no projeto de exemplo'
+        run: |
+          node cli/dist/bin/vnstudio.js --version
+          node cli/dist/bin/vnstudio.js info docs/specs/examples/demo-project
+          node cli/dist/bin/vnplugin.js --version

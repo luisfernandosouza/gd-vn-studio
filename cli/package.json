@@ -1,0 +1,30 @@
+{
+  "name": "@vnstudio/cli",
+  "version": "0.0.0",
+  "private": true,
+  "description": "CLIs vnstudio (build e validação de projetos) e vnplugin (plugins) do Visual Novel Studio",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "vnstudio": "./dist/bin/vnstudio.js",
+    "vnplugin": "./dist/bin/vnplugin.js"
+  },
+  "files": [
+    "dist/",
+    "schemas/"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@vnstudio/plugin-schema": "0.0.0",
+    "typescript": "~6.0.3",
+    "vitest": "^5.1.1"
+  }
+}
