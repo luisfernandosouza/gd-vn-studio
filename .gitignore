@@ -22,3 +22,10 @@ plugins/*/vn_plugins/*/editor/node_modules/
 
 # Node (Studio, CLI, Editor SDK)
 node_modules/
+
+# Cópias geradas de docs/specs/ por docs/specs/tools/sync_generated_copies.py (spec 09 §1, tarefa M0-03).
+# Nunca vão para o Git nem são editadas à mão; a CI (generated-copies.yml) confere por hash.
+runtime/vn_runtime/presets/
+runtime/vn_runtime/licenses/
+studio/src-tauri/resources/specs/
+cli/schemas/

@@ -7,10 +7,22 @@ Runtime das visual novels: projeto Godot 4.7.2 + GDScript ([Runtime Spec](../doc
 | `project.godot` | Projeto Godot: resolução base 1920×1080, `stretch_mode = canvas_items`, `stretch_aspect = expand` (RT §1.1), ações de input `vn_*` (RT §10.1), cena principal `res://vn_runtime/boot.tscn`. No build, o Build System gera um `project.godot` novo a partir deste (BS §4.3) |
 | `vn_runtime/boot.tscn` | Cena de boot (por enquanto vazia; o boot do RT §3.0 entra com o Narrative Engine) |
 | `vn_runtime/` | Narrative Engine, Scheduler, State Manager, UI Manager… |
-| `vn_runtime/presets/` | Cópia gerada de `docs/specs/presets/` + fontes embutidas; nunca editada à mão (tarefa M0-03) |
-| `vn_runtime/licenses/` | Licenças do runtime, do Godot e das fontes do preset ([Build System §4.5](../docs/specs/05-build-system-specification.md)) |
+| `vn_runtime/presets/` | Cópia gerada de `docs/specs/presets/` + fontes embutidas em `fonts/` (os ids `preset/font_*`); fora do Git e nunca editada à mão |
+| `vn_runtime/licenses/` | Gerada: licenças do runtime (MIT), do Godot e das bibliotecas dele, e a OFL de cada fonte do preset, com o índice `index.json` ([Build System §4.5](../docs/specs/05-build-system-specification.md)); fora do Git |
 | `tests/` | Testes e runner headless dos vetores (`--vn-test`) |
 | `tests/fixtures/` | Placeholders de teste feitos à mão: a única pasta do runtime onde pode haver mídia (spec 09 §1.1) |
+
+## Presets, fontes e licenças
+
+`vn_runtime/presets/` e `vn_runtime/licenses/` são gerados a partir de `docs/specs/` (spec 09 §1 e §1.2):
+
+```bash
+python -m pip install fonttools==4.60.1
+python3 docs/specs/tools/sync_generated_copies.py runtime           # gera (baixa as fontes uma vez, para o cache)
+python3 docs/specs/tools/sync_generated_copies.py --check runtime   # confere por hash, sem rede
+```
+
+As fontes Noto (Sans, JP, SC, TC, KR) vêm do `google/fonts` num commit fixo e viram fontes estáticas Regular; os commits, URLs e hashes ficam em `docs/specs/tools/generated_sources.json`. Para mudar um preset, edite `docs/specs/presets/` e rode o script de novo.
 
 ## Rodar sem o Studio
 
