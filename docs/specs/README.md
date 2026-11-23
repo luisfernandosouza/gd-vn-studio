@@ -308,7 +308,7 @@ A primeira abertura é sem cache; com o motor já compilado em cache, cai para 0
 - **Teste B dos assets** (D18): abrir no painel 200 imagens de 1920 × 1080 e 30 músicas pelo carregador de bytes, medir memória e tempo, e trocar um asset em uso (PP §1.3).
 - **Servir por `vnpreview://`** (conferido em 2026-11-23, ver as decisões daquela data): o spike usou HTTP; conferir o export servido pelo protocolo próprio do Tauri, com `application/wasm`, no WebView2, na WKWebView e no WebKitGTK (PP §1.1).
 - **Plugins como `.pck`** (conferido em 2026-11-23): recarregar um plugin no painel trocando o seu `.pck` (`ProjectSettings.load_resource_pack`); conferir que scripts com `class_name` funcionam num pacote montado depois do boot; e medir o tempo de gerar o `.pck` com o Godot embutido headless a cada salvamento (PP §1.3, SDK §10.6).
-- O tempo de abrir o painel com o template enxuto (o teste indicou cerca de 30% menos). Medido em 2026-11-23; a escolha do template está com o Luis.
+- O tempo de abrir o painel com o template enxuto (o teste indicou cerca de 30% menos). Medido em 2026-11-23; fica o template oficial (decisão do Luis).
 
 ## Decisões de 2026-11-15: modo stream (versão censurada)
 
@@ -435,7 +435,7 @@ Fecha três itens de "A conferir no primeiro protótipo" (seção de 2026-11-15)
 | **`class_name` funciona num `.pck` montado depois do boot**: ao montar, o Godot 4.7 registra as classes do pacote. O plano B (um `.pck` único antes do boot, com `reload_plugins` reabrindo o motor) sai do PP §1.3 e do SDK §10.6 | PP §1.3, SDK §10.6 |
 | **Troca do `.pck`**: nome de arquivo novo a cada geração, montagem por cima e releitura dos scripts com `CACHE_MODE_IGNORE` (com `CACHE_MODE_REPLACE` o Godot devolve o script antigo). Recarregar o plugin levou de 2 a 9 ms; ler e montar o pacote no painel, até 30 ms | PP §1.3 |
 | **Gerar o `.pck` sem abrir o editor**: o Godot embutido roda com `--script` e empacota com `PCKPacker` os arquivos em texto e os assets já importados, com um cache de classes só do plugin. Leva 160 a 305 ms por salvamento (p50 nos três sistemas), contra 2,7 s do `--export-pack`, que também traria as classes do SDK com os caminhos da cópia de trabalho. O import headless só roda quando um asset do plugin muda | PP §1.3, SDK §10.6 |
-| **Template enxuto: medido, escolha com o Luis.** Primeira abertura / reabertura (p50) com o oficial e com o enxuto: WebView2 5,8 / 5,5 s e 4,8 / 4,8 s; WKWebView 2,6 / 0,87 s e 0,73 / 0,70 s; WebKitGTK 3,0 / 2,6 s e 1,8 / 2,0 s. O enxuto tira módulos que um plugin pode usar, então um plugin poderia falhar só no painel. Servido por `vnpreview`, o WebView2 compila o WASM de novo a cada abertura | `spikes/preview-pck/README.md` |
+| **O painel usa o template oficial** (decisão do Luis, 2026-11-23). O enxuto não é usado: abre mais rápido, mas tira módulos que um plugin pode usar, então um plugin poderia falhar só no painel, contra o "mesmo resultado" do PP §1.3. Primeira abertura / reabertura (p50) com o oficial e com o enxuto: WebView2 5,8 / 5,5 s e 4,8 / 4,8 s; WKWebView 2,6 / 0,87 s e 0,73 / 0,70 s; WebKitGTK 3,0 / 2,6 s e 1,8 / 2,0 s. Servido por `vnpreview`, o WebView2 compila o WASM de novo a cada abertura | PP §1.1, `spikes/preview-pck/README.md` |
 | **Pendência nova para a M4-05:** `preview.load` e `preview.reload_plugins` ainda não dizem onde está o `.pck` de cada plugin, e o nome muda a cada geração | PP §3 |
 
 ## Desvios em relação ao ADD

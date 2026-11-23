@@ -58,7 +58,7 @@ Quase todo o tempo do export do editor é abrir o editor (`--editor --quit` sozi
 
 - O enxuto abre de 12% a 72% mais rápido e o plugin de pesca roda nele. Mas ele tira módulos que um plugin pode usar (3D, física 3D, GLTF, rede, WebSocket, CSG…) e é compilado com `deprecated=no`, então um plugin que funciona no jogo exportado poderia falhar só no painel, contra o "mesmo resultado" do PP §1.3. Compilar leva ~16 min na CI (com cache por versão).
 - No WebView2, servido por `vnpreview`, reabrir não fica mais rápido: o motor compila o WASM de novo a cada abertura, como o WebKitGTK. O teste de 2026-11-15 por HTTP, numa máquina com GPU, tinha dado 4,7 s na primeira abertura e 0,9 s com cache. Como o painel fica aberto entre edições (PP §1.1, item 4), isso pesa só ao abrir o Preview.
-- A escolha entre os dois templates ficou com o Luis (README das specs, decisões de 2026-11-23).
+- **Decisão do Luis (2026-11-23): o painel usa o template oficial** (README das specs, decisões de 2026-11-23).
 
 ### Pendência nova
 
