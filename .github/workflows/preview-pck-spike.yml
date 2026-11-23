@@ -221,7 +221,7 @@ jobs:
         run: |
           python tools/make_pck.py --plugin ../../docs/specs/examples/fishing-plugin --namespace fishing \
             --work "$RUNNER_TEMP/bench-fast" --out "$RUNNER_TEMP/bench-fast.pck" --mode fast --bench 10 \
-            | tee "build/results/pck-${{ runner.os }}-fast.json"
+            | tee "build/results/pck-bench-${{ runner.os }}.json"
       - name: Resultados
         if: always()
         run: |

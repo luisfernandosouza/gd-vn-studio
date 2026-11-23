@@ -27,7 +27,7 @@ for f in sorted(Path(sys.argv[1]).glob("*.json")):
                   f" HTTPRequest {http}, fetch asset {s.get('fetch asset', {}).get('fetch_ms')} ms")
         if r.get("errors"):
             print(f"SUMMARY {f.stem} erros: {r['errors']}")
-    elif f.name.startswith("pck-"):
+    elif f.name.startswith("pck-"):  # pck-linux-<modo> (export) e pck-bench-<sistema> (bench)
         print(f"SUMMARY {f.stem}: frio {d['cold']['total_ms']} ms (import {d['cold']['import_ms']}), quente p50 {d['warm_p50_ms']} / p95 {d['warm_p95_ms']} ms, erros {d['warm_errors']}")
     elif f.name.startswith("native-"):
         s = steps(d)
