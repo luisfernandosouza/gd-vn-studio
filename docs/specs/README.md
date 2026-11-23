@@ -338,7 +338,7 @@ Aplicam os achados N-01 a N-20 da [revisão de 2026-11-17](../reviews/revisao-sp
 
 | Decisão | Onde |
 |---|---|
-| **D18. Assets no Preview por bytes.** O bundle do Preview aponta cada asset para o arquivo do autor (`vnpreview://` no painel, `file://` na janela); o runtime cria texturas, sons e fontes em memória e aplica ele mesmo as opções de import. O Preview mostra o mesmo que o jogo, salvo compressão, tempo e memória. Falta o teste B (acima) | PP §1.3, RT §2, §11, `bundle.schema.json` |
+| **D18. Assets no Preview por bytes.** O bundle do Preview aponta cada asset para o arquivo do autor (`vnpreview://` no painel, `file://` na janela); o runtime cria texturas, sons e fontes em memória e aplica ele mesmo as opções de import. O Preview mostra o mesmo que o jogo, salvo compressão, tempo e memória. Teste B conferido em 2026-11-23 (acima) | PP §1.3, RT §2, §11, `bundle.schema.json` |
 | **D19. O palco lembra o `censor` de cada item.** Ao mudar o modo stream, ou ao carregar, o que um passo `skip`/`only` pôs no palco some se o passo não valeria no modo atual; o cenário volta ao último sem marca (`background_base`) | RT §5.5, §8.2, §8.3, DM §10.4, `save.schema.json → Stage`, vetor `modo_stream_ligado_no_meio` |
 | **D20. A galeria registra sempre.** `profile.seen_assets` guarda as imagens e músicas vistas com ou sem galeria; a tela filtra ao mostrar. Uma galeria que chega numa atualização já vem preenchida | DM §10.5, RT §5.2, Req §11.1 |
 | **D21. Saves do Preview em memória.** Por padrão nada sobrevive ao fechar o Preview; "Manter saves do Preview" grava por projeto em `.vnstudio/preview/user/` (`preview.load` com `user_data: "project"`) | PP §1.4, spec 09 §3.4 |
