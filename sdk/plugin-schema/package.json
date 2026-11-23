@@ -1,0 +1,29 @@
+{
+  "name": "@vnstudio/plugin-schema",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Tipos TypeScript gerados dos JSON Schemas das specs (docs/specs/schemas/)",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "types": "./generated/schemas.d.ts",
+  "exports": {
+    ".": {
+      "types": "./generated/schemas.d.ts"
+    }
+  },
+  "files": [
+    "generated/"
+  ],
+  "scripts": {
+    "generate": "node scripts/generate.mjs",
+    "check": "node scripts/generate.mjs --check",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "json-schema-to-typescript": "16.0.0",
+    "typescript": "~6.0.3"
+  }
+}

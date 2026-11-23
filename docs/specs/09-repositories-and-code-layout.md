@@ -18,6 +18,7 @@ Um monorepo. Os componentes têm versões próprias, mas mudam juntos com frequ�
 ```text
 gd-vn-studio/
 ├── README.md, LICENSE (MIT), CONTRIBUTING.md
+├── package.json, package-lock.json   # workspace npm: studio/, cli/, sdk/editor/, sdk/plugin-schema/
 ├── docs/
 │   ├── specs/                  # estas especificações (normativas)
 │   │   ├── 00-… a 09-….md
@@ -39,7 +40,8 @@ gd-vn-studio/
 │   └── tests/                  # testes e runner headless dos vetores (--vn-test)
 ├── sdk/
 │   ├── runtime/addons/vn_runtime_sdk/   # Runtime SDK (GDScript), copiado para os projetos de plugin
-│   └── editor/                 # Editor SDK (@vnstudio/editor-sdk, npm)
+│   ├── editor/                 # Editor SDK (@vnstudio/editor-sdk, npm)
+│   └── plugin-schema/          # tipos TypeScript gerados de docs/specs/schemas/ (@vnstudio/plugin-schema, Plugin SDK §10)
 ├── cli/                        # CLIs vnstudio e vnplugin (TypeScript, Node)
 ├── catalog/official.json       # índice dos plugins oficiais, o catalog:official do v1 (Plugin SDK §13.2)
 ├── plugins/                    # plugins oficiais (vnstudio.*), um projeto de desenvolvimento cada
@@ -49,7 +51,7 @@ gd-vn-studio/
 └── .github/workflows/          # CI: specs.yml (ferramentas das specs e cópia da demo), repo-hygiene.yml (mídia), Studio, runtime, plugins
 ```
 
-- **Fonte única dos schemas.** `docs/specs/schemas/` é a única cópia. O Studio, a CLI e o runtime os leem dali no build. Nenhum componente mantém uma cópia editada à mão.
+- **Fonte única dos schemas.** `docs/specs/schemas/` é a única cópia. O Studio, a CLI e o runtime os leem dali no build. Nenhum componente mantém uma cópia editada à mão. Os tipos TypeScript que o Studio, a CLI e o Editor SDK usam são gerados deles em `sdk/plugin-schema/` (`npm run generate` na raiz); o arquivo gerado vai para o Git, nunca é editado à mão, e a CI falha se ele estiver desatualizado.
 - **Presets.** `docs/specs/presets/` é a fonte; o build do runtime copia para `runtime/vn_runtime/presets/` e acrescenta as fontes (`preset/font_*`). Como os schemas, nenhuma cópia é editada à mão.
 - **Desenvolvimento do runtime sem o Studio.** `docs/specs/tools/compile_bundle.py <projeto> --godot runtime <pastas-de-plugins…>` compila um projeto de jogo para `runtime/vn_content/` e copia os plugins para `runtime/vn_plugins/<namespace>/`; as duas pastas ficam fora do Git. Depois é só abrir `runtime/` no editor do Godot (RT §2.1). Para a demo, a pasta do plugin é `plugins/fishing/vn_plugins/fishing` ou, enquanto o código não existe, `docs/specs/examples/fishing-plugin`.
 - **Runtime do Preview.** A release do runtime gera, além dos templates de exportação, o runtime para o Preview do Studio: o export Web sem threads (`.wasm`, `.js`, `.pck`) para o painel e o pacote `runtime-preview.pck` para a janela (Preview Protocol §1.1 e §1.2). Os dois vêm embutidos no instalador do Studio, sem os testes do runtime (§1.2), entram na conta do tamanho dele e não dependem de baixar nada.
