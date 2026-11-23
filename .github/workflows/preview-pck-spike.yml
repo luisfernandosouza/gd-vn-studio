@@ -1,0 +1,234 @@
+# Bancada do spike M4-02 (spikes/preview-pck): vnpreview://, plugins como .pck e template enxuto.
+# Temporária, como a pasta do spike: sai junto com ela quando o Preview real chegar (M4-04, M6-10).
+#
+# 1. lean-template: compila o template Web enxuto (cache por versão do Godot e do script).
+# 2. export: exporta o runtime do spike (template oficial e enxuto), gera os .pck dos plugins,
+#    mede a geração do .pck nos dois caminhos e roda o roteiro de plugins no runtime nativo.
+# 3. bench: no Windows (WebView2), no macOS (WKWebView) e no Linux (WebKitGTK), abre o app Tauri
+#    da bancada, que serve tudo por vnpreview://, e mede a geração do .pck com o Godot daquele sistema.
+name: Spike Preview PCK
+
+on:
+  pull_request:
+    paths: [spikes/preview-pck/**, .github/workflows/preview-pck-spike.yml]
+  workflow_dispatch:
+
+concurrency:
+  group: preview-pck-spike-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: 4.7.2-stable
+  EMSDK_VERSION: 4.0.11
+
+jobs:
+  lean-template:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - name: Cache do template enxuto
+        id: cache
+        uses: actions/cache@v5
+        with:
+          path: lean
+          key: lean-template-${{ env.GODOT_VERSION }}-${{ hashFiles('spikes/preview-pck/tools/build_lean_template.sh') }}
+      - name: Código do Godot
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: git clone -q --depth 1 --branch "$GODOT_VERSION" https://github.com/godotengine/godot.git "$RUNNER_TEMP/godot-src"
+      - uses: mymindstorm/setup-emsdk@v14
+        if: steps.cache.outputs.cache-hit != 'true'
+        with:
+          version: ${{ env.EMSDK_VERSION }}
+      - name: Compila
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          python -m pip install -q scons
+          spikes/preview-pck/tools/build_lean_template.sh "$RUNNER_TEMP/godot-src" lean/web_lean_nothreads_release.zip
+      - uses: actions/upload-artifact@v5
+        with:
+          name: lean-template
+          path: lean/web_lean_nothreads_release.zip
+
+  export:
+    needs: lean-template
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: spikes/preview-pck
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
+        with:
+          name: lean-template
+          path: ${{ runner.temp }}/lean
+      - name: Cache do Godot e do template Web
+        id: cache-godot
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/godot-spike
+          key: godot-spike-${{ env.GODOT_VERSION }}-linux-web
+      - name: Baixa o Godot e o template Web
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          d=~/.cache/godot-spike; mkdir -p "$d"
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}"
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/godot.zip" "$base/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$d"
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/tpl.tpz" "$base/Godot_v${GODOT_VERSION}_export_templates.tpz"
+          unzip -joq "$RUNNER_TEMP/tpl.tpz" templates/web_nothreads_release.zip templates/version.txt -d "$d/templates"
+      - name: Instala
+        run: |
+          install -m 755 ~/.cache/godot-spike/"Godot_v${GODOT_VERSION}_linux.x86_64" /usr/local/bin/godot
+          t=~/.local/share/godot/export_templates/${GODOT_VERSION/-/.}; mkdir -p "$t"
+          cp ~/.cache/godot-spike/templates/* "$t/"
+          godot --headless --version
+      - name: Exporta o runtime do spike
+        run: LEAN_TEMPLATE="$RUNNER_TEMP/lean/web_lean_nothreads_release.zip" tools/export_host.sh
+      - name: Gera os .pck dos plugins
+        run: |
+          set -euo pipefail
+          w="$RUNNER_TEMP/work"
+          python3 tools/make_pck.py --plugin ../../docs/specs/examples/fishing-plugin --namespace fishing --work "$w/fishing" --out build/pck/fishing.pck
+          python3 tools/make_pck.py --plugin plugins/probe --namespace probe --work "$w/probe" --out build/pck/probe-v1.pck
+          python3 tools/make_pck.py --plugin plugins/probe --namespace probe --work "$w/probe" --out build/pck/probe-v2.pck --variant v2
+      - name: Tempo de gerar o .pck (Linux, os dois caminhos)
+        run: |
+          set -euo pipefail
+          mkdir -p build/results
+          for mode in fast export; do
+            python3 tools/make_pck.py --plugin ../../docs/specs/examples/fishing-plugin --namespace fishing \
+              --work "$RUNNER_TEMP/bench-$mode" --out "$RUNNER_TEMP/bench-$mode.pck" --mode $mode --bench 10 \
+              | tee "build/results/pck-linux-$mode.json"
+          done
+      - name: Roteiro de plugins no runtime nativo (--main-pack)
+        run: |
+          set -euo pipefail
+          godot --headless --main-pack build/native/runtime-preview.pck -- --spike-pck build/pck 2>&1 | tee "$RUNNER_TEMP/native.log"
+          grep '^SPIKE_RESULT ' "$RUNNER_TEMP/native.log" | sed 's/^SPIKE_RESULT //' > build/results/native-linux.json
+          python3 tools/check_results.py native build/results/native-linux.json
+          python3 tools/summary.py build/results
+      - uses: actions/upload-artifact@v5
+        with:
+          name: preview-pck-build
+          path: |
+            spikes/preview-pck/build/web
+            spikes/preview-pck/build/pck
+            spikes/preview-pck/build/results
+
+  bench:
+    needs: export
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            godot: Godot_v4.7.2-stable_linux.x86_64
+            godot_zip: Godot_v4.7.2-stable_linux.x86_64.zip
+          - os: windows-latest
+            godot: Godot_v4.7.2-stable_win64_console.exe
+            godot_zip: Godot_v4.7.2-stable_win64.exe.zip
+          - os: macos-latest
+            godot: Godot.app/Contents/MacOS/Godot
+            godot_zip: Godot_v4.7.2-stable_macos.universal.zip
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+        working-directory: spikes/preview-pck
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
+        with:
+          name: preview-pck-build
+          path: spikes/preview-pck/build
+      - name: Dependências do Tauri no Linux
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev libayatana-appindicator3-dev xvfb
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: spikes/preview-pck/tauri
+      - name: Dependências npm (workspace da raiz, M0-06)
+        working-directory: .
+        run: npm ci
+      - name: Ícones (os mesmos do Studio, gerados)
+        working-directory: studio
+        run: |
+          npm run icons
+          mkdir -p ../spikes/preview-pck/tauri/icons
+          cp src-tauri/icons/32x32.png src-tauri/icons/128x128.png src-tauri/icons/icon.icns src-tauri/icons/icon.ico src-tauri/icons/icon.png ../spikes/preview-pck/tauri/icons/
+      - name: Formatação, Clippy e testes do protocolo
+        working-directory: spikes/preview-pck/tauri
+        run: |
+          cargo fmt --check
+          cargo clippy --locked --release --all-targets -- -D warnings
+          cargo test --locked --release
+      - name: Build da bancada
+        working-directory: spikes/preview-pck/tauri
+        run: cargo build --locked --release
+      - name: Projeto de teste
+        run: python tools/prepare_project.py build/pck "$RUNNER_TEMP/bench"
+      - name: Bancada no webview (Linux, WebKitGTK)
+        if: runner.os == 'Linux'
+        env:
+          SPIKE_RUNTIME: ${{ github.workspace }}/spikes/preview-pck/build/web
+          SPIKE_PROJECT: ${{ runner.temp }}/bench/project
+          SPIKE_OUT: ${{ github.workspace }}/spikes/preview-pck/build/results/webview-linux.json
+        run: xvfb-run -a tauri/target/release/vnpreview-spike
+      - name: Bancada no webview (macOS, WKWebView)
+        if: runner.os == 'macOS'
+        env:
+          SPIKE_RUNTIME: ${{ github.workspace }}/spikes/preview-pck/build/web
+          SPIKE_PROJECT: ${{ runner.temp }}/bench/project
+          SPIKE_OUT: ${{ github.workspace }}/spikes/preview-pck/build/results/webview-macos.json
+        run: tauri/target/release/vnpreview-spike
+      - name: Bancada no webview (Windows, WebView2)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          SPIKE_RUNTIME: ${{ github.workspace }}\spikes\preview-pck\build\web
+          SPIKE_PROJECT: ${{ runner.temp }}\bench\project
+          SPIKE_OUT: ${{ github.workspace }}\spikes\preview-pck\build\results\webview-windows.json
+        run: |
+          $p = Start-Process -FilePath tauri\target\release\vnpreview-spike.exe -Wait -PassThru
+          if ($p.ExitCode -ne 0) { Write-Error "A bancada saiu com $($p.ExitCode)"; exit 1 }
+      - name: Confere o resultado do webview
+        run: python tools/check_results.py webview build/results/webview-*.json
+      - name: Godot ${{ env.GODOT_VERSION }} deste sistema
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/godot.zip" "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/${{ matrix.godot_zip }}"
+          mkdir -p "$RUNNER_TEMP/godot" && cd "$RUNNER_TEMP/godot" && unzip -q ../godot.zip
+      - name: Tempo de gerar o .pck neste sistema (caminho rápido)
+        env:
+          GODOT: ${{ runner.temp }}/godot/${{ matrix.godot }}
+        run: |
+          python tools/make_pck.py --plugin ../../docs/specs/examples/fishing-plugin --namespace fishing \
+            --work "$RUNNER_TEMP/bench-fast" --out "$RUNNER_TEMP/bench-fast.pck" --mode fast --bench 10 \
+            | tee "build/results/pck-bench-${{ runner.os }}.json"
+      - name: Resultados
+        if: always()
+        run: |
+          for f in build/results/*.json; do echo "== $f"; cat "$f"; echo; done
+          python tools/summary.py build/results
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: preview-pck-results-${{ runner.os }}
+          path: spikes/preview-pck/build/results
