@@ -109,6 +109,7 @@ jobs:
           godot --headless --main-pack build/native/runtime-preview.pck -- --spike-pck build/pck 2>&1 | tee "$RUNNER_TEMP/native.log"
           grep '^SPIKE_RESULT ' "$RUNNER_TEMP/native.log" | sed 's/^SPIKE_RESULT //' > build/results/native-linux.json
           python3 tools/check_results.py native build/results/native-linux.json
+          python3 tools/summary.py build/results
       - uses: actions/upload-artifact@v5
         with:
           name: preview-pck-build
@@ -223,7 +224,9 @@ jobs:
             | tee "build/results/pck-${{ runner.os }}-fast.json"
       - name: Resultados
         if: always()
-        run: for f in build/results/*.json; do echo "== $f"; cat "$f"; echo; done
+        run: |
+          for f in build/results/*.json; do echo "== $f"; cat "$f"; echo; done
+          python tools/summary.py build/results
       - uses: actions/upload-artifact@v5
         if: always()
         with:
