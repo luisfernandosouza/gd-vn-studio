@@ -79,8 +79,10 @@ jobs:
           name: preview-assets-results-macos
           path: spikes/preview-assets/build/results-assets-*.json
 
+  # Só à mão: o runner Windows (2 vCPUs, sem GPU) não dá tempos estáveis (59 ms a 53 s por imagem).
   windows:
     needs: export
+    if: github.event_name == 'workflow_dispatch'
     runs-on: windows-latest
     timeout-minutes: 60
     steps:

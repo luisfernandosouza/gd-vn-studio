@@ -2,7 +2,7 @@
 
 Data: 2026-11-23. Issue: #67 (M4-01). Refs: README das specs ("A conferir no primeiro protótipo"), PP §1.3, D18, D24.
 
-**Decisão: seguir com o carregador de bytes da D18, sem mudar as specs.** O painel abriu as 200 imagens de 1920 × 1080 e as 30 músicas nos motores do Tauri, trocou a imagem e a música em uso e mostrou os bytes novos em todos os casos. Três ajustes ficam para a implementação do `VNAssets` (M4-07, #73), nenhum deles muda decisão das specs:
+**Decisão: seguir com o carregador de bytes da D18, sem mudar as specs.** O painel abriu as 200 imagens de 1920 × 1080 e as 30 músicas na WKWebView (macOS), no WebKitGTK e no Chromium (Linux), trocou a imagem e a música em uso e mostrou os bytes novos em todos os casos. No WebView2 (Edge no runner Windows) as 200 imagens passaram pela tela, mas o runner não deu tempos confiáveis; ver "Limites". Três ajustes ficam para a implementação do `VNAssets` (M4-07, #73), nenhum deles muda decisão das specs:
 
 1. **Ler os bytes pelo `fetch` da página**, entregues ao Godot com `JavaScriptBridge.js_buffer_to_packed_byte_array`, e não pelo `HTTPRequest`: o `HTTPRequest` no Web lê o corpo um pedaço por quadro e ficou de 1,7 a 8,5 vezes mais lento na leitura de um PNG de 3,3 MB. Além disso, o spike M4-02 (#131) viu que o `HTTPRequest` recusa URLs `vnpreview://`, que é a origem do painel no macOS e no Linux; o `fetch` da página funcionou ali.
 2. **Cache com limite.** Cada fundo de 1920 × 1080 vira uma textura RGBA8 de 7,9 MiB (o Preview não comprime, PP §1.3), então 200 fundos ocupam 1,55 GiB e levam o processo do motor a 2,4 a 2,6 GB. Com um LRU de 16 recursos, as mesmas 200 imagens passam pela tela com 134 MiB de texturas e o processo fica estável perto de 1 GB. No WebKitGTK a memória do processo não volta depois que o cache é esvaziado, então o limite tem que valer desde o início, não como faxina posterior.
@@ -27,7 +27,6 @@ Bancada em [`spikes/preview-assets/`](../../spikes/preview-assets/README.md) (pa
 | Chromium (Linux, 4 vCPU, sem GPU) | 178 | 116 | 128 | 137 | 31 | 32,6 s |
 | WebKitGTK 2.52.6 (Linux, sem GPU) | 91 | 38 | 51 | 43 | 32 | 15,4 s |
 | WKWebView (macOS, runner do GitHub, M2 Pro virtual, GPU) | 50 | 25 | 34 | 8 | 33 | 9,0 s |
-<!-- windows-carga -->
 
 A criação da textura custa 1 a 7 ms. A decodificação é a mesma em todos os motores (é código do Godot no WASM): ~31 ms por PNG, ~15 ms por JPG, ~28 ms por WebP; os mipmaps somam ~3 ms. A leitura varia com o motor. No Chromium sem GPU ela tem um custo fixo de ~90 ms por arquivo, que aparece igual quando a própria página lê o arquivo sem o Godot (134 ms para o PNG), então vem do motor desenhando na CPU, não da ponte.
 
@@ -40,7 +39,6 @@ A criação da textura custa 1 a 7 ms. A decodificação é a mesma em todos os 
 | Processos do Chromium (Linux) | 952 | 2.581 | 2.668 | 1.990 | 1.109 |
 | Processos do WebKitGTK (Linux) | 892 | 2.414 | 2.524 | 3.581 | 1.030 |
 | Processos da WKWebView (macOS) | 1.035 | 2.581 | 2.666 | 2.318 | 1.031 |
-<!-- windows-memoria -->
 
 - **Texturas:** 7,9 MiB por fundo, linear no número de imagens. É o custo esperado de não comprimir no Preview (PP §1.3 já admite memória diferente do jogo).
 - **Heap do WASM:** quase não cresce com as imagens (o buffer de decodificação é reaproveitado), mas guarda as músicas inteiras (os OGG e MP3 ficam comprimidos na memória, perto do tamanho do arquivo: +92 MB para 78 MB de áudio) e nunca encolhe. Depois das trocas de música e de esvaziar o cache ficou em 244 MB, longe do limite de 2 GB do WASM32.
@@ -53,7 +51,6 @@ A criação da textura custa 1 a 7 ms. A decodificação é a mesma em todos os 
 | Chromium (Linux) | 206 / 219 | 285 / 458 |
 | WebKitGTK (Linux) | 94 / 100 | 213 / 413 |
 | WKWebView (macOS) | 48 / 54 | 138 / 299 |
-<!-- windows-troca -->
 
 Em todas as trocas a tela mostrou a imagem nova (cor-marca conferida) e a música nova (duração conferida), e a música continuou do mesmo ponto. A troca não reinicia o motor nem a cena.
 
@@ -64,7 +61,6 @@ Em todas as trocas a tela mostrou a imagem nova (cor-marca conferida) e a músic
 | Chromium (Linux) | 130 | 220 |
 | WebKitGTK (Linux) | 27 | 177 |
 | WKWebView (macOS) | 12 | 102 |
-<!-- windows-leitor -->
 
 ### Música
 
@@ -72,7 +68,8 @@ As 30 músicas carregaram em 0,8 s (WKWebView) a 4,2 s (Chromium Linux), 17 a 17
 
 ## Limites
 
-- **GPU.** As medidas do Linux são sem GPU (SwiftShader e llvmpipe desenham na CPU, e a "memória de texturas" fica no processo). <!-- limites-ci -->
+- **GPU.** As medidas do Linux são sem GPU (SwiftShader e llvmpipe desenham na CPU, e a "memória de texturas" fica no processo).
+- **WebView2 (Windows) sem números de tempo.** O Edge, que é o motor do WebView2, rodou no runner Windows do GitHub (2 vCPUs, 8,6 GB, sem GPU), mas o runner não serve para medir: cada imagem levou de 59 ms a 53 s (p50 de 2,1 s) no cenário com LRU, conforme o processador da máquina virtual ficava livre ou não, e o cenário seguinte passou do limite de 40 min. O que deu para ver: as 200 imagens passaram pela tela com o LRU de 16, com os mesmos 134 MiB de texturas e o heap do WASM em 46 MB, como nos outros motores. A decodificação e a memória são código do Godot no WASM e deram iguais nos três motores medidos, e o Edge usa o mesmo Chromium medido no Linux, então a decisão não depende desta medida. Para ter os tempos com GPU, roda-se `node tools/assets_bench.mjs --browser chromium --channel msedge --gpu` numa máquina Windows real, como foi feito no spike de 2026-11-15 (RTX 3060); o workflow mantém o job do Windows só para rodar à mão.
 - **HTTP, não `vnpreview://`.** O spike serve os assets por HTTP local. Servir pelo protocolo do Tauri é o item seguinte do README (M4-02); o carregador não depende disso, porque `assets_base` é só o começo da URL.
 - **Sem SVG, WAV e fontes.** O teste B pede imagens e músicas; os outros formatos da PP §1.3 entram nos testes do M4-07.
 - **Assets sintéticos.** Os PNG têm o tamanho de arte real, mas fundos pintados à mão podem comprimir mais ou menos; o custo de textura não muda, porque depende só da resolução.
