@@ -92,7 +92,7 @@ Com `--godot <projeto-godot>`, ele grava o bundle e os assets em `<projeto-godot
 Regras do runtime nesse modo, **só em builds de debug e no editor** (num build de release elas não existem):
 
 - Em `res://vn_content/`, se houver `bundle.json`, o runtime lê a forma canônica em JSON em vez dos `.vnb`.
-- `--vn-bundle <res://pasta>` lê o bundle de outra pasta dentro do projeto, para alternar entre jogos compilados lado a lado. O padrão é `res://vn_content/`.
+- `--vn-bundle <res://pasta>` lê o bundle de outra pasta dentro do projeto, para alternar entre jogos compilados lado a lado. O padrão é `res://vn_content/` Os assets vêm da mesma pasta: o runtime troca o prefixo `res://vn_content/assets/` por `<pasta>/assets/`, como o Preview troca pela `assets_base` (§11), e é ali que `compile_bundle.py <projeto> <saída> --stage` os grava. Os plugins continuam em `res://vn_plugins/`.
 - Plugins de `res://vn_plugins/` são carregados com confiança `local`, como um vínculo (Plugin SDK §12.3), mesmo sem pacote conferido no lock. As concessões continuam vindo de `plugins.json`.
 
 **Chave de desenvolvimento.** Sem `SAVE_KEY` (editor, `--vn-bundle` ou build de debug), saves e perfil são assinados com a chave fixa de debug, 32 bytes zero, a mesma do build de debug (Build System §11.1) e do [`examples/demo-save.json`](examples/demo-save.json). Um build de release trata essas assinaturas como inválidas e aplica a política de `save_tamper` (Build System §8.3).

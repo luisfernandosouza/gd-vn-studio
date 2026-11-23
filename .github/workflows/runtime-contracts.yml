@@ -1,0 +1,54 @@
+# Contratos internos do runtime (tarefa M0-07; RT §1).
+# Cada módulo tem uma classe base em runtime/vn_runtime/<módulo>/ e um dublê em runtime/tests/fakes/<módulo>/.
+# O teste de fumaça confere que cada dublê cumpre o contrato e que os dublês funcionam juntos.
+name: Runtime contracts
+
+on:
+  pull_request:
+    paths: [runtime/vn_runtime/**, runtime/tests/**, runtime/project.godot, docs/specs/schemas/preview-protocol.schema.json, .github/workflows/runtime-contracts.yml]
+  push:
+    branches: [main]
+    paths: [runtime/vn_runtime/**, runtime/tests/**, runtime/project.godot, docs/specs/schemas/preview-protocol.schema.json, .github/workflows/runtime-contracts.yml]
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: 4.7.2-stable
+
+jobs:
+  contracts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Cache do Godot ${{ env.GODOT_VERSION }}
+        id: cache-godot
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/godot-bin
+          key: godot-${{ env.GODOT_VERSION }}-linux-x86_64
+      - name: Baixa o Godot ${{ env.GODOT_VERSION }}
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          url="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/godot.zip" "$url"
+          mkdir -p ~/.cache/godot-bin
+          unzip -q "$RUNNER_TEMP/godot.zip" -d ~/.cache/godot-bin
+      - name: Instala o Godot
+        run: |
+          set -euo pipefail
+          install -m 755 ~/.cache/godot-bin/"Godot_v${GODOT_VERSION}_linux.x86_64" /usr/local/bin/godot
+          godot --headless --version
+      - name: Importa o projeto
+        run: godot --headless --path runtime --import 2>&1 | tee "$RUNNER_TEMP/import.log"
+      - name: Teste de fumaça dos contratos
+        run: |
+          set -euo pipefail
+          godot --headless --path runtime --script res://tests/contracts/test_contracts.gd 2>&1 | tee "$RUNNER_TEMP/contracts.log"
+      - name: Sem erros no log do Godot
+        run: |
+          # O Godot sai com 0 mesmo quando um script não compila; qualquer ERROR nos logs falha a CI.
+          if grep -hE '(^|[^A-Z_])(ERROR|SCRIPT ERROR):' "$RUNNER_TEMP"/{import,contracts}.log; then
+            echo "::error title=Godot registrou erros::Os contratos e os dublês devem compilar sem erros (M0-07)."
+            exit 1
+          fi

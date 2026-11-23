@@ -1,0 +1,6 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/specs-v1.0.0/chapter.schema.json",
+  "id": "01930003-0000-7000-8000-000000000100",
+  "title": "Main",
+  "entry_scene": "01930003-0000-7000-8000-000000000200"
+}

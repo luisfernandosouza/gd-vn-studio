@@ -1,0 +1,33 @@
+# Bundles de teste do runtime gerados por script (tarefa M0-08; spec 09 §1.1, decisão D22; RT §2.1).
+# Os bundles e a mídia sintética ficam fora do Git: esta workflow confere que eles se regeneram
+# com um comando, validam pelos schemas dos bundles e saem iguais byte a byte em duas gerações.
+# Os testes do runtime que usarem as fixtures rodam o mesmo comando antes do import do Godot.
+name: Runtime fixtures
+
+on:
+  pull_request:
+    paths: [runtime/tests/fixtures/**, docs/specs/tools/**, docs/specs/schemas/**, docs/specs/presets/**, .github/workflows/runtime-fixtures.yml]
+  push:
+    branches: [main]
+    paths: [runtime/tests/fixtures/**, docs/specs/tools/**, docs/specs/schemas/**, docs/specs/presets/**, .github/workflows/runtime-fixtures.yml]
+  workflow_dispatch:
+
+jobs:
+  fixtures:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -q 'jsonschema>=4.18'
+      - name: Gera e confere os bundles de teste
+        run: python runtime/tests/fixtures/generate.py --check
+      - name: Nada gerado vai para o Git
+        run: |
+          set -euo pipefail
+          if [ -n "$(git status --porcelain --untracked-files=all)" ]; then
+            echo "::error title=Arquivos gerados fora do .gitignore::runtime/tests/fixtures/bundles/ deve ficar fora do Git."
+            git status --porcelain --untracked-files=all
+            exit 1
+          fi

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/specs-v1.0.0/project.schema.json",
+  "format_version": "1.0.0",
+  "id": "fixture_set",
+  "title": "Fixture: set",
+  "version": "0.1.0",
+  "default_locale": "en",
+  "locales": [
+    "en"
+  ],
+  "start_chapter": "01930003-0000-7000-8000-000000000100",
+  "chapters": [
+    "01930003-0000-7000-8000-000000000100"
+  ],
+  "runtime": {
+    "min_version": "1.0.0",
+    "godot": ">=4.7.0 <5.0.0"
+  }
+}

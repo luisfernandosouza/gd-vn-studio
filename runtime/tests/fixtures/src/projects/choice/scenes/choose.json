@@ -1,0 +1,137 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/specs-v1.0.0/scene.schema.json",
+  "id": "01930002-0000-7000-8000-000000000200",
+  "chapter": "01930002-0000-7000-8000-000000000100",
+  "title": "choose",
+  "variables": [
+    {
+      "key": "picked",
+      "type": "enum",
+      "constraints": {
+        "values": [
+          "red",
+          "blue",
+          "gold",
+          "hidden"
+        ]
+      },
+      "default": "blue"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "01930002-0000-7000-8000-000000000001",
+      "type": "background",
+      "asset": "bg/day"
+    },
+    {
+      "id": "01930002-0000-7000-8000-000000000002",
+      "type": "choice",
+      "prompt": "Pick one.",
+      "speaker": "01930000-0000-7000-8000-000000000001",
+      "record": "scene.picked",
+      "options": [
+        {
+          "id": "01930002-0000-7000-8000-000000000021",
+          "text": "Red",
+          "value": "red",
+          "goto": "01930002-0000-7000-8000-000000000003",
+          "effects": [
+            {
+              "op": "add",
+              "variable": "character.probe.affection",
+              "value": 5
+            }
+          ]
+        },
+        {
+          "id": "01930002-0000-7000-8000-000000000022",
+          "text": "Blue",
+          "value": "blue",
+          "goto": "01930002-0000-7000-8000-000000000004"
+        },
+        {
+          "id": "01930002-0000-7000-8000-000000000023",
+          "text": "Gold (costs 50)",
+          "value": "gold",
+          "goto": "01930002-0000-7000-8000-000000000005",
+          "enabled_if": [
+            {
+              "variable": "global.money",
+              "operator": "greater_than_or_equal",
+              "value": 50
+            }
+          ],
+          "effects": [
+            {
+              "op": "subtract",
+              "variable": "global.money",
+              "value": 50
+            }
+          ]
+        },
+        {
+          "id": "01930002-0000-7000-8000-000000000024",
+          "text": "Hidden option",
+          "value": "hidden",
+          "goto": "01930002-0000-7000-8000-000000000005",
+          "visible_if": [
+            {
+              "variable": "global.won",
+              "operator": "equals",
+              "value": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "01930002-0000-7000-8000-000000000003",
+      "type": "line",
+      "text": "You picked red.",
+      "next": "01930002-0000-7000-8000-000000000006"
+    },
+    {
+      "id": "01930002-0000-7000-8000-000000000004",
+      "type": "line",
+      "text": "You picked blue.",
+      "next": "01930002-0000-7000-8000-000000000006"
+    },
+    {
+      "id": "01930002-0000-7000-8000-000000000005",
+      "type": "line",
+      "text": "You picked something special."
+    },
+    {
+      "id": "01930002-0000-7000-8000-000000000006",
+      "type": "branch",
+      "cases": [
+        {
+          "id": "01930002-0000-7000-8000-000000000061",
+          "conditions": [
+            {
+              "variable": "scene.picked",
+              "operator": "equals",
+              "value": "red"
+            }
+          ],
+          "goto": "01930002-0000-7000-8000-000000000007"
+        }
+      ],
+      "else": "01930002-0000-7000-8000-000000000008"
+    },
+    {
+      "id": "01930002-0000-7000-8000-000000000007",
+      "type": "line",
+      "speaker": "01930000-0000-7000-8000-000000000001",
+      "expression": "happy",
+      "text": "Red is my favourite.",
+      "next": "01930002-0000-7000-8000-000000000008"
+    },
+    {
+      "id": "01930002-0000-7000-8000-000000000008",
+      "type": "end",
+      "then": "end_game"
+    }
+  ]
+}

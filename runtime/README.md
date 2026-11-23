@@ -7,11 +7,23 @@ Runtime das visual novels: projeto Godot 4.7.2 + GDScript ([Runtime Spec](../doc
 | `project.godot` | Projeto Godot: resolução base 1920×1080, `stretch_mode = canvas_items`, `stretch_aspect = expand` (RT §1.1), ações de input `vn_*` (RT §10.1), cena principal `res://vn_runtime/boot.tscn`. No build, o Build System gera um `project.godot` novo a partir deste (BS §4.3) |
 | `vn_runtime/boot.tscn`, `boot.gd` | Cena de boot. Por enquanto só despacha `--vn-test` para o executor de testes; o boot do RT §3.0 entra com o Narrative Engine |
 | `vn_runtime/` | Narrative Engine, Scheduler, State Manager, UI Manager… |
-| `vn_runtime/presets/` | Cópia gerada de `docs/specs/presets/` + fontes embutidas; nunca editada à mão (tarefa M0-03) |
-| `vn_runtime/licenses/` | Licenças do runtime, do Godot e das fontes do preset ([Build System §4.5](../docs/specs/05-build-system-specification.md)) |
+| `vn_runtime/presets/` | Cópia gerada de `docs/specs/presets/` + fontes embutidas em `fonts/` (os ids `preset/font_*`); fora do Git e nunca editada à mão |
+| `vn_runtime/licenses/` | Gerada: licenças do runtime (MIT), do Godot e das bibliotecas dele, e a OFL de cada fonte do preset, com o índice `index.json` ([Build System §4.5](../docs/specs/05-build-system-specification.md)); fora do Git |
 | `tests/` | Testes e runner headless dos vetores (`--vn-test`) |
 | `tests/vn_test_runner.gd` | Executor dos vetores de conformidade (RT §12, spec 08 §4); por enquanto conta os casos e os dá como pulados (a tarefa M1-01 os executa) |
-| `tests/fixtures/` | Placeholders de teste feitos à mão: a única pasta do runtime onde pode haver mídia (spec 09 §1.1) |
+| `tests/fixtures/` | Bundles de teste com imagens e sons sintéticos, gerados por `python3 runtime/tests/fixtures/generate.py` ([README](tests/fixtures/README.md)), e placeholders feitos à mão: a única pasta do runtime onde pode haver mídia (spec 09 §1.1) |
+
+## Presets, fontes e licenças
+
+`vn_runtime/presets/` e `vn_runtime/licenses/` são gerados a partir de `docs/specs/` (spec 09 §1 e §1.2):
+
+```bash
+python -m pip install fonttools==4.60.1
+python3 docs/specs/tools/sync_generated_copies.py runtime           # gera (baixa as fontes uma vez, para o cache)
+python3 docs/specs/tools/sync_generated_copies.py --check runtime   # confere por hash, sem rede
+```
+
+As fontes Noto (Sans, JP, SC, TC, KR) vêm do `google/fonts` num commit fixo e viram fontes estáticas Regular; os commits, URLs e hashes ficam em `docs/specs/tools/generated_sources.json`. Para mudar um preset, edite `docs/specs/presets/` e rode o script de novo.
 
 ## Rodar sem o Studio
 
@@ -40,3 +52,49 @@ O executor aceita a pasta `docs/specs/conformance/` (os `*.json` do primeiro ní
 A workflow [`runtime.yml`](../.github/workflows/runtime.yml) roda esses três comandos, com o Godot em cache, e a referência `tools/conformance.py` em todo pull request que toca `runtime/` ou `docs/specs/conformance/` (spec 08 §4). O runner Web entra com a tarefa M4-03.
 
 As ações `vn_*` em `project.godot` seguem a tabela do RT §10.1. Para mudar uma ação, edite pelo editor do Godot (Projeto → Configurações do Projeto → Mapa de Entrada) e mantenha `device = -1` (todos os dispositivos).
+
+## Contratos dos módulos
+
+Cada módulo da tabela do RT §1 tem uma classe base abstrata (`@abstract`) em `vn_runtime/<módulo>/`, só com assinaturas, sinais e documentação, e um dublê em `tests/fakes/<módulo>/` (tarefa M0-07). Uma tarefa implementa o seu módulo estendendo a classe base, na pasta dele, e testa contra os dublês dos outros; as tarefas de integração (M1-12, M2-16) trocam os dublês pelos módulos reais.
+
+| Módulo (RT §1) | Contrato | Dublê | Campo em `VNModules` | Tarefas |
+|---|---|---|---|---|
+| Narrative Engine | `narrative_engine/vn_narrative_engine.gd` (`VNNarrativeEngine`) | `FakeNarrativeEngine` | `engine` | M1-11, M3-04 |
+| Scene Scheduler | `scheduler/vn_scene_scheduler.gd` (`VNSceneScheduler`) | `FakeSceneScheduler` | `scheduler` | M1-10 |
+| Condition Evaluator | `condition_evaluator/vn_condition_evaluator.gd` (`VNConditionEvaluator`, `VNEvalResult`) | `FakeConditionEvaluator` | `conditions` | M1-02, M1-03, M1-04 |
+| State Manager | `state_manager/vn_state_manager.gd` (`VNStateManager`, `VNStateTransaction`) | `FakeStateManager` | `state` | M1-06 |
+| Variable Manager | `variable_manager/vn_variable_manager.gd` (`VNVariableManager`) | `FakeVariableManager` | `variables` | M1-05 |
+| Event Bus | `event_bus/vn_event_bus.gd` (`VNEventBus`) | `FakeEventBus` | `events` | M1-09 |
+| Plugin Host | `plugin_host/vn_plugin_host.gd` (`VNPluginHost`) | `FakePluginHost` | `plugins` | M3-01, M3-04, M3-05 |
+| Save Manager | `save_manager/vn_save_manager.gd` (`VNSaveManager`) | `FakeSaveManager` | `saves` | M2-10, M2-11, M2-13, M3-06 |
+| `VNStorage` (RT §8.5) | `storage/vn_storage.gd` (`VNStorage`) | `FakeStorage` | `storage` | M2-10, M4-08 |
+| Stage | `stage/vn_stage.gd` (`VNStage`) | `FakeStage` | `stage` | M2-02, M2-03, M2-04, M2-08, M2-12 |
+| Stage: áudio | `audio/vn_audio_manager.gd` (`VNAudioManager`) | `FakeAudioManager` | `audio` | M2-05, M2-12 |
+| UI Manager | `ui_manager/vn_ui_manager.gd` (`VNUIManager`) | `FakeUIManager` | `ui` | M2-06, M2-07, M2-09, M2-11, M2-15 |
+| `VNAssets` (PP §1.3) | `assets/vn_assets.gd` (`VNAssets`) | `FakeAssets` | `assets` | M4-07 |
+
+O Audio Manager faz parte do Stage no RT §1 ("Stage (UI/Audio/Asset Manager)"), mas tem contrato e pasta próprios porque M2-02 e M2-05 andam na mesma onda.
+
+Tipos compartilhados, em `vn_runtime/core/`:
+
+- `VNModule`: base de todos os contratos (`module_id()`, `load_bundle()`, `attach()`/`detach()` para os módulos que desenham). Todos são `RefCounted`, inclusive os que desenham, que recebem o nó por `attach()`; assim os módulos lógicos testam sem árvore de cena.
+- `VNModules`: o registro. Um módulo chama outro por `modules().state`, `modules().events`… e guarda só uma referência fraca ao registro.
+- `VNResult` (RT §6.3), `VNErrors` (códigos e ordem das verificações do RT §6.2), `VNLayers` (camadas do RT §1.1) e `VNPhase` (estados do RT §3, iguais ao `phase` do protocolo do Preview).
+
+Nos testes, `VNFakeModules.create()` devolve um registro só com dublês; troque o módulo em teste e chame `bind_all()`:
+
+```gdscript
+var m := VNFakeModules.create()
+m.state = MyStateManager.new()
+m.bind_all()
+```
+
+Os dublês ficam em `tests/` e nunca são usados pelo código de `vn_runtime/`, então não entram em nenhum artefato (spec 09 §1.2). O teste de fumaça confere que cada dublê cumpre o contrato e que os dublês funcionam juntos:
+
+```bash
+godot --headless --path runtime --script res://tests/contracts/test_contracts.gd
+```
+
+A workflow [`runtime-contracts.yml`](../.github/workflows/runtime-contracts.yml) roda esse teste em todo pull request que toca `runtime/vn_runtime/` ou `runtime/tests/`.
+
+**Mudar um contrato** (a assinatura, um sinal ou uma constante de um arquivo de contrato ou de `core/`) é um pull request próprio, que atualiza o dublê e o teste de fumaça juntos e avisa as tarefas em andamento que usam o módulo. Uma tarefa que implementa um módulo não muda o contrato dele no mesmo pull request.

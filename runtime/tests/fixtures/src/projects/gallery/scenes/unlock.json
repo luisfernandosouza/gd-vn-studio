@@ -1,0 +1,59 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/specs-v1.0.0/scene.schema.json",
+  "id": "01930004-0000-7000-8000-000000000200",
+  "chapter": "01930004-0000-7000-8000-000000000100",
+  "title": "unlock",
+  "nodes": [
+    {
+      "id": "01930004-0000-7000-8000-000000000001",
+      "type": "background",
+      "asset": "bg/dusk"
+    },
+    {
+      "id": "01930004-0000-7000-8000-000000000002",
+      "type": "audio",
+      "action": "play",
+      "channel": "music",
+      "asset": "music/loop_b",
+      "loop": true
+    },
+    {
+      "id": "01930004-0000-7000-8000-000000000003",
+      "type": "line",
+      "text": "Dusk and the second song are now in the gallery."
+    },
+    {
+      "id": "01930004-0000-7000-8000-000000000004",
+      "type": "choice",
+      "options": [
+        {
+          "id": "01930004-0000-7000-8000-000000000041",
+          "text": "Wait for the night",
+          "goto": "01930004-0000-7000-8000-000000000005"
+        },
+        {
+          "id": "01930004-0000-7000-8000-000000000042",
+          "text": "Go home",
+          "goto": "01930004-0000-7000-8000-000000000007"
+        }
+      ]
+    },
+    {
+      "id": "01930004-0000-7000-8000-000000000005",
+      "type": "background",
+      "asset": "bg/night"
+    },
+    {
+      "id": "01930004-0000-7000-8000-000000000006",
+      "type": "end",
+      "then": "end_game",
+      "ending": "good"
+    },
+    {
+      "id": "01930004-0000-7000-8000-000000000007",
+      "type": "end",
+      "then": "end_game",
+      "ending": "plain"
+    }
+  ]
+}
