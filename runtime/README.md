@@ -48,3 +48,49 @@ godot --headless --path runtime --quit     # abre e fecha; precisa sair com 0 e 
 A workflow [`runtime.yml`](../.github/workflows/runtime.yml) roda esses dois comandos em todo pull request que toca `runtime/`.
 
 As ações `vn_*` em `project.godot` seguem a tabela do RT §10.1. Para mudar uma ação, edite pelo editor do Godot (Projeto → Configurações do Projeto → Mapa de Entrada) e mantenha `device = -1` (todos os dispositivos).
+
+## Contratos dos módulos
+
+Cada módulo da tabela do RT §1 tem uma classe base abstrata (`@abstract`) em `vn_runtime/<módulo>/`, só com assinaturas, sinais e documentação, e um dublê em `tests/fakes/<módulo>/` (tarefa M0-07). Uma tarefa implementa o seu módulo estendendo a classe base, na pasta dele, e testa contra os dublês dos outros; as tarefas de integração (M1-12, M2-16) trocam os dublês pelos módulos reais.
+
+| Módulo (RT §1) | Contrato | Dublê | Campo em `VNModules` | Tarefas |
+|---|---|---|---|---|
+| Narrative Engine | `narrative_engine/vn_narrative_engine.gd` (`VNNarrativeEngine`) | `FakeNarrativeEngine` | `engine` | M1-11, M3-04 |
+| Scene Scheduler | `scheduler/vn_scene_scheduler.gd` (`VNSceneScheduler`) | `FakeSceneScheduler` | `scheduler` | M1-10 |
+| Condition Evaluator | `condition_evaluator/vn_condition_evaluator.gd` (`VNConditionEvaluator`, `VNEvalResult`) | `FakeConditionEvaluator` | `conditions` | M1-02, M1-03, M1-04 |
+| State Manager | `state_manager/vn_state_manager.gd` (`VNStateManager`, `VNStateTransaction`) | `FakeStateManager` | `state` | M1-06 |
+| Variable Manager | `variable_manager/vn_variable_manager.gd` (`VNVariableManager`) | `FakeVariableManager` | `variables` | M1-05 |
+| Event Bus | `event_bus/vn_event_bus.gd` (`VNEventBus`) | `FakeEventBus` | `events` | M1-09 |
+| Plugin Host | `plugin_host/vn_plugin_host.gd` (`VNPluginHost`) | `FakePluginHost` | `plugins` | M3-01, M3-04, M3-05 |
+| Save Manager | `save_manager/vn_save_manager.gd` (`VNSaveManager`) | `FakeSaveManager` | `saves` | M2-10, M2-11, M2-13, M3-06 |
+| `VNStorage` (RT §8.5) | `storage/vn_storage.gd` (`VNStorage`) | `FakeStorage` | `storage` | M2-10, M4-08 |
+| Stage | `stage/vn_stage.gd` (`VNStage`) | `FakeStage` | `stage` | M2-02, M2-03, M2-04, M2-08, M2-12 |
+| Stage: áudio | `audio/vn_audio_manager.gd` (`VNAudioManager`) | `FakeAudioManager` | `audio` | M2-05, M2-12 |
+| UI Manager | `ui_manager/vn_ui_manager.gd` (`VNUIManager`) | `FakeUIManager` | `ui` | M2-06, M2-07, M2-09, M2-11, M2-15 |
+| `VNAssets` (PP §1.3) | `assets/vn_assets.gd` (`VNAssets`) | `FakeAssets` | `assets` | M4-07 |
+
+O Audio Manager faz parte do Stage no RT §1 ("Stage (UI/Audio/Asset Manager)"), mas tem contrato e pasta próprios porque M2-02 e M2-05 andam na mesma onda.
+
+Tipos compartilhados, em `vn_runtime/core/`:
+
+- `VNModule`: base de todos os contratos (`module_id()`, `load_bundle()`, `attach()`/`detach()` para os módulos que desenham). Todos são `RefCounted`, inclusive os que desenham, que recebem o nó por `attach()`; assim os módulos lógicos testam sem árvore de cena.
+- `VNModules`: o registro. Um módulo chama outro por `modules().state`, `modules().events`… e guarda só uma referência fraca ao registro.
+- `VNResult` (RT §6.3), `VNErrors` (códigos e ordem das verificações do RT §6.2), `VNLayers` (camadas do RT §1.1) e `VNPhase` (estados do RT §3, iguais ao `phase` do protocolo do Preview).
+
+Nos testes, `VNFakeModules.create()` devolve um registro só com dublês; troque o módulo em teste e chame `bind_all()`:
+
+```gdscript
+var m := VNFakeModules.create()
+m.state = MyStateManager.new()
+m.bind_all()
+```
+
+Os dublês ficam em `tests/` e nunca são usados pelo código de `vn_runtime/`, então não entram em nenhum artefato (spec 09 §1.2). O teste de fumaça confere que cada dublê cumpre o contrato e que os dublês funcionam juntos:
+
+```bash
+godot --headless --path runtime --script res://tests/contracts/test_contracts.gd
+```
+
+A workflow [`runtime-contracts.yml`](../.github/workflows/runtime-contracts.yml) roda esse teste em todo pull request que toca `runtime/vn_runtime/` ou `runtime/tests/`.
+
+**Mudar um contrato** (a assinatura, um sinal ou uma constante de um arquivo de contrato ou de `core/`) é um pull request próprio, que atualiza o dublê e o teste de fumaça juntos e avisa as tarefas em andamento que usam o módulo. Uma tarefa que implementa um módulo não muda o contrato dele no mesmo pull request.
