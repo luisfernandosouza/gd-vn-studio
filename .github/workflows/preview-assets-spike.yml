@@ -33,7 +33,7 @@ jobs:
         working-directory: spikes/preview-web
         run: |
           GODOT=$GITHUB_WORKSPACE/Godot_v4.7.2-stable_linux.x86_64 tools/export.sh
-          sudo apt-get install -y -q ffmpeg >/dev/null
+          command -v ffmpeg || (sudo apt-get update -q >/dev/null && sudo apt-get install -y -q --no-install-recommends ffmpeg >/dev/null)
           python -m pip install -q numpy pillow
           python tools/make_assets.py build/assets
       - uses: actions/upload-artifact@v5

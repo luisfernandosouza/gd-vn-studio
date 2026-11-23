@@ -23,7 +23,7 @@ extra = sys.argv[3] if len(sys.argv) > 3 else ""  # ex.: "&only=open&templates=w
 out = ROOT / "build" / "work" / "results-webkitgtk.json"
 out.unlink(missing_ok=True)
 
-server = subprocess.Popen(["node", str(ROOT / "tools" / "serve.mjs"), str(port), "--cache", "--rss", "^WebKit(Web|GPU|Network)Process"])
+server = subprocess.Popen(["node", str(ROOT / "tools" / "serve.mjs"), str(port), "--cache", "--rss", "^WebKit"])
 time.sleep(1)
 
 settings = WebKit2.Settings()
