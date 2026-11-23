@@ -19,7 +19,7 @@
   let req = 0;
   const waiting = new Map();
   let readyResolve = null;
-  const log = (s) => { document.getElementById('log').textContent += s + '\n'; };
+  const log = (s) => { document.getElementById('log').textContent += s + '\n'; console.log(s); };
 
   window.vnPreviewHost = {
     onEvent(kind, text) {

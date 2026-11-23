@@ -40,6 +40,7 @@
       const okMarker = map.kinds[id] !== 'image' || near(d.marker, map.markers[id], ext === 'png' ? 0 : 14);
       rows.push({ id, ext, total: d.total_ms, runtime: d.runtime_ms, fetch: d.fetch_ms, decode: d.decode_ms, upload: d.upload_ms, bytes: d.bytes, ok: okMarker });
       if (checkpoints.includes(i + 1)) mem.push(await snap(`${i + 1} carregados`));
+      if ((i + 1) % 25 === 0) bench.log(`imagens ${i + 1}/${ids.length}, último ${d.total_ms.toFixed(0)} ms`);
     }
     const byExt = {};
     for (const ext of [...new Set(rows.map(r => r.ext))]) {
@@ -60,14 +61,14 @@
     await bench.call('assets_config', base, JSON.stringify(map.assets), JSON.stringify(opts));
   }
 
-  window.runAssets = async ({ engine, swaps = 20 }) => {
+  window.runAssets = async ({ engine, swaps = 20, maxImages = 0 }) => {
     const gl = document.createElement('canvas').getContext('webgl2');
     const ext = gl && gl.getExtension('WEBGL_debug_renderer_info');
     const renderer = gl ? (ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)) : 'sem WebGL 2';
     const map = await (await fetch('/build/assets/map.json', { cache: 'no-store' })).json();
     // assets_base: no Studio é a URL /project/assets/ do vnpreview (PP §1.3); aqui, HTTP.
     const base = location.origin + '/build/assets/files/';
-    const images = Object.keys(map.kinds).filter(k => map.kinds[k] === 'image');
+    const images = Object.keys(map.kinds).filter(k => map.kinds[k] === 'image').slice(0, maxImages || undefined);
     const music = Object.keys(map.kinds).filter(k => map.kinds[k] === 'music');
     const src = '/build/web/index.html';
     const r = { suite: 'assets', engine, userAgent: navigator.userAgent, renderer, files_mb: Object.fromEntries(Object.entries(map.bytes).map(([k, v]) => [k, +(v / 1e6).toFixed(1)])) };

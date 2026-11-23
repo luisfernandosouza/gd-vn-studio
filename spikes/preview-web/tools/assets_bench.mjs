@@ -3,7 +3,7 @@
 // bancada com ?autorun=1&suite=assets e espera build/work/results-<engine>.json.
 //
 // Uso: node tools/assets_bench.mjs [--browser chromium|webkit] [--channel msedge] [--gpu]
-//                                  [--rss <regex>] [--swaps 20] [--out build/results-assets.json]
+//                                  [--rss <regex>] [--swaps 20] [--images N] [--out build/results-assets.json]
 // Antes: tools/export.sh e python3 tools/make_assets.py build/assets
 import fs from 'node:fs';
 import path from 'node:path';
@@ -30,12 +30,12 @@ const launchArgs = BROWSER === 'chromium'
   : [];
 const browser = await pw[BROWSER].launch({ args: launchArgs, headless: !GPU || BROWSER !== 'chromium', ...(args.channel ? { channel: args.channel } : {}) });
 const page = await (await browser.newContext({ viewport: { width: 1300, height: 900 } })).newPage();
-page.on('console', m => { const t = m.text(); if (m.type() === 'error' || t.startsWith('memória') || t.startsWith('==')) console.log('[página]', t); });
+page.on('console', m => { const t = m.text(); if (m.type() === 'error' || /^(memória|==|imagens|músicas|troca|lru)/.test(t)) console.log('[página]', t); });
 page.on('crash', () => console.error('[página] o processo da página caiu'));
 
 const result = path.join(ROOT, 'build', 'work', `results-${engine}.json`);
 fs.rmSync(result, { force: true });
-await page.goto(`http://127.0.0.1:${port}/harness/index.html?autorun=1&suite=assets&engine=${engine}&edits=${args.swaps || 20}`);
+await page.goto(`http://127.0.0.1:${port}/harness/index.html?autorun=1&suite=assets&engine=${engine}&edits=${args.swaps || 20}&images=${args.images || 0}`);
 const t0 = Date.now();
 let last = '';
 while (!fs.existsSync(result) && Date.now() - t0 < 40 * 60 * 1000) {

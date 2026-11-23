@@ -105,7 +105,7 @@
     window.addEventListener('load', async () => {
       let out;
       try {
-        out = q.get('suite') === 'assets' ? await runAssets({ engine: q.get('engine') || 'desconhecido', swaps: Number(q.get('edits') || 20) }) : await runBench({ engine: q.get('engine') || 'desconhecido', edits: Number(q.get('edits') || 20),
+        out = q.get('suite') === 'assets' ? await runAssets({ engine: q.get('engine') || 'desconhecido', swaps: Number(q.get('edits') || 20), maxImages: Number(q.get('images') || 0) }) : await runBench({ engine: q.get('engine') || 'desconhecido', edits: Number(q.get('edits') || 20),
           templates: (q.get('templates') || 'web,web-lean').split(','), onlyOpen: q.get('only') === 'open', skipRestart: q.get('skip') === 'restart' });
       } catch (e) {
         out = { engine: q.get('engine'), error: String(e && e.stack || e) };

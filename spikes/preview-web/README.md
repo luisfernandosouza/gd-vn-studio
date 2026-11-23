@@ -91,6 +91,12 @@ Workflow `.github/workflows/preview-web-spike.yml`. A WKWebView é o motor do Ta
 
 Os ~16 ms do caminho incremental são um quadro a 60 Hz: com GPU o tempo fica preso ao vsync. Na primeira rodada, o WebKit travou ao reiniciar o motor 20 vezes seguidas no bundle grande (o WebKitGTK também piora a cada reinício), por isso a segunda rodada pulou esse caminho; a WKWebView não tinha dado resultado porque a bancada esperava o template enxuto, que não existe no CI.
 
+### Teste B: assets por bytes (M4-01, 2026-11-23)
+
+200 imagens de 1920 × 1080 e 30 músicas pelo carregador de bytes da D18, com os caminhos `res://vn_content/assets/…` trocados por `assets_base` (D24), mais a troca de um asset em uso. Relatório com os números e a decisão em [`docs/reviews/spike-assets-preview-2026-11-23.md`](../../docs/reviews/spike-assets-preview-2026-11-23.md). Resumo: segue a D18; o `VNAssets` lê pelo `fetch` da página (não pelo `HTTPRequest`), sem cache do navegador, e com cache LRU limitado, porque cada fundo custa 7,9 MiB de textura sem compressão.
+
+Arquivos: `godot/vn_assets_spike.gd` (carregador), `harness/assets.js` (cenário), `harness/wasm_hook.js` (mede o heap do WASM), `tools/make_assets.py` (assets sintéticos, fora do Git), `tools/assets_bench.mjs` (Chromium, Edge, WebKit), `tools/summary_assets.py` e o workflow `.github/workflows/preview-assets-spike.yml` (WKWebView e Edge).
+
 ## O que isso significa para as specs
 
 1. **Um interpretador basta.** O Preview no Studio pode ser o próprio runtime exportado para Web. Sai o interpretador TypeScript, o `renderActivityMock` do SDK §10.6 e a obrigação de manter JCS, aritmética, formatação, RNG e Scheduler em duas linguagens.
@@ -101,7 +107,7 @@ Os ~16 ms do caminho incremental são um quadro a 60 Hz: com GPU o tempo fica pr
 
 - **GPU só no Windows e no Mac.** No Linux, SwiftShader e llvmpipe desenham na CPU; com GPU tudo fica mais rápido.
 - **Mac virtual.** O macOS foi medido num runner do GitHub (M2 Pro virtual), não num Mac físico. Em 2026-11-16 esse resultado foi considerado suficiente e a decisão de usar só o runtime Godot como interpretador foi encerrada (README das specs).
-- **Sem assets.** O spike não carrega imagens, áudio nem vídeo. A proposta B (carregador `VNAssets`) precisa de um teste separado, inclusive de como os bytes chegam do Studio ao runtime Web.
+- **Sem assets** na medida da recarga. O teste B (carregador `VNAssets`) foi feito depois, em 2026-11-23 (seção acima).
 - **Runtime mínimo.** O runtime de verdade terá Scheduler, State Manager e UI completos; a parte medida aqui (parse, troca da cena e redesenho) é a que cresce com o tamanho do jogo.
 
 ## Como rodar
@@ -115,3 +121,12 @@ node tools/bench.mjs --edits 20 --templates web,web-lean  # grava build/results.
 ```
 
 A bancada usa o Playwright e o Chromium; `harness/index.html` é a página que faz o papel do Studio.
+
+Teste B dos assets:
+
+```bash
+python3 tools/make_assets.py build/assets               # 200 imagens e 30 músicas (precisa de numpy, Pillow e ffmpeg)
+node tools/assets_bench.mjs --browser chromium          # ou --channel msedge; grava build/results-assets-<motor>.json
+xvfb-run -a -s "-screen 0 1920x1080x24" tools/webkitgtk_bench.py 8766 20 "&suite=assets"   # WebKitGTK
+python3 tools/summary_assets.py build/results-assets-*.json
+```

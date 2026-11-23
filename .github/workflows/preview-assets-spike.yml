@@ -98,7 +98,9 @@ jobs:
         shell: bash
         run: |
           npm init -y >/dev/null && npm i -s playwright@1
-          node tools/assets_bench.mjs --browser chromium --channel msedge --out build/results-assets-msedge.json
+          # Com janela (--gpu): o ANGLE usa o D3D11 (WARP no runner, sem GPU); headless com SwiftShader
+          # levou ~10 s por imagem nos 2 vCPUs do runner.
+          node tools/assets_bench.mjs --browser chromium --channel msedge --gpu --out build/results-assets-msedge.json
       - name: Resultados
         if: always()
         working-directory: spikes/preview-web

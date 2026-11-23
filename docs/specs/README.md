@@ -305,7 +305,7 @@ A primeira abertura é sem cache; com o motor já compilado em cache, cai para 0
 
 **A conferir no primeiro protótipo** (antes de começar o Studio):
 
-- **Teste B dos assets** (D18): abrir no painel 200 imagens de 1920 × 1080 e 30 músicas pelo carregador de bytes, medir memória e tempo, e trocar um asset em uso (PP §1.3).
+- ~~**Teste B dos assets** (D18): abrir no painel 200 imagens de 1920 × 1080 e 30 músicas pelo carregador de bytes, medir memória e tempo, e trocar um asset em uso (PP §1.3).~~ Feito em 2026-11-23 (M4-01): a D18 se mantém; ajustes de implementação para o M4-07 no [relatório](../reviews/spike-assets-preview-2026-11-23.md).
 - **Servir por `vnpreview://`**: o spike usou HTTP; conferir o export servido pelo protocolo próprio do Tauri, com `application/wasm`, no WebView2, na WKWebView e no WebKitGTK (PP §1.1).
 - **Plugins como `.pck`**: recarregar um plugin no painel trocando o seu `.pck` (`ProjectSettings.load_resource_pack`); conferir que scripts com `class_name` funcionam num pacote montado depois do boot; e medir o tempo de gerar o `.pck` com o Godot embutido headless a cada salvamento (PP §1.3, SDK §10.6).
 - O tempo de abrir o painel com o template enxuto (o teste indicou cerca de 30% menos).
