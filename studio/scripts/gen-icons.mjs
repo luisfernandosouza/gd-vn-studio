@@ -65,7 +65,13 @@ function solidPng(size, [r, g, b]) {
 const source = join(tmpdir(), `vnstudio-icon-${process.pid}.png`);
 writeFileSync(source, solidPng(1024, [94, 92, 230]));
 mkdirSync(out, { recursive: true });
-const bin = join(studio, 'node_modules', '.bin', process.platform === 'win32' ? 'tauri.cmd' : 'tauri');
+// No workspace npm da raiz (M0-06) o @tauri-apps/cli fica em node_modules/ da raiz; studio/node_modules/ só
+// existe se o npm não puder içar o pacote.
+const binName = process.platform === 'win32' ? 'tauri.cmd' : 'tauri';
+const bin = [join(studio, 'node_modules', '.bin', binName), join(studio, '..', 'node_modules', '.bin', binName)].find(
+  (p) => existsSync(p),
+);
+if (!bin) throw new Error('tauri CLI não encontrada: rode `npm ci` na raiz do repositório.');
 execFileSync(bin, ['icon', source, '--output', out], {
   cwd: studio,
   stdio: 'inherit',
