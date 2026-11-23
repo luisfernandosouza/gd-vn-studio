@@ -6,6 +6,7 @@ gravar build/work/results-webkitgtk.json. Precisa de python3-gi,
 gir1.2-webkit2-4.1 e, sem tela, de Xvfb (xvfb-run).
 
 Uso: xvfb-run -a -s "-screen 0 1920x1080x24" tools/webkitgtk_bench.py [porta] [edições] [parâmetros extras da página]
+Teste B dos assets: parâmetro extra "&suite=assets" (e antes, tools/make_assets.py).
 """
 import os, subprocess, sys, time
 from pathlib import Path
@@ -22,13 +23,14 @@ extra = sys.argv[3] if len(sys.argv) > 3 else ""  # ex.: "&only=open&templates=w
 out = ROOT / "build" / "work" / "results-webkitgtk.json"
 out.unlink(missing_ok=True)
 
-server = subprocess.Popen(["node", str(ROOT / "tools" / "serve.mjs"), str(port), "--cache"])
+server = subprocess.Popen(["node", str(ROOT / "tools" / "serve.mjs"), str(port), "--cache", "--rss", "^WebKit(Web|GPU|Network)Process"])
 time.sleep(1)
 
 settings = WebKit2.Settings()
 settings.set_enable_webgl(True)
 settings.set_hardware_acceleration_policy(WebKit2.HardwareAccelerationPolicy.ALWAYS)
 settings.set_enable_write_console_messages_to_stdout(True)
+settings.set_media_playback_requires_user_gesture(False)
 view = WebKit2.WebView.new_with_context(WebKit2.WebContext.new_ephemeral())
 view.set_settings(settings)
 win = Gtk.Window()
@@ -41,7 +43,7 @@ start = time.time()
 
 
 def check():
-    if out.exists() or time.time() - start > 1500:
+    if out.exists() or time.time() - start > 2400:
         Gtk.main_quit()
         return False
     return True

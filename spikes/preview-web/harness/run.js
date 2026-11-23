@@ -1,6 +1,7 @@
 // Cenários da bancada, rodados dentro da página: servem a qualquer motor
 // (Chromium pelo Playwright, WebKitGTK pelo tools/webkitgtk_bench.py).
 // Com ?autorun=1&engine=<nome>, roda tudo e grava build/work/results-<nome>.json.
+// Com &suite=assets, roda o teste B dos assets (harness/assets.js) em vez da recarga.
 (() => {
   const stats = xs => {
     const s = [...xs].sort((a, b) => a - b);
@@ -104,7 +105,7 @@
     window.addEventListener('load', async () => {
       let out;
       try {
-        out = await runBench({ engine: q.get('engine') || 'desconhecido', edits: Number(q.get('edits') || 20),
+        out = q.get('suite') === 'assets' ? await runAssets({ engine: q.get('engine') || 'desconhecido', swaps: Number(q.get('edits') || 20) }) : await runBench({ engine: q.get('engine') || 'desconhecido', edits: Number(q.get('edits') || 20),
           templates: (q.get('templates') || 'web,web-lean').split(','), onlyOpen: q.get('only') === 'open', skipRestart: q.get('skip') === 'restart' });
       } catch (e) {
         out = { engine: q.get('engine'), error: String(e && e.stack || e) };

@@ -3,6 +3,7 @@
 // A cada 20 s imprime o estado da página (carregou? o que a bancada já registrou?), para
 // diagnosticar travamentos.
 // Uso: swift tools/wkwebview_bench.swift <porta> <edições> [parâmetros extras, ex. "&skip=restart"]
+//      Teste B dos assets: parâmetros extras "&suite=assets" (servidor com --rss WebKit)
 //      (com tools/serve.mjs já rodando nessa porta)
 import AppKit
 import WebKit
@@ -11,7 +12,7 @@ let args = CommandLine.arguments
 let port = args.count > 1 ? args[1] : "8767"
 let edits = args.count > 2 ? args[2] : "20"
 let extra = args.count > 3 ? args[3] : ""
-let limit: TimeInterval = 1200
+let limit: TimeInterval = 2400
 let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
 let out = root.appendingPathComponent("build/work/results-wkwebview.json")
 try? FileManager.default.removeItem(at: out)
@@ -35,6 +36,7 @@ let app = NSApplication.shared
 app.setActivationPolicy(.regular)
 let config = WKWebViewConfiguration()
 config.websiteDataStore = .nonPersistent()
+config.mediaTypesRequiringUserActionForPlayback = []
 let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1300, height: 900), styleMask: [.titled], backing: .buffered, defer: false)
 window.level = .floating
 let view = WKWebView(frame: window.contentView!.bounds, configuration: config)
