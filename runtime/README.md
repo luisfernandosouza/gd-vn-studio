@@ -5,11 +5,12 @@ Runtime das visual novels: projeto Godot 4.7.2 + GDScript ([Runtime Spec](../doc
 | Caminho | Conteúdo |
 |---|---|
 | `project.godot` | Projeto Godot: resolução base 1920×1080, `stretch_mode = canvas_items`, `stretch_aspect = expand` (RT §1.1), ações de input `vn_*` (RT §10.1), cena principal `res://vn_runtime/boot.tscn`. No build, o Build System gera um `project.godot` novo a partir deste (BS §4.3) |
-| `vn_runtime/boot.tscn` | Cena de boot (por enquanto vazia; o boot do RT §3.0 entra com o Narrative Engine) |
+| `vn_runtime/boot.tscn`, `boot.gd` | Cena de boot. Por enquanto só despacha `--vn-test` para o executor de testes; o boot do RT §3.0 entra com o Narrative Engine |
 | `vn_runtime/` | Narrative Engine, Scheduler, State Manager, UI Manager… |
 | `vn_runtime/presets/` | Cópia gerada de `docs/specs/presets/` + fontes embutidas em `fonts/` (os ids `preset/font_*`); fora do Git e nunca editada à mão |
 | `vn_runtime/licenses/` | Gerada: licenças do runtime (MIT), do Godot e das bibliotecas dele, e a OFL de cada fonte do preset, com o índice `index.json` ([Build System §4.5](../docs/specs/05-build-system-specification.md)); fora do Git |
 | `tests/` | Testes e runner headless dos vetores (`--vn-test`) |
+| `tests/vn_test_runner.gd` | Executor dos vetores de conformidade (RT §12, spec 08 §4); por enquanto conta os casos e os dá como pulados (a tarefa M1-01 os executa) |
 | `tests/fixtures/` | Bundles de teste com imagens e sons sintéticos, gerados por `python3 runtime/tests/fixtures/generate.py` ([README](tests/fixtures/README.md)), e placeholders feitos à mão: a única pasta do runtime onde pode haver mídia (spec 09 §1.1) |
 
 ## Presets, fontes e licenças
@@ -43,9 +44,12 @@ O runtime 1.0 fixa o **Godot 4.7.2** ([Build System §2.1](../docs/specs/05-buil
 ```bash
 godot --headless --path runtime --import   # importa o projeto (cria runtime/.godot/, fora do Git)
 godot --headless --path runtime --quit     # abre e fecha; precisa sair com 0 e sem ERROR no log
+godot --headless --path runtime -- --vn-test docs/specs/conformance   # vetores de conformidade (RT §12)
 ```
 
-A workflow [`runtime.yml`](../.github/workflows/runtime.yml) roda esses dois comandos em todo pull request que toca `runtime/`.
+O executor aceita a pasta `docs/specs/conformance/` (os `*.json` do primeiro nível) ou um arquivo dela; caminho relativo é relativo à pasta de onde o Godot foi chamado. Imprime `FALHOU <arquivo>#<id>` para cada falha e o resumo `N/M` (passaram/executados) com os pulados, e sai com 0 sem falhas, 1 com falha e 2 com erro de uso. Só existe no runtime de debug: `tests/` não entra nos templates de exportação (spec 09 §1.2).
+
+A workflow [`runtime.yml`](../.github/workflows/runtime.yml) roda esses três comandos, com o Godot em cache, e a referência `tools/conformance.py` em todo pull request que toca `runtime/` ou `docs/specs/conformance/` (spec 08 §4). O runner Web entra com a tarefa M4-03.
 
 As ações `vn_*` em `project.godot` seguem a tabela do RT §10.1. Para mudar uma ação, edite pelo editor do Godot (Projeto → Configurações do Projeto → Mapa de Entrada) e mantenha `device = -1` (todos os dispositivos).
 
