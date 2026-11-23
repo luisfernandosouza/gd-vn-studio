@@ -19,9 +19,11 @@ Só as aceitas no [README das specs](../docs/specs/README.md) (2026-11-14): Reac
 
 Precisa de Node 22 e Rust estável, mais as [dependências do Tauri](https://v2.tauri.app/start/prerequisites/) do sistema (no Linux, WebKitGTK 4.1).
 
+O Studio é um pacote do workspace npm da raiz (M0-06): as dependências são instaladas uma vez, na raiz, e os tipos dos dados do projeto (`Scene`, `Variable`…) vêm de [`@vnstudio/plugin-schema`](../sdk/plugin-schema/README.md), gerados de `docs/specs/schemas/`.
+
 ```bash
+npm ci                   # na raiz do repositório
 cd studio
-npm ci
 npm run tauri dev        # app com recarga da interface
 npm run lint             # ESLint
 npm run typecheck        # TypeScript

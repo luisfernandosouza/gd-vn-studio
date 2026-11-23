@@ -2,14 +2,28 @@
 # O build de cada sistema abre o app com VNSTUDIO_SMOKE_TEST=1: a janela abre, a interface React
 # monta e avisa o processo nativo, que sai com 0. Sem esse aviso, o app sai com erro (src-tauri/src/smoke.rs).
 # Os ícones são gerados no build (scripts/gen-icons.mjs), porque o repositório não guarda imagens (spec 09 §1.1).
+# O Studio é um pacote do workspace npm da raiz (M0-06): o `npm ci` roda na raiz, e o Studio usa os tipos de
+# @vnstudio/plugin-schema (sdk/plugin-schema/), gerados de docs/specs/schemas/. Por isso um schema mudado também roda aqui.
 name: Studio
 
 on:
   pull_request:
-    paths: [studio/**, .github/workflows/studio.yml]
+    paths:
+      - studio/**
+      - sdk/plugin-schema/**
+      - docs/specs/schemas/**
+      - package.json
+      - package-lock.json
+      - .github/workflows/studio.yml
   push:
     branches: [main]
-    paths: [studio/**, .github/workflows/studio.yml]
+    paths:
+      - studio/**
+      - sdk/plugin-schema/**
+      - docs/specs/schemas/**
+      - package.json
+      - package-lock.json
+      - .github/workflows/studio.yml
   workflow_dispatch:
 
 concurrency:
@@ -30,8 +44,8 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: studio/package-lock.json
       - run: npm ci
+        working-directory: .
       - name: Lint
         run: npm run lint
       - name: Typecheck
@@ -57,7 +71,6 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: studio/package-lock.json
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
@@ -65,6 +78,7 @@ jobs:
         with:
           workspaces: studio/src-tauri
       - run: npm ci
+        working-directory: .
       - name: Ícones gerados
         run: npm run icons
       - name: Formatação do Rust

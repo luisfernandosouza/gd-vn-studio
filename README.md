@@ -11,10 +11,13 @@ O repositório é um monorepo, com o layout da [spec 09](docs/specs/09-repositor
 | [`studio/`](studio/README.md) | Studio: Tauri + React + TypeScript (`src/`, `src-tauri/`, `preview/`) |
 | [`runtime/`](runtime/README.md) | Runtime: projeto Godot 4.7.2 + GDScript (`vn_runtime/`, `tests/`) |
 | [`sdk/runtime/addons/vn_runtime_sdk/`](sdk/runtime/addons/vn_runtime_sdk/) | Runtime SDK (GDScript), copiado para os projetos de plugin |
-| [`sdk/editor/`](sdk/editor/) | Editor SDK (`@vnstudio/editor-sdk`, npm) |
+| [`sdk/editor/`](sdk/editor/README.md) | Editor SDK (`@vnstudio/editor-sdk`, npm) |
+| [`sdk/plugin-schema/`](sdk/plugin-schema/README.md) | Tipos TypeScript gerados dos schemas (`@vnstudio/plugin-schema`), usados pelo Studio, pela CLI e pelo Editor SDK |
 | [`cli/`](cli/README.md) | CLIs `vnstudio` e `vnplugin` (TypeScript, Node) |
 | [`plugins/`](plugins/README.md) | Plugins oficiais (`vnstudio.*`); [`plugins/fishing/`](plugins/fishing/) é o minijogo de pesca |
-| [`.github/workflows/`](.github/workflows/) | CI: `specs.yml`, `repo-hygiene.yml`, `studio.yml` e as dos componentes |
+| [`.github/workflows/`](.github/workflows/) | CI: `specs.yml`, `repo-hygiene.yml`, `studio.yml`, `typescript.yml` e as dos componentes |
+
+O Studio, a CLI e os pacotes npm do SDK formam um workspace npm na raiz ([`package.json`](package.json)): `npm ci` na raiz instala tudo, e `npm run generate` regrava os tipos de `@vnstudio/plugin-schema` a partir de `docs/specs/schemas/`.
 
 Como contribuir, inclusive onde pode haver mídia e o que fica fora do Git: [CONTRIBUTING.md](CONTRIBUTING.md).
 

@@ -1,0 +1,25 @@
+{
+  "name": "@vnstudio/workspace",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Workspace npm do Visual Novel Studio: Studio, CLI e pacotes do Editor SDK (spec 09 §1, Plugin SDK §10)",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "sdk/plugin-schema",
+    "sdk/editor",
+    "cli",
+    "studio"
+  ],
+  "scripts": {
+    "generate": "npm run generate -w @vnstudio/plugin-schema",
+    "check:generated": "npm run check -w @vnstudio/plugin-schema",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  }
+}
