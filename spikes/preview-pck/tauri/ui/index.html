@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<!-- Página do "Studio" na bancada do spike M4-02. Abre o runtime num iframe servido por vnpreview,
+     fala com ele pela ponte (postMessage ↔ vnPreview.send/onmessage) e manda os resultados ao
+     processo nativo. -->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Spike vnpreview</title>
+<style>
+body { margin: 0; font: 13px system-ui, sans-serif; background: #111; color: #ddd; }
+#log { position: fixed; right: 0; top: 0; width: 420px; height: 100%; overflow: auto; white-space: pre-wrap; padding: 8px; box-sizing: border-box; }
+iframe { border: 0; width: 840px; height: 480px; background: #000; }
+</style>
+</head>
+<body>
+<div id="frame"></div>
+<div id="log"></div>
+<script>
+const { invoke } = window.__TAURI__.core;
+const logEl = document.getElementById('log');
+function log(line) {
+  logEl.textContent += line + '\n';
+  invoke('spike_log', { line }).catch(() => {});
+}
+
+let frame = null;
+let nextId = 1;
+const waiters = new Map();     // id da requisição → resolve
+let onNotify = () => {};
+let onShell = () => {};
+
+window.addEventListener('message', (ev) => {
+  if (!frame || ev.source !== frame.contentWindow || !ev.data) return;
+  const d = ev.data;
+  if (d.vn === 'from-runtime') {
+    const msg = JSON.parse(d.text);
+    if (msg.id != null && waiters.has(msg.id)) {
+      waiters.get(msg.id)(msg.result);
+      waiters.delete(msg.id);
+    } else if (msg.method) {
+      onNotify(msg, d.t);
+    }
+  } else {
+    onShell(d);
+  }
+});
+
+function call(method, params = {}, timeoutMs = 60000) {
+  const id = nextId++;
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => { waiters.delete(id); reject(new Error('sem resposta: ' + method)); }, timeoutMs);
+    waiters.set(id, (r) => { clearTimeout(t); resolve(r); });
+    frame.contentWindow.postMessage({ vn: 'to-runtime', text: JSON.stringify({ jsonrpc: '2.0', id, method, params }) }, '*');
+  });
+}
+
+/** Abre o runtime num iframe novo e espera o spike.ready. Mede do iframe criado ao quadro desenhado. */
+function open(url, timeoutMs = 120000) {
+  close();
+  return new Promise((resolve, reject) => {
+    const t0 = performance.now();
+    const info = { url };
+    const t = setTimeout(() => reject(new Error('runtime não abriu: ' + url)), timeoutMs);
+    onShell = (d) => {
+      if (d.vn === 'started') { info.started_ms = performance.now() - t0; info.secure_context = d.secure; }
+      if (d.vn === 'error') { clearTimeout(t); reject(new Error(d.text)); }
+      if (d.vn === 'checks') { clearTimeout(t); resolve(d.result); }
+    };
+    onNotify = (msg) => {
+      if (msg.method === 'spike.ready') {
+        clearTimeout(t);
+        info.ready_ms = performance.now() - t0;
+        info.engine_ms = msg.params.engine_ms;
+        resolve(info);
+      }
+    };
+    frame = document.createElement('iframe');
+    frame.src = url;
+    document.getElementById('frame').appendChild(frame);
+  });
+}
+
+function close() {
+  if (frame) frame.remove();
+  frame = null;
+}
+
+const pct = (xs, p) => { const s = [...xs].sort((a, b) => a - b); return s[Math.min(s.length - 1, Math.round(p * (s.length - 1)))]; };
+const round = (x) => Math.round(x * 10) / 10;
+
+async function pluginScenario(cfg) {
+  const o = cfg.origin;
+  const steps = [];
+  const step = async (name, method, params) => {
+    const r = await call(method, params);
+    steps.push({ step: name, result: r });
+    log(name + ': ' + JSON.stringify(r).slice(0, 300));
+    return r;
+  };
+  await step('hello', 'spike.hello');
+  await step('mount fishing', 'spike.mount', { name: 'fishing', url: o + '/project/preview/plugins/fishing.pck' });
+  await step('mount probe-v1', 'spike.mount', { name: 'probe', url: o + '/project/preview/plugins/probe-v1.pck' });
+  await step('probe_v1', 'spike.probe');
+  await step('mount probe-v2', 'spike.mount', { name: 'probe', url: o + '/project/preview/plugins/probe-v2.pck' });
+  await step('reload probe', 'spike.reload', { namespace: 'probe', passes: 1 });
+  await step('probe_v2', 'spike.probe');
+  // Asset do projeto com acento e espaço no caminho, segmentos codificados (PP §1.3).
+  const asset = o + '/project/assets/' + ['música de teste', 'olá mundo.txt'].map(encodeURIComponent).join('/');
+  const f = await step('fetch asset', 'spike.fetch', { url: asset });
+  steps.push({ step: 'asset sha256 confere', result: { ok: f.sha256 === cfg.expected.asset_sha256 } });
+  await step('http asset (HTTPRequest do Godot)', 'spike.http', { url: asset });
+  // Nada fora do mapa: cada um destes DEVE falhar com 404.
+  const outside = [
+    '/project/assets/%2e%2e/segredo.txt',
+    '/project/assets/..%2fsegredo.txt',
+    '/project/preview/%2e%2e/%2e%2e/segredo.txt',
+    '/project/segredo.txt',
+    '/segredo.txt',
+    '/runtime/' + encodeURIComponent(cfg.expected.outside_abs),
+  ];
+  const refused = [];
+  for (const p of outside) {
+    const r = await call('spike.fetch', { url: o + p });
+    refused.push({ path: p, refused: !r.ok, error: r.error || '' });
+  }
+  steps.push({ step: 'fora do mapa', result: refused });
+  log('fora do mapa: ' + JSON.stringify(refused));
+  return steps;
+}
+
+async function main() {
+  const cfg = await invoke('spike_config');
+  log('origem ' + cfg.origin + ', templates ' + cfg.templates.join(', '));
+  const report = { user_agent: navigator.userAgent, templates: {}, plugins: {}, errors: [] };
+  const order = cfg.templates.includes('official') ? ['official', ...cfg.templates.filter((t) => t !== 'official')] : cfg.templates;
+  for (const tpl of order) {
+    const url = cfg.origin + '/runtime/' + tpl + '/index.html';
+    const runs = [];
+    try {
+      for (let i = 0; i < cfg.runs; i++) {
+        const info = await open(url + '?run=' + i);
+        runs.push(info);
+        log(tpl + ' abertura ' + i + ': ' + round(info.ready_ms) + ' ms');
+        if (i === 0) report.plugins[tpl] = await pluginScenario(cfg);
+      }
+      const later = runs.slice(1).map((r) => r.ready_ms);
+      report.templates[tpl] = {
+        first_open_ms: round(runs[0].ready_ms),
+        reopen_p50_ms: later.length ? round(pct(later, 0.5)) : null,
+        reopen_p95_ms: later.length ? round(pct(later, 0.95)) : null,
+        secure_context: runs[0].secure_context,
+        runs: runs.map((r) => ({ ready_ms: round(r.ready_ms), started_ms: round(r.started_ms || 0), engine_ms: round(r.engine_ms) })),
+      };
+      report.templates[tpl].checks = await open(url + '?checks=1');
+      log(tpl + ' checks: ' + JSON.stringify(report.templates[tpl].checks));
+    } catch (e) {
+      report.errors.push(tpl + ': ' + e.message);
+      log('ERRO ' + tpl + ': ' + e.message);
+    }
+  }
+  close();
+  await invoke('spike_report', { report });
+}
+
+main().catch(async (e) => {
+  log('ERRO: ' + e.message);
+  await invoke('spike_report', { report: { errors: [String(e && e.stack || e)] } });
+});
+</script>
+</body>
+</html>

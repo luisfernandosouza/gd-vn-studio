@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://vn_plugins/probe/runtime/scenes/probe_panel.gd" id="1_panel"]
+
+[node name="ProbePanel" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_panel")
