@@ -1,0 +1,69 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/specs-v1.0.0/set.schema.json",
+  "id": "probe_set",
+  "description": "Set de teste: céu com estado night, objeto animado e lâmpada clicável.",
+  "layers": [
+    {
+      "id": "sky",
+      "asset": "bg/day",
+      "parallax": 0.01,
+      "states": {
+        "night": {
+          "asset": "bg/night"
+        }
+      }
+    },
+    {
+      "id": "box",
+      "asset": "obj/box",
+      "position": [
+        0.3,
+        0.7
+      ],
+      "animation": {
+        "kind": "float",
+        "amount": 6,
+        "duration": 2,
+        "loop": true
+      }
+    },
+    {
+      "id": "lamp",
+      "asset": "obj/lamp_off",
+      "position": [
+        0.75,
+        0.6
+      ],
+      "states": {
+        "on": {
+          "asset": "obj/lamp_on"
+        }
+      }
+    }
+  ],
+  "hotspots": [
+    {
+      "id": "lamp_click",
+      "area": {
+        "layer": "lamp"
+      },
+      "label": "Lamp",
+      "cursor": "use",
+      "highlight": "outline",
+      "on_press": [
+        {
+          "do": "toggle_state",
+          "target": "lamp",
+          "states": [
+            "default",
+            "on"
+          ]
+        },
+        {
+          "do": "play_sfx",
+          "asset": "sfx/click"
+        }
+      ]
+    }
+  ]
+}

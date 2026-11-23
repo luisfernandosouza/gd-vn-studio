@@ -1,0 +1,66 @@
+# Cópias geradas de schemas e presets (spec 09 §1 e §1.2, tarefa M0-03).
+# docs/specs/schemas/ e docs/specs/presets/ são a fonte única. As cópias dos componentes
+# (runtime/vn_runtime/presets/, runtime/vn_runtime/licenses/, studio/src-tauri/resources/specs/, cli/schemas/)
+# ficam fora do Git. Esta workflow gera todas, confere por hash (fontes e licenças externas pelo sha256
+# fixado em docs/specs/tools/generated_sources.json) e falha se alguma cópia estiver no Git.
+name: Generated copies
+
+on:
+  pull_request:
+    paths:
+      - docs/specs/schemas/**
+      - docs/specs/presets/**
+      - docs/specs/tools/sync_generated_copies.py
+      - docs/specs/tools/generated_sources.json
+      - docs/specs/tools/compile_bundle.py
+      - runtime/**
+      - studio/**
+      - cli/**
+      - LICENSE
+      - .gitignore
+      - .github/workflows/generated-copies.yml
+  push:
+    branches: [main]
+    paths:
+      - docs/specs/schemas/**
+      - docs/specs/presets/**
+      - docs/specs/tools/sync_generated_copies.py
+      - docs/specs/tools/generated_sources.json
+      - docs/specs/tools/compile_bundle.py
+      - runtime/**
+      - studio/**
+      - cli/**
+      - LICENSE
+      - .gitignore
+      - .github/workflows/generated-copies.yml
+  workflow_dispatch:
+
+jobs:
+  copies:
+    runs-on: ubuntu-24.04
+    env:
+      VNSTUDIO_GENERATED_CACHE: ${{ github.workspace }}/../vnstudio-generated-cache
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: fontTools na versão fixada
+        run: python -m pip install -q "fonttools==$(python -c 'import json;print(json.load(open("docs/specs/tools/generated_sources.json"))["fonttools"])')"
+      - name: Nenhuma cópia gerada no Git
+        run: |
+          set -euo pipefail
+          bad=$(git ls-files -- runtime/vn_runtime/presets runtime/vn_runtime/licenses studio/src-tauri/resources/specs cli/schemas)
+          if [ -n "$bad" ]; then
+            echo "::error title=Cópia gerada no Git::Estas pastas são geradas por docs/specs/tools/sync_generated_copies.py e ficam fora do Git (spec 09 §1)."
+            echo "$bad"
+            exit 1
+          fi
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.VNSTUDIO_GENERATED_CACHE }}
+          key: generated-sources-${{ hashFiles('docs/specs/tools/generated_sources.json') }}
+      - name: Gera e confere as cópias
+        run: python docs/specs/tools/sync_generated_copies.py
+      - name: Conferência por hash, sem rede
+        run: python docs/specs/tools/sync_generated_copies.py --check

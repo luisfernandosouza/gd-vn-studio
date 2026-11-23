@@ -1,0 +1,21 @@
+[package]
+name = "vn-studio"
+version = "0.0.0"
+description = "Visual Novel Studio"
+license = "MIT"
+edition = "2021"
+rust-version = "1.80"
+publish = false
+
+[lib]
+# O sufixo _lib evita conflito de nome com o binário no Windows.
+name = "vn_studio_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

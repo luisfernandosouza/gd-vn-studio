@@ -1,0 +1,134 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/specs-v1.0.0/ui-screen.schema.json",
+  "id": "title",
+  "kind": "title",
+  "set": "probe_set",
+  "focus_start": "menu",
+  "elements": [
+    {
+      "id": "game_title",
+      "type": "label",
+      "text": "$project.title",
+      "position": [
+        0.5,
+        0.22
+      ],
+      "align": "center"
+    },
+    {
+      "id": "menu",
+      "type": "container",
+      "position": [
+        0.5,
+        0.62
+      ],
+      "layout": "column",
+      "spacing": 14,
+      "children": [
+        {
+          "id": "btn_continue",
+          "type": "button",
+          "text": "Continue",
+          "actions": [
+            {
+              "do": "continue"
+            }
+          ],
+          "visible_if": [
+            {
+              "variable": "sys.ui.has_save",
+              "operator": "equals",
+              "value": true
+            }
+          ]
+        },
+        {
+          "id": "btn_new_game",
+          "type": "button",
+          "text": "New game",
+          "actions": [
+            {
+              "do": "new_game"
+            }
+          ]
+        },
+        {
+          "id": "btn_load",
+          "type": "button",
+          "text": "Load",
+          "actions": [
+            {
+              "do": "open_screen",
+              "screen": "load"
+            }
+          ],
+          "visible_if": [
+            {
+              "variable": "sys.ui.has_save",
+              "operator": "equals",
+              "value": true
+            }
+          ]
+        },
+        {
+          "id": "btn_minigames",
+          "type": "button",
+          "text": "Minigames",
+          "actions": [
+            {
+              "do": "open_screen",
+              "screen": "minigames"
+            }
+          ],
+          "visible_if": [
+            {
+              "variable": "sys.ui.has_minigames",
+              "operator": "equals",
+              "value": true
+            }
+          ]
+        },
+        {
+          "id": "btn_settings",
+          "type": "button",
+          "text": "Settings",
+          "actions": [
+            {
+              "do": "open_screen",
+              "screen": "settings"
+            }
+          ]
+        },
+        {
+          "id": "btn_credits",
+          "type": "button",
+          "text": "Credits",
+          "actions": [
+            {
+              "do": "open_screen",
+              "screen": "credits"
+            }
+          ]
+        },
+        {
+          "id": "btn_quit",
+          "type": "button",
+          "text": "Quit",
+          "actions": [
+            {
+              "do": "quit",
+              "confirm": true
+            }
+          ],
+          "visible_if": [
+            {
+              "variable": "sys.ui.platform",
+              "operator": "not_equals",
+              "value": "web"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

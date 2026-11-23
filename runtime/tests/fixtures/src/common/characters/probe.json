@@ -1,0 +1,16 @@
+{
+  "$schema": "https://schemas.vnstudio.dev/specs-v1.0.0/character.schema.json",
+  "id": "01930000-0000-7000-8000-000000000001",
+  "key": "probe",
+  "name": "Probe",
+  "color": "#3a7bd5",
+  "expressions": {
+    "neutral": "char/probe/neutral",
+    "happy": "char/probe/happy",
+    "sad": "char/probe/sad"
+  },
+  "default_expression": "neutral",
+  "initial_values": {
+    "affection": 5
+  }
+}

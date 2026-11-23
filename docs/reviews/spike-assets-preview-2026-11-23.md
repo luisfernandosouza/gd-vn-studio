@@ -10,7 +10,7 @@ Data: 2026-11-23. Issue: #67 (M4-01). Refs: README das specs ("A conferir no pri
 
 ## O que foi medido
 
-Bancada em [`spikes/preview-web/`](../../spikes/preview-web/README.md) (pasta temporária do spike do Preview): um carregador mínimo em GDScript (`godot/vn_assets_spike.gd`) e o cenário na página que faz o papel do Studio (`harness/assets.js`).
+Bancada em [`spikes/preview-assets/`](../../spikes/preview-assets/README.md) (pasta temporária): um carregador mínimo em GDScript (`godot/vn_assets_spike.gd`) e o cenário na página que faz o papel do Studio (`harness/assets.js`).
 
 - **Assets** (`tools/make_assets.py`, sintéticos e fora do Git): 200 imagens de 1920 × 1080 com cara de fundo (gradiente, formas e ruído leve), sendo 140 PNG (3,3 MB em média, 461 MB no total), 40 JPG (0,28 MB) e 20 WebP (0,08 MB); 30 músicas de 3 min, 24 OGG Vorbis (2,2 MB) e 6 MP3 a 192 kbps (4,3 MB). Alguns nomes têm acento e espaço (`cenários/`, `praia à noite 007.png`, `tema da praia 05.ogg`).
 - **Caminhos como na D24:** o mapa de assets é o do bundle (`res://vn_content/assets/…`), e o carregador troca o prefixo por `assets_base` e codifica cada segmento (RFC 3986) antes de ler. Cada imagem tem um bloco de cor-marca que o runtime devolve depois de decodificar; todas as 200 vieram certas em todos os motores, inclusive as de nome acentuado.
