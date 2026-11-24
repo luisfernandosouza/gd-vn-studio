@@ -1,8 +1,31 @@
-extends RefCounted
-## Testes das bordas de VNValue (tarefa M1-02): DM §5.1, §6.1.1; RT §6.2, §12.1;
-## CV §3. Os valores esperados são os de docs/specs/tools/conformance.py.
+extends SceneTree
+## Testes unitários de VNValue e VNDecimal (tarefa M1-02).
+##
+##   godot --headless --path runtime --script res://tests/condition_evaluator/test_vn_value.gd
+##
+## Bordas do DM §5.1, §6.1.1; RT §6.2, §12.1; CV §3. Os valores esperados são os
+## de docs/specs/tools/conformance.py. Cada método test_* devolve "" quando
+## passa ou a descrição da falha. Sai com 1 se algo falhar.
 
 const MAX := VNValue.INT_MAX
+
+
+func _init() -> void:
+	var passed := 0
+	var failed := 0
+	for m in get_script().get_script_method_list():
+		var n: String = m.name
+		if not n.begins_with("test_"):
+			continue
+		var err: String = call(n)
+		if err.is_empty():
+			passed += 1
+			print("ok      ", n.trim_prefix("test_"))
+		else:
+			failed += 1
+			print("FALHOU  ", n.trim_prefix("test_"), ": ", err)
+	print("%d/%d testes de tipos e valores passaram." % [passed, passed + failed])
+	quit(1 if failed > 0 or passed == 0 else 0)
 
 
 static func I(i: int) -> VNEvalResult:
@@ -150,26 +173,38 @@ func test_min_max_clamp() -> String:
 
 # --- Literais e tipos declarados -------------------------------------------------
 
-func test_literais_do_json() -> String:
-	var parsed: Array = JSON.parse_string("[2, 2.5, -0.0, 9007199254740991, 9007199254740992, 1e+308, true, \"x\"]")
+func test_literais() -> String:
 	return _all([
-		_is("2", VNValue.from_literal(parsed[0]), [&"integer", 2]),
-		_is("2.5", VNValue.from_literal(parsed[1]), [&"number", 2.5]),
-		_is("-0.0", VNValue.from_literal(parsed[2]), [&"integer", 0]),
-		_is("limite", VNValue.from_literal(parsed[3]), [&"integer", MAX]),
-		_is("2^53 fica number", VNValue.from_literal(parsed[4]), [&"number", 9007199254740992.0]),
-		_is("1e308 fica number", VNValue.from_literal(parsed[5]), [&"number", 1e308]),
-		_is("true", VNValue.from_literal(parsed[6]), [&"boolean", true]),
-		_is("texto", VNValue.from_literal(parsed[7]), [&"string", "x"]),
-		_is("hint number", VNValue.from_literal(parsed[0], VNValue.NUMBER), [&"number", 2.0]),
+		_is("int", VNValue.from_literal(2), [&"integer", 2]),
+		_is("float inteiro fica number", VNValue.from_literal(10.0), [&"number", 10.0]),
+		_is("float", VNValue.from_literal(2.5), [&"number", 2.5]),
+		_is("true", VNValue.from_literal(true), [&"boolean", true]),
+		_is("texto", VNValue.from_literal("x"), [&"string", "x"]),
+		_is("StringName", VNValue.from_literal(&"x"), [&"string", "x"]),
+		_is("int do GDScript fora", VNValue.from_literal(MAX + 1), VNErrors.OUT_OF_RANGE),
+		_is("inf", VNValue.from_literal(INF), VNErrors.OUT_OF_RANGE),
+		_is("hint number", VNValue.from_literal(2, VNValue.NUMBER), [&"number", 2.0]),
+		_is("hint integer com float inteiro", VNValue.from_literal(30.0, VNValue.INTEGER), [&"integer", 30]),
 		_is("hint enum", VNValue.from_literal("noite", VNValue.ENUM), [&"enum", "noite"]),
 		_is("hint integer com fração", VNValue.from_literal(2.5, VNValue.INTEGER), VNErrors.TYPE_MISMATCH),
 		_is("hint integer fora", VNValue.from_literal(1e20, VNValue.INTEGER), VNErrors.OUT_OF_RANGE),
 		_is("hint boolean com número", VNValue.from_literal(1, VNValue.BOOLEAN), VNErrors.TYPE_MISMATCH),
-		_is("int do GDScript fora", VNValue.from_literal(MAX + 1), VNErrors.OUT_OF_RANGE),
-		_is("inf", VNValue.from_literal(INF), VNErrors.OUT_OF_RANGE),
+		_is("hint string com bool", VNValue.from_literal(true, VNValue.STRING), VNErrors.TYPE_MISMATCH),
 		_is("lista", VNValue.from_literal([1]), VNErrors.TYPE_MISMATCH),
 		_is("null", VNValue.from_literal(null), VNErrors.TYPE_MISMATCH),
+	])
+
+
+func test_literais_do_json_do_godot() -> String:
+	var parsed: Array = JSON.parse_string("[2, 2.5, -0.0, 9007199254740991, 9007199254740992, 1e+308]")
+	return _all([
+		_is("2", VNValue.from_literal(parsed[0], &"", true), [&"integer", 2]),
+		_is("2.5", VNValue.from_literal(parsed[1], &"", true), [&"number", 2.5]),
+		_is("-0.0", VNValue.from_literal(parsed[2], &"", true), [&"integer", 0]),
+		_is("limite", VNValue.from_literal(parsed[3], &"", true), [&"integer", MAX]),
+		_is("2^53 fica number", VNValue.from_literal(parsed[4], &"", true), [&"number", 9007199254740992.0]),
+		_is("1e308 fica number", VNValue.from_literal(parsed[5], &"", true), [&"number", 1e308]),
+		_is("hint number vence", VNValue.from_literal(parsed[0], VNValue.NUMBER, true), [&"number", 2.0]),
 	])
 
 

@@ -72,19 +72,20 @@ static func string(s: String) -> VNEvalResult:
 	return VNEvalResult.of(s, STRING)
 
 
-## Tipo de um literal do conteúdo (DM §6.1). O [code]JSON[/code] do Godot lê
-## todo número como [code]float[/code] (o JSON não distingue [code]2[/code] de
-## [code]2.0[/code], CV §2.1), então o tipo sai do valor:
-## [br]- [code]bool[/code] → [code]boolean[/code]; [code]String[/code]/[code]StringName[/code] → [code]string[/code];
-## [br]- [code]int[/code] → [code]integer[/code] (conferido);
-## [br]- [code]float[/code] com parte fracionária zero dentro de ±(2^53 − 1) →
-##   [code]integer[/code]; os demais → [code]number[/code] (conferido).
+## Tipo de um literal do conteúdo (DM §6.1), pelo tipo do Godot:
+## [code]bool[/code] → [code]boolean[/code]; [code]String[/code]/[code]StringName[/code] →
+## [code]string[/code]; [code]int[/code] → [code]integer[/code]; [code]float[/code] →
+## [code]number[/code] (conferidos). Serve para JSON lido por um leitor que
+## preserva inteiros (como o dos vetores, CV §2.1).
+## [br]O [code]JSON[/code] do Godot lê todo número como [code]float[/code]; para
+## esse caso passe [param integral_floats] verdadeiro, e um [code]float[/code]
+## com parte fracionária zero dentro de ±(2^53 − 1) vira [code]integer[/code].
 ## [br][param hint] força o tipo quando quem chama o conhece (o tipo da
-## variável comparada ou de destino): [code]number[/code] mantém
+## variável comparada ou de destino): [code]number[/code] converte para
 ## [code]float[/code], [code]integer[/code] exige valor inteiro e
 ## [code]enum[/code] marca o texto como enum. Literal incompatível com o
 ## [param hint] é [code]TYPE_MISMATCH[/code] (o validador barra antes, T001).
-static func from_literal(v: Variant, hint: StringName = &"") -> VNEvalResult:
+static func from_literal(v: Variant, hint: StringName = &"", integral_floats: bool = false) -> VNEvalResult:
 	match typeof(v):
 		TYPE_BOOL:
 			if hint != &"" and hint != BOOLEAN:
@@ -108,7 +109,7 @@ static func from_literal(v: Variant, hint: StringName = &"") -> VNEvalResult:
 				return number(x)
 			if hint != &"" and hint != INTEGER:
 				return _mismatch("literal numérico para %s" % hint)
-			if is_finite(x) and x == floorf(x) and absf(x) <= INT_MAX:
+			if (hint == INTEGER or integral_floats) and is_finite(x) and x == floorf(x) and absf(x) <= INT_MAX:
 				return VNEvalResult.of(int(x), INTEGER)
 			if hint == INTEGER:
 				if not is_finite(x) or x != floorf(x):
