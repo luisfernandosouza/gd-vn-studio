@@ -24,7 +24,9 @@ body,
 .app {
   display: grid;
   place-items: center;
-  height: 100%;
+  align-content: center;
+  gap: 16px;
+  min-height: 100%;
 }
 
 .app h1 {
