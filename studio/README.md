@@ -15,6 +15,17 @@ Os schemas e os presets não são copiados à mão para cá: o build do Studio o
 
 Só as aceitas no [README das specs](../docs/specs/README.md) (2026-11-14): React Flow, Zustand + Immer, Ajv, CodeMirror/Monaco. O esqueleto já usa Zustand + Immer para o estado (`src/state/`); as outras entram com as tarefas que precisam delas.
 
+## Project Manager (M6-01)
+
+`src/project-manager/` cria, abre e atualiza projetos (Data Model §2 e §12, spec 09 §3.4, Req §2):
+
+- **Novo projeto** grava a estrutura do Data Model §2, um arquivo por entidade: `project.json`, `variables.json`, `assets.json`, `plugins.json`, `plugin-lock.json`, `theme.json` (preset `classic`), um capítulo e uma cena inicial com UUIDv7, as pastas vazias e o `.gitignore` do Studio. O teste `validator.test.ts` roda `docs/specs/tools/validate.py` (também com `--export`) no projeto gerado em cada idioma do produto; na CI, a falta do Python com `jsonschema` é erro.
+- **Abrir** confere `format_version`: mesmo MAJOR abre (MINOR mais novo abre com aviso), MAJOR mais novo não abre, MAJOR mais velho mostra o plano de migração.
+- **Migrar** encadeia os migradores de `migrate.ts` (lista vazia no formato 1), mostra o diff, guarda uma cópia em `.vnstudio/backups/` e exige confirmação explícita quando a migração apaga dados.
+- **`.gitignore`**: o bloco `# Visual Novel Studio` é criado e mantido ao criar e ao abrir, sem mexer nas linhas do autor.
+
+O disco é acessado só pela interface `ProjectFs`: no app, os comandos `pm_*` de `src-tauri/src/project_fs.rs` (gravação atômica); nos testes, `MemoryFs`. O seletor de pasta usa `tauri-plugin-dialog`.
+
 ## Desenvolvimento
 
 Precisa de Node 22 e Rust estável, mais as [dependências do Tauri](https://v2.tauri.app/start/prerequisites/) do sistema (no Linux, WebKitGTK 4.1).
