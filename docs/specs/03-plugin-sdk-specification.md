@@ -231,7 +231,7 @@ Ordem garantida: `_vn_init` (todos os plugins, em ordem topológica de dependên
 ```gdscript
 class_name VNPluginContext
 var plugin_id: StringName          # "vnstudio.fishing"
-var namespace: StringName          # "fishing"
+var plugin_namespace: StringName   # "fishing" (`namespace` é palavra reservada do GDScript)
 var config: Dictionary             # config do projeto, já validada e com defaults
 var narrative: VNNarrativeAPI
 var characters: VNCharacterAPI     # characters.read
@@ -269,7 +269,7 @@ func reset(id: String) -> VNResult
 signal changed(changes: Array[Dictionary])           # só variáveis legíveis pelo plugin
 
 class_name VNTransaction
-func set(id: String, value: Variant) -> VNTransaction
+func set_value(id: String, value: Variant) -> VNTransaction   # não `set`: Object.set é nativo e não pode ser sobrescrito
 func add(id: String, amount: float) -> VNTransaction
 func subtract(id: String, amount: float) -> VNTransaction
 func toggle(id: String) -> VNTransaction
