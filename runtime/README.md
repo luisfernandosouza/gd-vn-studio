@@ -98,3 +98,17 @@ godot --headless --path runtime --script res://tests/contracts/test_contracts.gd
 A workflow [`runtime-contracts.yml`](../.github/workflows/runtime-contracts.yml) roda esse teste em todo pull request que toca `runtime/vn_runtime/` ou `runtime/tests/`.
 
 **Mudar um contrato** (a assinatura, um sinal ou uma constante de um arquivo de contrato ou de `core/`) é um pull request próprio, que atualiza o dublê e o teste de fumaça juntos e avisa as tarefas em andamento que usam o módulo. Uma tarefa que implementa um módulo não muda o contrato dele no mesmo pull request.
+
+## Testes unitários
+
+Cada tarefa põe os testes do seu módulo em `tests/unit/<módulo>/test_*.gd`: um script `extends RefCounted` cujos métodos `test_*` devolvem `""` quando passam ou a mensagem da falha. O executor acha todos sozinho, sem mudar a workflow [`runtime-unit.yml`](../.github/workflows/runtime-unit.yml):
+
+```bash
+godot --headless --path runtime --script res://tests/unit/run_unit_tests.gd
+```
+
+## Tipos e valores (M1-02)
+
+`vn_runtime/condition_evaluator/vn_value.gd` (`VNValue`) implementa a semântica de referência do RT §12.1 e do DM §5.1 e §6.1.1 sobre valores com tipo (`VNEvalResult` com `ok = true`): intervalo de inteiros ±(2^53 − 1) e `OUT_OF_RANGE`, aritmética com divisão e `mod` por zero, `round`/`floor`/`ceil`/`abs`/`min`/`max`/`clamp`, comparação de tipos (`1 = 1.0`, `enum` = `string`), conversão para texto do `concat` e o arredondamento sobre a representação decimal mais curta, base da formatação da interpolação. `vn_decimal.gd` (`VNDecimal`) calcula essa representação mais curta com aritmética exata, porque o `String.num_scientific` do Godot 4.7.2 erra o último dígito em alguns valores.
+
+O `JSON` do Godot lê todo número como `float`, então `VNValue.from_literal` tipa um literal pelo valor: parte fracionária zero dentro do intervalo vira `integer`, o resto `number`, salvo quando quem chama passa o tipo esperado (`hint`). `VNValue.typed` normaliza o valor de uma variável pelo tipo declarado.

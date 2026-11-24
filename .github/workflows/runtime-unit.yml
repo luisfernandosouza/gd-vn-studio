@@ -1,0 +1,53 @@
+# Testes unitários do runtime (a partir da tarefa M1-02).
+# Cada tarefa põe os testes em runtime/tests/unit/<módulo>/test_*.gd; o executor acha todos sozinho.
+name: Runtime unit tests
+
+on:
+  pull_request:
+    paths: [runtime/vn_runtime/**, runtime/tests/**, runtime/project.godot, .github/workflows/runtime-unit.yml]
+  push:
+    branches: [main]
+    paths: [runtime/vn_runtime/**, runtime/tests/**, runtime/project.godot, .github/workflows/runtime-unit.yml]
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: 4.7.2-stable
+
+jobs:
+  unit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Cache do Godot ${{ env.GODOT_VERSION }}
+        id: cache-godot
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/godot-bin
+          key: godot-${{ env.GODOT_VERSION }}-linux-x86_64
+      - name: Baixa o Godot ${{ env.GODOT_VERSION }}
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          url="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/godot.zip" "$url"
+          mkdir -p ~/.cache/godot-bin
+          unzip -q "$RUNNER_TEMP/godot.zip" -d ~/.cache/godot-bin
+      - name: Instala o Godot
+        run: |
+          set -euo pipefail
+          install -m 755 ~/.cache/godot-bin/"Godot_v${GODOT_VERSION}_linux.x86_64" /usr/local/bin/godot
+          godot --headless --version
+      - name: Importa o projeto
+        run: godot --headless --path runtime --import 2>&1 | tee "$RUNNER_TEMP/import.log"
+      - name: Testes unitários
+        run: |
+          set -euo pipefail
+          godot --headless --path runtime --script res://tests/unit/run_unit_tests.gd 2>&1 | tee "$RUNNER_TEMP/unit.log"
+      - name: Sem erros no log do Godot
+        run: |
+          # O Godot sai com 0 mesmo quando um script não compila; qualquer ERROR nos logs falha a CI.
+          if grep -hE '(^|[^A-Z_])(ERROR|SCRIPT ERROR):' "$RUNNER_TEMP"/{import,unit}.log; then
+            echo "::error title=Godot registrou erros::Os testes unitários e o código testado devem rodar sem erros."
+            exit 1
+          fi
