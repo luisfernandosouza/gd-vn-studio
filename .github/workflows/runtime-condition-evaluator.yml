@@ -1,0 +1,52 @@
+# Testes unitários de tipos e valores do Condition Evaluator (tarefa M1-02; RT §12.1, DM §6.1.1).
+name: Runtime condition evaluator
+
+on:
+  pull_request:
+    paths: [runtime/vn_runtime/condition_evaluator/**, runtime/vn_runtime/core/**, runtime/tests/condition_evaluator/**, runtime/project.godot, .github/workflows/runtime-condition-evaluator.yml]
+  push:
+    branches: [main]
+    paths: [runtime/vn_runtime/condition_evaluator/**, runtime/vn_runtime/core/**, runtime/tests/condition_evaluator/**, runtime/project.godot, .github/workflows/runtime-condition-evaluator.yml]
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: 4.7.2-stable
+
+jobs:
+  unit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Cache do Godot ${{ env.GODOT_VERSION }}
+        id: cache-godot
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/godot-bin
+          key: godot-${{ env.GODOT_VERSION }}-linux-x86_64
+      - name: Baixa o Godot ${{ env.GODOT_VERSION }}
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          url="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/godot.zip" "$url"
+          mkdir -p ~/.cache/godot-bin
+          unzip -q "$RUNNER_TEMP/godot.zip" -d ~/.cache/godot-bin
+      - name: Instala o Godot
+        run: |
+          set -euo pipefail
+          install -m 755 ~/.cache/godot-bin/"Godot_v${GODOT_VERSION}_linux.x86_64" /usr/local/bin/godot
+          godot --headless --version
+      - name: Importa o projeto
+        run: godot --headless --path runtime --import 2>&1 | tee "$RUNNER_TEMP/import.log"
+      - name: Testes de tipos e valores
+        run: |
+          set -euo pipefail
+          godot --headless --path runtime --script res://tests/condition_evaluator/test_vn_value.gd 2>&1 | tee "$RUNNER_TEMP/unit.log"
+      - name: Sem erros no log do Godot
+        run: |
+          # O Godot sai com 0 mesmo quando um script não compila; qualquer ERROR nos logs falha a CI.
+          if grep -hE '(^|[^A-Z_])(ERROR|SCRIPT ERROR):' "$RUNNER_TEMP"/{import,unit}.log; then
+            echo "::error title=Godot registrou erros::VNValue e os testes devem rodar sem erros (M1-02)."
+            exit 1
+          fi
