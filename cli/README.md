@@ -14,3 +14,24 @@ npm run build -w @vnstudio/cli               # gera cli/dist/
 node cli/dist/bin/vnstudio.js info docs/specs/examples/demo-project
 npm test -w @vnstudio/cli                    # Vitest
 ```
+
+## Compilador do bundle (`src/bundle/`, M5-02)
+
+Porte em TypeScript de `docs/specs/tools/compile_bundle.py` ([Build System §5.1](../docs/specs/05-build-system-specification.md)): gera a forma canônica do RT §2 (`bundle.json` com o `content_hash`, `locales/<idioma>.json`, `plugins.json` e `licenses.json`), com os defaults resolvidos, o preset aplicado, a galeria resolvida, a edição censurada e o `plugins.json` a partir do lock. Para o mesmo projeto, os bytes são os mesmos da referência.
+
+| Módulo | O que faz | Node? |
+|---|---|---|
+| `jcs.ts` | JSON canônico (RFC 8785) | não |
+| `hash.ts` | SHA-256, HMAC-SHA256, `sha256-<base64>`, assinatura de saves (BS §8.3) | não |
+| `compile.ts` | compilação, uma função por entidade (cena, capítulo, tela, asset…) | não |
+| `incremental.ts` | `planReload`/`applyPatch`: patches do `preview.reload` (Preview Protocol §3) | não |
+| `load.ts`, `write.ts` | leitura do projeto e gravação do bundle | sim |
+
+Os módulos puros servem também ao Studio (WebView). O compilador não valida: quem chama roda o validador antes (M5-01) e para em erro, como a referência.
+
+```ts
+import { compileProject, loadProject, writeBundle } from './bundle/index.js';
+writeBundle('out', compileProject(loadProject('docs/specs/examples/demo-project', { pluginDirs: ['docs/specs/examples/fishing-plugin'] })));
+```
+
+Os testes conferem os 7 vetores de `conformance/canonical.json`, os 8 de `conformance/compile/cases.json`, a equivalência incremental em cada vetor e a igualdade byte a byte com `compile_bundle.py` (exemplo das specs nas duas edições e os 8 vetores; precisa de `python3`, sem `jsonschema`).
