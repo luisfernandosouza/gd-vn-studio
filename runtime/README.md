@@ -53,7 +53,7 @@ O executor aceita a pasta `docs/specs/conformance/` (os `*.json` do primeiro ní
 
 ### Como o executor monta cada caso (M1-01)
 
-- **Números.** O `JSON` do Godot lê todo número como `float`; o executor usa `VNCaseJson`, que devolve `int` para literais sem fração nem expoente, porque `2` e `2.0` têm tipos diferentes nos vetores (spec 08 §2.1). A comparação segue a de `tools/conformance.py`: float confere com número por valor, inteiro com inteiro, booleano nunca é número.
+- **Números.** O `JSON` do Godot lê todo número como `float` (e erra o último bit de alguns); o executor usa `VNCaseJson`, que lê os `float` com arredondamento correto (`VNCanonicalJson.parse_number`) e devolve `int` para literais sem fração nem expoente, porque `2` e `2.0` têm tipos diferentes nos vetores (spec 08 §2.1). A comparação segue a de `tools/conformance.py`: float confere com número por valor, inteiro com inteiro, booleano nunca é número.
 - **Módulos reais.** Toda classe com `class_name`, não abstrata, em `vn_runtime/`, que estende um contrato do M0-07 é a implementação real dele (`VNCaseModules.discover()`). O executor monta um `VNModules` com os dublês e põe os reais por cima, e o cabeçalho da saída diz quais achou. Quem implementa um módulo não mexe no executor: os casos que dependem dele deixam de ser pulados sozinhos.
 - **Estado mínimo.** Um bundle mínimo com os padrões do compilador (variáveis do caso como `VariableDefinition`, capítulo e cenas com `scheduler`, `completion`, `scheduling` e `start` resolvidos) vai para `load_bundle()` de todos os módulos; depois `reset_game()` e os valores do caso. O Narrative Engine fica dublê nos casos sem cena inteira, só para dar capítulo e fase.
 - **Pulados.** Um caso é pulado, nunca passado, quando falta a implementação real de um módulo de que ele depende:
@@ -64,7 +64,8 @@ O executor aceita a pasta `docs/specs/conformance/` (os `*.json` do primeiro ní
   | `effects` | `VNStateManager.apply_effects()` (com o Condition Evaluator); com erro, confere também que nada mudou | M1-06 |
   | `selection` | `VNSceneScheduler.select()` (com o Condition Evaluator) | M1-10; o caso `weighted` também espera o contrato do estado do RNG (M1-08) |
   | `flow` | Narrative Engine e o traço da spec 07 §4.2 | M1-12 (integração do núcleo) |
-  | `text`, `rng`, `canonical`, `hmac`, `record` | sem contrato no M0-07 | M1-07, M1-08, M2-10, M3-06: a tarefa cria o adaptador dela em `tests/conformance/adapters/` e tira o `kind` de `pending_adapter.gd` |
+  | `canonical`, `hmac` | `VNCanonicalJson` (`vn_runtime/save_manager/`), sem depender de módulo | nunca pulado (M2-10) |
+  | `text`, `rng`, `record` | sem contrato no M0-07 | M1-07, M1-08, M3-06: a tarefa cria o adaptador dela em `tests/conformance/adapters/` e tira o `kind` de `pending_adapter.gd` |
 
   Um `kind` sem adaptador é falha, não pulado: caso novo só entra com o executor pronto para ele (spec 08 §4).
 
