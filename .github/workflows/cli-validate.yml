@@ -1,0 +1,63 @@
+# Validador de conteúdo em TypeScript (tarefa M5-01, Req §14): paridade com docs/specs/tools/validate.py.
+# cli/scripts/validate_parity.py monta os 143 casos de test_validate.py e o exemplo sem alterações, e grava
+# o que validate.py acusa; o Vitest roda o validador da CLI nas mesmas pastas e compara (parity.test.ts).
+name: Validador da CLI
+
+on:
+  pull_request:
+    paths:
+      - package.json
+      - package-lock.json
+      - docs/specs/schemas/**
+      - docs/specs/presets/**
+      - docs/specs/examples/**
+      - docs/specs/tools/validate.py
+      - docs/specs/tools/test_validate.py
+      - cli/**
+      - .github/workflows/cli-validate.yml
+  push:
+    branches: [main]
+    paths:
+      - package.json
+      - package-lock.json
+      - docs/specs/schemas/**
+      - docs/specs/presets/**
+      - docs/specs/examples/**
+      - docs/specs/tools/validate.py
+      - docs/specs/tools/test_validate.py
+      - cli/**
+      - .github/workflows/cli-validate.yml
+  workflow_dispatch:
+
+concurrency:
+  group: cli-validate-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  parity:
+    name: Mesmo resultado que validate.py nos 144 casos
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -q 'jsonschema>=4.18'
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Casos de test_validate.py com o validador de referência
+        run: python cli/scripts/validate_parity.py "$RUNNER_TEMP/parity"
+      - name: Validador TypeScript nos mesmos casos
+        run: npx vitest run src/validate
+        working-directory: cli
+        env:
+          VN_PARITY_MANIFEST: ${{ runner.temp }}/parity/manifest.json
+          VN_PARITY_REQUIRED: '1'
+      - name: vnstudio validate no projeto de exemplo
+        run: |
+          npm run build -w @vnstudio/cli
+          node cli/dist/bin/vnstudio.js validate docs/specs/examples/demo-project docs/specs/examples/fishing-plugin
+          node cli/dist/bin/vnstudio.js validate --export docs/specs/examples/demo-project docs/specs/examples/fishing-plugin

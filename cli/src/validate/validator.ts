@@ -209,7 +209,7 @@ const union = <T>(...sets: Iterable<T>[]): Set<T> => {
 export function validateProject(root: string, pluginDirsIn: string[] = [], opts: ValidateOptions = {}): ValidationResult {
   const EXPORT = !!opts.export;
   const specs = findSpecs(opts.specsDir);
-  const schemas = new Schemas(specs);
+  const schemas = schemasFor(specs.schemas, () => new Schemas(specs));
   const PRESETS = specs.presets;
   const errors: Diagnostic[] = [];
   const warnings: Diagnostic[] = [];
@@ -1482,6 +1482,14 @@ export function validateProject(root: string, pluginDirsIn: string[] = [], opts:
       }
     }
   }
+}
+
+const SCHEMA_CACHE = new Map<string, Schemas>();
+/** Os schemas compilados ficam em cache por pasta: compilar todos leva centenas de milissegundos. */
+function schemasFor(dir: string, make: () => Schemas): Schemas {
+  let s = SCHEMA_CACHE.get(dir);
+  if (!s) SCHEMA_CACHE.set(dir, (s = make()));
+  return s;
 }
 
 /** Pastas imediatas de `dir`, na ordem de `sorted()` do Python. */

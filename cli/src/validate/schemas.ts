@@ -106,7 +106,7 @@ function message(e: ErrorObject): string {
     case 'oneOf':
       return p.passingSchemas ? 'corresponde a mais de uma das formas aceitas' : 'não corresponde a nenhuma das formas aceitas';
     case 'not':
-      return 'tem uma forma que não é aceita aqui';
+      return `${short(e.data)} não é aceito aqui (valor reservado ou proibido)`;
     case 'false schema':
       return 'este campo não é aceito aqui';
     case 'contains':
