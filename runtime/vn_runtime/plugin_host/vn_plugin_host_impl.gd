@@ -50,6 +50,7 @@ signal plugin_load_failed(plugin: StringName, error: String)
 
 const Semver := preload("res://vn_runtime/plugin_host/vn_plugin_semver.gd")
 const ErrorLogger := preload("res://vn_runtime/plugin_host/vn_plugin_error_logger.gd")
+const HostBridge := preload("res://vn_runtime/plugin_host/vn_plugin_host_bridge.gd")
 
 ## Versão do runtime, conferida contra [code]compatibility.runtime[/code].
 const RUNTIME_VERSION := "1.0.0"
@@ -71,17 +72,18 @@ var plugins_root := "res://vn_plugins/"
 ## Monta o contexto passado a [code]_vn_init[/code]:
 ## [code]func(host: VNPluginHostImpl, info: Dictionary) -> Object[/code], com
 ## [code]info = { id, namespace, version, trust, config, capabilities }[/code].
-## Vazio: usa o [code]VNPluginContext[/code] do Runtime SDK se a classe existir
-## no projeto (só com os campos de identidade e [code]config[/code]; os
-## serviços são da M3-02), senão um contexto mínimo com os mesmos campos.
+## Vazio: usa [code]VNPluginContext.create(bridge, id, namespace, config)[/code]
+## do Runtime SDK com a ponte de [method make_sdk_bridge], se o addon estiver no
+## projeto; senão, um contexto mínimo só com identidade e configuração.
 var context_factory: Callable
 
 ## Cria o [code]VNActivityHandle[/code] de uma atividade:
 ## [code]func(host: VNPluginHostImpl, activity: Dictionary) -> Object[/code],
 ## com [code]activity = { activity, mode, params, skippable }[/code]. O handle
 ## termina a atividade com [method complete_activity] ou [method fail_activity]
-## e responde [code]is_active()[/code] com [method is_activity_active]. Sem
-## fábrica (Runtime SDK ausente), [method start_activity] recusa.
+## e responde [code]is_active()[/code] com [method is_activity_active]. Vazio:
+## usa o [code]VNActivityHandle[/code] do Runtime SDK, se o addon estiver no
+## projeto; sem ele, [method start_activity] recusa.
 var handle_factory: Callable
 
 var _plugins: Dictionary = {}          # namespace → registro (ver _new_record)
@@ -98,6 +100,32 @@ var _container: Node = null
 var _parent: Node = null
 var _init_ns: StringName = &""         # plugin em _vn_init (erro de script = falha de carga)
 var _init_failed := false
+var _sdk_scripts: Dictionary = {}       # class_name → Script ou null
+var _adapter_script: GDScript = null
+
+## Subclasse de VNPluginBridge que repassa tudo para vn_plugin_host_bridge.gd.
+const _ADAPTER_SOURCE := """extends VNPluginBridge
+var _core
+func _bind(core) -> void:
+	_core = core
+	_core.state_changed.connect(func(c): state_changed.emit(c))
+func has_capability(capability: StringName) -> bool: return _core.has_capability(capability)
+func can_read_variable(variable: String) -> bool: return _core.can_read_variable(variable)
+func can_emit(event_name: String) -> bool: return _core.can_emit(event_name)
+func can_subscribe(pattern: String) -> bool: return _core.can_subscribe(pattern)
+func can_request_scene(scene_id: String) -> bool: return _core.can_request_scene(scene_id)
+func permission_denied(capability: StringName, call: String) -> void: _core.permission_denied(capability, call)
+func report_error(error: StringName, message: String) -> void: _core.report_error(error, message)
+func write_log(level: StringName, message: String) -> void: _core.write_log(level, message)
+func variable_exists(variable: String) -> bool: return _core.variable_exists(variable)
+func read_value(variable: String, fallback: Variant = null) -> Variant: return _core.read_value(variable, fallback)
+func get_definition(variable: String) -> Dictionary: return _core.get_definition(variable)
+func commit(ops: Array[Dictionary], expectations: Array[Dictionary]) -> VNResult: return _core.commit(ops, expectations)
+func emit_event(name: String, payload: Dictionary) -> VNResult: return _core.emit_event(name, payload)
+func subscribe(pattern: String, callback: Callable) -> int: return _core.subscribe(pattern, callback)
+func unsubscribe(subscription_id: int) -> void: _core.unsubscribe(subscription_id)
+func request_scene(scene_id: String) -> VNResult: return _core.request_scene(scene_id)
+"""
 
 
 # --- Módulo ------------------------------------------------------------------
@@ -476,7 +504,7 @@ func start_activity(activity: StringName, params: Dictionary, mode: StringName =
 		return VNResult.failure(VNErrors.INVALID_STATE, "atividade não declarada: %s" % full)
 	if mode == MODE_FREE_PLAY and not decl.has("free_play"):
 		return VNResult.failure(VNErrors.INVALID_STATE, "atividade sem free_play: %s" % full)
-	if not handle_factory.is_valid():
+	if not handle_factory.is_valid() and _sdk_script(&"VNActivityHandle") == null:
 		return VNResult.failure(VNErrors.INVALID_STATE, "Runtime SDK ausente: sem VNActivityHandle")
 	_activity_token += 1
 	_activity = {
@@ -485,7 +513,7 @@ func start_activity(activity: StringName, params: Dictionary, mode: StringName =
 		"plugin": ns, "id": StringName(act), "token": _activity_token,
 		"outcomes": decl.get("outcomes", []), "default_outcome": decl.get("default_outcome", ""),
 	}
-	var handle = handle_factory.call(self, current_activity())
+	var handle = handle_factory.call(self, current_activity()) if handle_factory.is_valid() else _sdk_handle(ns, StringName(act), params, mode)
 	if _activity.get("token", -1) == _activity_token:
 		_activity.handle = handle
 	var token := _activity_token
@@ -503,6 +531,7 @@ func cancel_activity(status: StringName) -> void:
 	_activity = {}  # o handle fica inativo antes de _vn_cancel_activity (SDK §6)
 	if status == STATUS_FAILED:
 		report_error(act.plugin, "timeout da atividade %s" % act.activity)
+	_close_handle(act.get("handle"))
 	_invoke(act.plugin, &"_vn_cancel_activity", [act.get("handle")])
 	var outcome := StringName(act.default_outcome) if status == STATUS_SKIPPED else &""
 	activity_ended.emit(status, outcome, {})
@@ -774,19 +803,72 @@ func _make_context(rec: Dictionary) -> Object:
 	}
 	if context_factory.is_valid():
 		return context_factory.call(self, info)
-	var ctx: Object = null
+	var ctx_script := _sdk_script(&"VNPluginContext")
+	var bridge := make_sdk_bridge(info.namespace)
+	if ctx_script != null and bridge != null:
+		return ctx_script.call(&"create", bridge, info.id, info.namespace, info.config)
+	var ctx := BasicContext.new()
+	ctx.plugin_id = info.id
+	ctx.plugin_namespace = info.namespace
+	ctx.config = info.config
+	return ctx
+
+
+## A [code]VNPluginBridge[/code] do Runtime SDK para o plugin, ligada aos
+## módulos do M0-07 por [code]vn_plugin_host_bridge.gd[/code]; [code]null[/code]
+## se o addon não está no projeto. Enquanto o addon não entra no runtime
+## (integração), a subclasse de [code]VNPluginBridge[/code] é um adaptador
+## compilado aqui, que só repassa as chamadas; o código da ponte é o do arquivo.
+func make_sdk_bridge(plugin: StringName) -> Object:
+	if _sdk_script(&"VNPluginBridge") == null:
+		return null
+	if _adapter_script == null:
+		var s := GDScript.new()
+		s.source_code = _ADAPTER_SOURCE
+		if s.reload() != OK:
+			push_warning("[vn_plugin] adaptador da VNPluginBridge não compilou")
+			return null
+		_adapter_script = s
+	var core := HostBridge.new(self, plugin)
+	var bridge: Object = _adapter_script.new()
+	bridge.call(&"_bind", core)
+	return bridge
+
+
+## Script de uma classe global do Runtime SDK, ou [code]null[/code] se o addon
+## não está no projeto.
+func _sdk_script(cls_name: StringName) -> Script:
+	if _sdk_scripts.has(cls_name):
+		return _sdk_scripts[cls_name]
+	var found: Script = null
 	for cls in ProjectSettings.get_global_class_list():
-		if cls.get("class", &"") == &"VNPluginContext":
+		if cls.get("class", &"") == cls_name:
 			var s = load(cls.path)
 			if s is Script and (s as Script).can_instantiate():
-				ctx = (s as Script).new()
+				found = s
 			break
-	if ctx == null:
-		ctx = BasicContext.new()
-	for key in [["plugin_id", info.id], ["namespace", info.namespace], ["plugin_namespace", info.namespace], ["config", info.config]]:
-		if key[0] in ctx:
-			ctx.set(key[0], key[1])
-	return ctx
+	_sdk_scripts[cls_name] = found
+	return found
+
+
+func _sdk_handle(ns: StringName, act: StringName, params: Dictionary, mode: StringName) -> Object:
+	var token := _activity_token
+	var on_finish := func(status: StringName, outcome: StringName, payload: Dictionary, reason: String) -> void:
+		if status == STATUS_COMPLETED:
+			complete_activity(token, outcome, payload)
+		else:
+			fail_activity(token, reason)
+	var rec: Dictionary = _plugins.get(String(ns), {})
+	var ctx = rec.get("context")
+	var bridge = null
+	if ctx != null and "narrative" in ctx and ctx.narrative != null:
+		bridge = ctx.narrative.get(&"_bridge")
+	return _sdk_script(&"VNActivityHandle").new(act, params, mode, null, on_finish, bridge)
+
+
+func _close_handle(handle: Variant) -> void:
+	if handle is Object and is_instance_valid(handle) and (handle as Object).has_method(&"close"):
+		(handle as Object).call(&"close")
 
 
 func _fail(ns: String, error: String) -> void:
@@ -890,6 +972,7 @@ func _set_faulted(plugin: StringName, error: String) -> void:
 	if not _activity.is_empty() and _activity.plugin == plugin:
 		var act := _activity
 		_activity = {}
+		_close_handle(act.get("handle"))
 		_invoke(plugin, &"_vn_cancel_activity", [act.get("handle")], true)
 		activity_ended.emit(STATUS_FAILED, &"", {})
 	plugin_faulted.emit(plugin, error)

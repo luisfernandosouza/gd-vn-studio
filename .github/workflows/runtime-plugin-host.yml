@@ -5,10 +5,10 @@ name: Runtime plugin host
 
 on:
   pull_request:
-    paths: [runtime/vn_runtime/**, runtime/tests/plugin_host/**, runtime/tests/fakes/**, runtime/project.godot, .github/workflows/runtime-plugin-host.yml]
+    paths: [runtime/vn_runtime/**, runtime/tests/plugin_host/**, runtime/tests/fakes/**, runtime/tests/fixtures/src/projects/activity/**, runtime/project.godot, sdk/runtime/addons/**, .github/workflows/runtime-plugin-host.yml]
   push:
     branches: [main]
-    paths: [runtime/vn_runtime/**, runtime/tests/plugin_host/**, runtime/tests/fakes/**, runtime/project.godot, .github/workflows/runtime-plugin-host.yml]
+    paths: [runtime/vn_runtime/**, runtime/tests/plugin_host/**, runtime/tests/fakes/**, runtime/tests/fixtures/src/projects/activity/**, runtime/project.godot, sdk/runtime/addons/**, .github/workflows/runtime-plugin-host.yml]
   workflow_dispatch:
 
 env:
@@ -53,3 +53,18 @@ jobs:
           godot --headless --path runtime --script res://tests/plugin_host/test_plugin_host.gd 2>&1 | tee "$RUNNER_TEMP/plugin_host.log"
           grep -q "testes do Plugin Host passaram" "$RUNNER_TEMP/plugin_host.log"
           if grep -E '^FALHOU' "$RUNNER_TEMP/plugin_host.log"; then exit 1; fi
+      - name: Copia o Runtime SDK para o runtime (sem a cópia de VNResult)
+        # O addon entra no projeto do runtime na integração; até lá, só este teste o copia.
+        run: |
+          set -euo pipefail
+          mkdir -p runtime/addons
+          cp -r sdk/runtime/addons/vn_runtime_sdk runtime/addons/
+          rm runtime/addons/vn_runtime_sdk/vn_result.gd*
+          godot --headless --path runtime --import 2>&1 | tee "$RUNNER_TEMP/import_sdk.log"
+          if grep -hE '(^|[^A-Z_])(ERROR|SCRIPT ERROR):' "$RUNNER_TEMP/import_sdk.log"; then exit 1; fi
+      - name: Testes do Plugin Host com o Runtime SDK
+        run: |
+          set -euo pipefail
+          godot --headless --path runtime --script res://tests/plugin_host/test_plugin_host_sdk.gd 2>&1 | tee "$RUNNER_TEMP/plugin_host_sdk.log"
+          grep -q "testes do Plugin Host com o SDK passaram" "$RUNNER_TEMP/plugin_host_sdk.log"
+          if grep -E '^FALHOU' "$RUNNER_TEMP/plugin_host_sdk.log"; then exit 1; fi

@@ -30,7 +30,9 @@ func _init() -> void:
 
 func _run(test: String) -> void:
 	_log().clear()
-	var err: String = call("test_" + test)
+	var ret: Variant = call("test_" + test)
+	# Um erro de script no meio do teste devolve null: conta como falha.
+	var err: String = ret if ret is String else "o teste parou num erro de script"
 	if err.is_empty():
 		_passed += 1
 		print("ok      ", test)
@@ -478,8 +480,8 @@ func test_atividade_basica() -> String:
 	h.load_plugins(_bundle([_plugin("game")]))
 	var ended := []
 	h.activity_ended.connect(func(s, o, p): ended.append([s, o, p]))
-	if h.start_activity(&"game.game", {}).ok:
-		return "sem handle_factory deveria recusar"
+	if h.make_sdk_bridge(&"game") == null and h.start_activity(&"game.game", {}).ok:
+		return "sem handle_factory e sem o addon deveria recusar"
 	h.handle_factory = func(host, _a):
 		var hd := TestHandle.new()
 		hd.host = host
