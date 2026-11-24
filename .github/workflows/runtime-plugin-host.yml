@@ -1,0 +1,55 @@
+# Testes do Plugin Host (tarefa M3-01; Plugin SDK §4, §5.1; RT §3.0, §9).
+# Os plugins de teste são gravados em user:// pelo próprio teste; alguns provocam erros de
+# script de propósito, então o log tem "SCRIPT ERROR" e o resultado é o código de saída.
+name: Runtime plugin host
+
+on:
+  pull_request:
+    paths: [runtime/vn_runtime/**, runtime/tests/plugin_host/**, runtime/tests/fakes/**, runtime/project.godot, .github/workflows/runtime-plugin-host.yml]
+  push:
+    branches: [main]
+    paths: [runtime/vn_runtime/**, runtime/tests/plugin_host/**, runtime/tests/fakes/**, runtime/project.godot, .github/workflows/runtime-plugin-host.yml]
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: 4.7.2-stable
+
+jobs:
+  plugin-host:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Cache do Godot ${{ env.GODOT_VERSION }}
+        id: cache-godot
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/godot-bin
+          key: godot-${{ env.GODOT_VERSION }}-linux-x86_64
+      - name: Baixa o Godot ${{ env.GODOT_VERSION }}
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          url="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/godot.zip" "$url"
+          mkdir -p ~/.cache/godot-bin
+          unzip -q "$RUNNER_TEMP/godot.zip" -d ~/.cache/godot-bin
+      - name: Instala o Godot
+        run: |
+          set -euo pipefail
+          install -m 755 ~/.cache/godot-bin/"Godot_v${GODOT_VERSION}_linux.x86_64" /usr/local/bin/godot
+          godot --headless --version
+      - name: Importa o projeto
+        run: godot --headless --path runtime --import 2>&1 | tee "$RUNNER_TEMP/import.log"
+      - name: Sem erros no import
+        run: |
+          if grep -hE '(^|[^A-Z_])(ERROR|SCRIPT ERROR):' "$RUNNER_TEMP/import.log"; then
+            echo "::error title=Godot registrou erros::O Plugin Host e os testes devem compilar sem erros."
+            exit 1
+          fi
+      - name: Testes do Plugin Host
+        run: |
+          set -euo pipefail
+          godot --headless --path runtime --script res://tests/plugin_host/test_plugin_host.gd 2>&1 | tee "$RUNNER_TEMP/plugin_host.log"
+          grep -q "testes do Plugin Host passaram" "$RUNNER_TEMP/plugin_host.log"
+          if grep -E '^FALHOU' "$RUNNER_TEMP/plugin_host.log"; then exit 1; fi
