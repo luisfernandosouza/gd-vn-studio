@@ -5,7 +5,8 @@ Runtime das visual novels: projeto Godot 4.7.2 + GDScript ([Runtime Spec](../doc
 | Caminho | Conteúdo |
 |---|---|
 | `project.godot` | Projeto Godot: resolução base 1920×1080, `stretch_mode = canvas_items`, `stretch_aspect = expand` (RT §1.1), ações de input `vn_*` (RT §10.1), cena principal `res://vn_runtime/boot.tscn`. No build, o Build System gera um `project.godot` novo a partir deste (BS §4.3) |
-| `vn_runtime/boot.tscn`, `boot.gd` | Cena de boot. Por enquanto só despacha `--vn-test` para o executor de testes; o boot do RT §3.0 entra com o Narrative Engine |
+| `vn_runtime/boot.tscn`, `boot.gd` | Cena de boot: despacha `--vn-test`, lê `--vn-bundle` e `--vn-fakes` e roda o boot do RT §3.0 (ver [Boot](#boot)) |
+| `vn_runtime/boot/` | Boot (M2-01): leitor do bundle em JSON e `.vnb`, JSON canônico (JCS), constantes do build, sequência do RT §3.0 e tela dos erros fatais G001/G002 |
 | `vn_runtime/` | Narrative Engine, Scheduler, State Manager, UI Manager… |
 | `vn_runtime/presets/` | Cópia gerada de `docs/specs/presets/` + fontes embutidas em `fonts/` (os ids `preset/font_*`); fora do Git e nunca editada à mão |
 | `vn_runtime/licenses/` | Gerada: licenças do runtime (MIT), do Godot e das bibliotecas dele, e a OFL de cada fonte do preset, com o índice `index.json` ([Build System §4.5](../docs/specs/05-build-system-specification.md)); fora do Git |
@@ -52,6 +53,29 @@ O executor aceita a pasta `docs/specs/conformance/` (os `*.json` do primeiro ní
 A workflow [`runtime.yml`](../.github/workflows/runtime.yml) roda esses três comandos, com o Godot em cache, e a referência `tools/conformance.py` em todo pull request que toca `runtime/` ou `docs/specs/conformance/` (spec 08 §4). O runner Web entra com a tarefa M4-03.
 
 As ações `vn_*` em `project.godot` seguem a tabela do RT §10.1. Para mudar uma ação, edite pelo editor do Godot (Projeto → Configurações do Projeto → Mapa de Entrada) e mantenha `device = -1` (todos os dispositivos).
+
+## Boot
+
+`vn_runtime/boot/` implementa o RT §3.0 sobre o registro `VNModules`:
+
+| Arquivo | Classe | O que faz |
+|---|---|---|
+| `vn_canonical_json.gd` | `VNCanonicalJSON` | JCS (RFC 8785), `content_hash`, SHA-256 em SRI e o HMAC de saves e perfil (BS §5.1, §8.3). Conferido por `conformance/canonical.json` e por `tests/boot/numbers.json` |
+| `vn_build_config.gd` | `VNBuildConfig` | Constantes de `res://vn_runtime/build_config.gd` (BS §4.4); sem ele, os padrões de desenvolvimento e a chave de debug |
+| `vn_bundle_loader.gd` | `VNBundleLoader` | Lê `res://vn_content/` ou a pasta de `--vn-bundle`: a forma canônica em JSON (só debug e editor) ou os `.vnb` (zstd, AES-256-CBC), confere `format_version`, hashes e caminhos de asset; erros G001/G002 |
+| `vn_boot.gd` | `VNBoot` | Os passos 1 a 6: settings, bundle, idioma, perfil (G006 no título), plugins, `sys.locale`/`sys.ui.*`, pergunta da primeira abertura e título. Repassa o modo stream, os volumes e o modo de tela quando a configuração muda |
+| `vn_boot_messages.gd`, `vn_fatal_screen.gd` | `VNBootMessages`, `VNFatalScreen` | Mensagens `runtime/message/g00N` e a tela do erro fatal, sem tema nem UI Manager |
+
+Enquanto os módulos reais não existem (integrações M1-12 e M2-16), o boot sem opções só lê e confere o bundle. Com `--vn-fakes` (debug, com `tests/`), ele usa os dublês e chega ao título:
+
+```bash
+python3 runtime/tests/fixtures/generate.py
+godot --headless --path runtime --import
+godot --headless --path runtime --script res://tests/boot/test_boot.gd
+godot --headless --path runtime --quit -- --vn-fakes --vn-bundle res://tests/fixtures/bundles/dialogue/
+```
+
+A workflow [`runtime-boot.yml`](../.github/workflows/runtime-boot.yml) roda esses comandos. O leitor de JSON do Godot pode errar o último bit de números com mais de 17 dígitos; por isso o `content_hash` é conferido sobre o texto do bundle (que o compilador grava já canônico) e só cai no JCS dos valores quando o texto não está na forma canônica.
 
 ## Contratos dos módulos
 
