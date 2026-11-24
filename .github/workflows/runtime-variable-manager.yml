@@ -1,0 +1,53 @@
+# Testes unitários do Variable Manager (tarefa M1-05; DM §4.1–§4.6, RT §6.5, §8.2–§8.4).
+# O módulo real roda contra os dublês dos outros módulos (M0-07).
+name: Runtime variable manager
+
+on:
+  pull_request:
+    paths: [runtime/vn_runtime/variable_manager/**, runtime/vn_runtime/core/**, runtime/tests/variable_manager/**, runtime/tests/fakes/**, runtime/project.godot, .github/workflows/runtime-variable-manager.yml]
+  push:
+    branches: [main]
+    paths: [runtime/vn_runtime/variable_manager/**, runtime/vn_runtime/core/**, runtime/tests/variable_manager/**, runtime/tests/fakes/**, runtime/project.godot, .github/workflows/runtime-variable-manager.yml]
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: 4.7.2-stable
+
+jobs:
+  variable-manager:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Cache do Godot ${{ env.GODOT_VERSION }}
+        id: cache-godot
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/godot-bin
+          key: godot-${{ env.GODOT_VERSION }}-linux-x86_64
+      - name: Baixa o Godot ${{ env.GODOT_VERSION }}
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          url="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/godot.zip" "$url"
+          mkdir -p ~/.cache/godot-bin
+          unzip -q "$RUNNER_TEMP/godot.zip" -d ~/.cache/godot-bin
+      - name: Instala o Godot
+        run: |
+          set -euo pipefail
+          install -m 755 ~/.cache/godot-bin/"Godot_v${GODOT_VERSION}_linux.x86_64" /usr/local/bin/godot
+          godot --headless --version
+      - name: Importa o projeto
+        run: godot --headless --path runtime --import 2>&1 | tee "$RUNNER_TEMP/import.log"
+      - name: Testes unitários do Variable Manager
+        run: |
+          set -euo pipefail
+          godot --headless --path runtime --script res://tests/variable_manager/test_variable_manager.gd 2>&1 | tee "$RUNNER_TEMP/unit.log"
+      - name: Sem erros no log do Godot
+        run: |
+          # O Godot sai com 0 mesmo quando um script não compila; qualquer ERROR nos logs falha a CI.
+          if grep -hE '(^|[^A-Z_])(ERROR|SCRIPT ERROR):' "$RUNNER_TEMP"/{import,unit}.log; then
+            echo "::error title=Godot registrou erros::O Variable Manager e os testes devem rodar sem erros no log (M1-05)."
+            exit 1
+          fi

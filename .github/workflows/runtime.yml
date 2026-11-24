@@ -1,7 +1,8 @@
 # CI do runtime (tarefa M0-04): Godot 4.7.2 headless, com cache do binário (Build System §2.1).
 # 1. O projeto runtime/ importa e abre sem erros (tarefa M0-02).
 # 2. O executor headless roda os vetores de conformidade: godot --headless -- --vn-test (RT §12, spec 08 §4).
-#    Enquanto os módulos do runtime não existem (M1-01 em diante), todo caso sai como pulado.
+#    Cada caso cujo módulo ainda não tem implementação real em runtime/vn_runtime/ sai como pulado (M1-01);
+#    o autoteste do executor (tests/conformance/test_runner.gd) confere a leitura, a comparação e a saída.
 # 3. A referência Python (tools/conformance.py) roda junto: spec 08 §4 pede o runner nativo e a referência
 #    em toda mudança no runtime ou nos casos. O runner Web entra com a tarefa M4-03.
 name: Runtime
@@ -53,10 +54,14 @@ jobs:
           set -euo pipefail
           # O código de saída do executor vale: 0 sem falhas, 1 com falha, 2 com erro de uso.
           godot --headless --path runtime -- --vn-test docs/specs/conformance 2>&1 | tee "$RUNNER_TEMP/vn-test.log"
+      - name: Autoteste do executor (--vn-test)
+        run: |
+          set -euo pipefail
+          godot --headless --path runtime --script res://tests/conformance/test_runner.gd 2>&1 | tee "$RUNNER_TEMP/vn-test-selftest.log"
       - name: Sem erros no log do Godot
         run: |
           # O Godot sai com 0 mesmo quando registra erros de script; qualquer ERROR nos logs falha a CI.
-          if grep -hE '(^|[^A-Z_])(ERROR|SCRIPT ERROR):' "$RUNNER_TEMP"/{import,run,vn-test}.log; then
+          if grep -hE '(^|[^A-Z_])(ERROR|SCRIPT ERROR):' "$RUNNER_TEMP"/{import,run,vn-test,vn-test-selftest}.log; then
             echo "::error title=Godot registrou erros::O runtime deve importar, abrir e rodar --vn-test sem erros (M0-02, M0-04)."
             exit 1
           fi
