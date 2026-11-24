@@ -1,3 +1,4 @@
+@abstract
 class_name VNFileStorage
 extends VNStorage
 ## VNStorage numa pasta de arquivos (RT §8.5). Com a raiz [code]user://[/code]
@@ -7,20 +8,17 @@ extends VNStorage
 ##
 ## Grava num arquivo [code].tmp[/code] e renomeia, para que um jogo fechado no
 ## meio da gravação não deixe um save pela metade.
+##
+## É abstrata (falta [method VNStorage.kind]): as implementações concretas são
+## [VNUserStorage] e a pasta da janela dentro de [VNFolderStorage].
 ## Tarefa: M2-10.
 
 var _root: String
-var _kind: StringName
 
 
 ## [param root]: [code]user://[/code] ou uma pasta absoluta.
-func _init(root: String = "user://", p_kind: StringName = KIND_USER) -> void:
+func _init(root: String = "user://") -> void:
 	_root = root if root.ends_with("/") else root + "/"
-	_kind = p_kind
-
-
-func kind() -> StringName:
-	return _kind
 
 
 ## A pasta raiz, terminada em [code]/[/code].

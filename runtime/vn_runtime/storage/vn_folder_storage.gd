@@ -14,11 +14,17 @@ extends VNStorage
 var _backend: VNStorage
 
 
+## A pasta de [code]--vn-user-dir[/code] no modo janela.
+class _Dir extends VNFileStorage:
+	func kind() -> StringName:
+		return KIND_FOLDER
+
+
 func _init(user_dir: String = "") -> void:
 	if user_dir.is_empty():
 		_backend = VNMemoryStorage.new()
 	else:
-		_backend = VNFileStorage.new(user_dir, KIND_FOLDER)
+		_backend = _Dir.new(user_dir)
 	# Métodos, não lambdas: uma lambda guardaria uma referência a este objeto e formaria ciclo.
 	_backend.file_written.connect(_on_written)
 	_backend.file_deleted.connect(_on_deleted)

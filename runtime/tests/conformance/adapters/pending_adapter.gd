@@ -6,8 +6,6 @@ extends VNCaseAdapter
 const PENDING := {
 	"text": "formatador de texto e interpolação sem contrato (M1-07)",
 	"rng": "PCG32 reproduzível sem contrato (M1-08)",
-	"canonical": "JSON canônico (JCS) sem contrato (M2-10)",
-	"hmac": "assinatura HMAC de save sem contrato (M2-10)",
 	"record": "recordes de plugin: entram com o M3-06",
 }
 

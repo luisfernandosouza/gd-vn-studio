@@ -81,6 +81,208 @@ static func stabilize(value: Variant) -> Variant:
 	return parsed
 
 
+# --- Leitura exata de números ---------------------------------------------------
+
+## O [code]float[/code] mais próximo de um número JSON em texto (arredondamento
+## correto, empate para o par). O [code]String.to_float[/code] e o [JSON] do
+## Godot podem errar o último bit em números de 17+ algarismos e em decimais
+## longos; o executor de conformidade lê os vetores por aqui (spec 08 §2.1).
+static func parse_number(text: String) -> float:
+	var t := text.strip_edges()
+	var negative := t.begins_with("-")
+	if negative or t.begins_with("+"):
+		t = t.substr(1)
+	var mant := t
+	var exp10 := 0
+	var e_at := t.findn("e")
+	if e_at >= 0:
+		mant = t.left(e_at)
+		exp10 = t.substr(e_at + 1).to_int()
+	var dot := mant.find(".")
+	if dot >= 0:
+		exp10 -= mant.length() - dot - 1
+		mant = mant.left(dot) + mant.substr(dot + 1)
+	mant = mant.lstrip("0")
+	if mant.is_empty():
+		return -0.0 if negative else 0.0
+	# Valor exato = mant × 10^exp10. Parte de uma aproximação e corrige pelos pontos médios.
+	var x := _approximate(mant, exp10)
+	var digits := _big_from_decimal(mant)
+	for _i in 64:
+		if is_inf(x):
+			break
+		var up := _next_up(x)
+		var c_up := _compare_with_midpoint(digits, exp10, x, up)
+		if c_up > 0 or (c_up == 0 and _mantissa_odd(x)):
+			x = up
+			continue
+		if x == 0.0:
+			break
+		var down := _next_down(x)
+		var c_down := _compare_with_midpoint(digits, exp10, down, x)
+		if c_down < 0 or (c_down == 0 and _mantissa_odd(x)):
+			x = down
+			continue
+		break
+	return -x if negative else x
+
+
+## Aproximação a poucos ulps de mant × 10^exp10 (inclusive subnormais).
+static func _approximate(mant: String, exp10: int) -> float:
+	var e := exp10
+	var head := mant
+	if head.length() > 17:
+		e += head.length() - 17
+		head = head.left(17)
+	var x := head.to_float()
+	while e > 0 and not is_inf(x):
+		var step := mini(e, 22)
+		x *= pow(10.0, step)
+		e -= step
+	while e < 0 and x != 0.0:
+		var step := mini(-e, 22)
+		x /= pow(10.0, step)
+		e += step
+	return x
+
+
+## Compara mant × 10^exp10 com (a + b) / 2 (a < b, doubles vizinhos finitos e ≥ 0): −1, 0 ou 1.
+static func _compare_with_midpoint(digits: PackedInt64Array, exp10: int, a: float, b: float) -> int:
+	if is_inf(b):
+		return -1
+	var fa := _decompose(a)
+	var fb := _decompose(b)
+	# a = ma × 2^ea, b = mb × 2^eb → (a + b)/2 = (ma × 2^(ea−e) + mb × 2^(eb−e)) × 2^(e−1).
+	var e := mini(fa[1], fb[1])
+	var mid := _big_add(_big_shift(_big_from_int(fa[0]), fa[1] - e), _big_shift(_big_from_int(fb[0]), fb[1] - e))
+	var exp2 := e - 1
+	var left := digits.duplicate()
+	var right := mid
+	# Lado esquerdo: digits × 10^exp10 = digits × 5^exp10 × 2^exp10.
+	var p2_left := exp10
+	if exp10 >= 0:
+		for _i in exp10:
+			left = _big_mul_small(left, 5)
+	else:
+		for _i in -exp10:
+			right = _big_mul_small(right, 5)
+	# Junta as potências de 2 no lado que tiver a menor.
+	var shift := exp2 - p2_left
+	if shift >= 0:
+		right = _big_shift(right, shift)
+	else:
+		left = _big_shift(left, -shift)
+	return _big_cmp(left, right)
+
+
+## [mantissa inteira, expoente binário] de um double finito ≥ 0.
+static func _decompose(x: float) -> Array:
+	var bits := _bits(x)
+	var exp_bits := (bits >> 52) & 0x7FF
+	var frac := bits & 0xFFFFFFFFFFFFF
+	if exp_bits == 0:
+		return [frac, -1074]
+	return [frac | (1 << 52), exp_bits - 1075]
+
+
+static func _bits(x: float) -> int:
+	return PackedFloat64Array([x]).to_byte_array().decode_s64(0)
+
+
+static func _from_bits(bits: int) -> float:
+	var b := PackedByteArray()
+	b.resize(8)
+	b.encode_s64(0, bits)
+	return b.decode_double(0)
+
+
+static func _next_up(x: float) -> float:
+	return _from_bits(_bits(x) + 1)
+
+
+static func _next_down(x: float) -> float:
+	return _from_bits(_bits(x) - 1)
+
+
+static func _mantissa_odd(x: float) -> bool:
+	return (_bits(x) & 1) == 1
+
+
+# Inteiros grandes não negativos: limbs de 24 bits, do menos significativo.
+const _LIMB := 1 << 24
+
+static func _big_from_int(v: int) -> PackedInt64Array:
+	var out := PackedInt64Array()
+	while v > 0:
+		out.append(v & (_LIMB - 1))
+		v >>= 24
+	return out
+
+
+static func _big_from_decimal(digits: String) -> PackedInt64Array:
+	var out := PackedInt64Array()
+	for ch in digits:
+		out = _big_mul_small(out, 10, int(ch))
+	return out
+
+
+static func _big_mul_small(a: PackedInt64Array, k: int, add: int = 0) -> PackedInt64Array:
+	var out := PackedInt64Array()
+	var carry := add
+	for limb in a:
+		var v := limb * k + carry
+		out.append(v & (_LIMB - 1))
+		carry = v >> 24
+	while carry > 0:
+		out.append(carry & (_LIMB - 1))
+		carry >>= 24
+	return out
+
+
+static func _big_shift(a: PackedInt64Array, n: int) -> PackedInt64Array:
+	var out := PackedInt64Array()
+	if a.is_empty():
+		return out
+	for _i in n / 24:
+		out.append(0)
+	var r := n % 24
+	var carry := 0
+	for limb in a:
+		var v := (limb << r) | carry
+		out.append(v & (_LIMB - 1))
+		carry = v >> 24
+	if carry > 0:
+		out.append(carry)
+	return out
+
+
+static func _big_add(a: PackedInt64Array, b: PackedInt64Array) -> PackedInt64Array:
+	var out := PackedInt64Array()
+	var carry := 0
+	for i in maxi(a.size(), b.size()):
+		var v := (a[i] if i < a.size() else 0) + (b[i] if i < b.size() else 0) + carry
+		out.append(v & (_LIMB - 1))
+		carry = v >> 24
+	if carry > 0:
+		out.append(carry)
+	return out
+
+
+static func _big_cmp(a: PackedInt64Array, b: PackedInt64Array) -> int:
+	var na := a.size()
+	while na > 0 and a[na - 1] == 0:
+		na -= 1
+	var nb := b.size()
+	while nb > 0 and b[nb - 1] == 0:
+		nb -= 1
+	if na != nb:
+		return 1 if na > nb else -1
+	for i in range(na - 1, -1, -1):
+		if a[i] != b[i]:
+			return 1 if a[i] > b[i] else -1
+	return 0
+
+
 # --- Serialização -------------------------------------------------------------
 
 static func _write(value: Variant, out: PackedStringArray) -> void:

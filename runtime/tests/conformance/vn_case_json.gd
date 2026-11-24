@@ -231,4 +231,5 @@ func _number() -> Variant:
 		var magnitude := text.trim_prefix("-").lstrip("0")
 		if magnitude.length() < 19 or (magnitude.length() == 19 and magnitude <= "9223372036854775807"):
 			return text.to_int()
-	return text.to_float()
+	# String.to_float erra o último bit de números de 17+ algarismos (ex.: 333333333.33333329).
+	return VNCanonicalJson.parse_number(text)

@@ -186,7 +186,7 @@ func test_storage_user() -> String:
 	# O contrato numa subpasta de user:// para não tocar nos dados do projeto.
 	var dir := OS.get_user_data_dir().path_join("vn_test_storage") + "/"
 	_clean_dir(dir)
-	var err := _storage_contract(VNFileStorage.new("user://vn_test_storage", VNStorage.KIND_USER))
+	var err := _storage_contract(VNUserStorage.new("vn_test_storage"))
 	_clean_dir(dir)
 	return err
 
