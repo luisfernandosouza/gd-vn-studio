@@ -1,0 +1,85 @@
+# Runtime SDK (tarefas M3-02 em diante): addon GDScript em sdk/runtime/addons/vn_runtime_sdk/.
+# sdk/runtime/ é um projeto Godot só de teste; a release do SDK empacota apenas o addon.
+# 1. Testes unitários das fachadas contra uma ponte de teste (tests/fake_bridge.gd).
+# 2. Os plugins de exemplo das specs carregam com o addon (fishing-plugin e o probe das fixtures).
+name: Runtime SDK
+
+on:
+  pull_request:
+    paths: [sdk/runtime/**, docs/specs/examples/fishing-plugin/**, runtime/tests/fixtures/src/projects/*/plugins/**, .github/workflows/sdk-runtime.yml]
+  push:
+    branches: [main]
+    paths: [sdk/runtime/**, docs/specs/examples/fishing-plugin/**, runtime/tests/fixtures/src/projects/*/plugins/**, .github/workflows/sdk-runtime.yml]
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: 4.7.2-stable
+
+jobs:
+  addon:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Cache do Godot ${{ env.GODOT_VERSION }}
+        id: cache-godot
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/godot-bin
+          key: godot-${{ env.GODOT_VERSION }}-linux-x86_64
+      - name: Baixa o Godot ${{ env.GODOT_VERSION }}
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          url="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/godot.zip" "$url"
+          mkdir -p ~/.cache/godot-bin
+          unzip -q "$RUNNER_TEMP/godot.zip" -d ~/.cache/godot-bin
+      - name: Instala o Godot
+        run: |
+          set -euo pipefail
+          install -m 755 ~/.cache/godot-bin/"Godot_v${GODOT_VERSION}_linux.x86_64" /usr/local/bin/godot
+          godot --headless --version
+      - name: Importa o projeto de teste
+        run: godot --headless --path sdk/runtime --import 2>&1 | tee "$RUNNER_TEMP/import.log"
+      - name: Testes unitários do addon
+        run: |
+          set -euo pipefail
+          godot --headless --path sdk/runtime --script res://tests/run_tests.gd 2>&1 | tee "$RUNNER_TEMP/tests.log"
+      - name: Plugins de exemplo carregam com o addon
+        run: |
+          set -euo pipefail
+          p="$RUNNER_TEMP/plugin-project"
+          mkdir -p "$p/addons" "$p/vn_plugins"
+          cp sdk/runtime/project.godot "$p/"
+          cp -r sdk/runtime/addons/vn_runtime_sdk "$p/addons/"
+          cp -r docs/specs/examples/fishing-plugin "$p/vn_plugins/fishing"
+          rm -rf "$p/vn_plugins/fishing/tests"   # VNPluginTest/VNTestHarness chegam com M3-07
+          for d in runtime/tests/fixtures/src/projects/*/plugins/*/vn_plugins/*; do cp -r "$d" "$p/vn_plugins/"; done
+          cat > "$p/load_plugins.gd" <<'GD'
+          extends SceneTree
+          func _init() -> void:
+          	var bad := 0
+          	for ns in DirAccess.get_directories_at("res://vn_plugins"):
+          		for f in DirAccess.get_files_at("res://vn_plugins/%s/runtime/src" % ns):
+          			if not f.ends_with(".gd"):
+          				continue
+          			var path := "res://vn_plugins/%s/runtime/src/%s" % [ns, f]
+          			var s: GDScript = load(path)
+          			if s == null or not s.can_instantiate():
+          				printerr("não carregou: %s" % path)
+          				bad += 1
+          			else:
+          				print("ok: %s" % path)
+          	quit(1 if bad > 0 else 0)
+          GD
+          sed -i 's/^          //' "$p/load_plugins.gd"
+          godot --headless --path "$p" --import > "$RUNNER_TEMP/plugins-import.log" 2>&1
+          godot --headless --path "$p" --script res://load_plugins.gd 2>&1 | tee "$RUNNER_TEMP/plugins.log"
+      - name: Sem erros no log do Godot
+        run: |
+          # O Godot sai com 0 mesmo quando um script não compila; qualquer ERROR nos logs falha a CI.
+          if grep -hE '(^|[^A-Z_])(ERROR|SCRIPT ERROR):' "$RUNNER_TEMP"/{import,tests,plugins-import,plugins}.log; then
+            echo "::error title=Godot registrou erros::O addon e os plugins de exemplo devem compilar sem erros (M3-02)."
+            exit 1
+          fi
