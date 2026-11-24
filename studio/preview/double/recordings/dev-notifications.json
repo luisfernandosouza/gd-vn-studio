@@ -1,0 +1,9 @@
+[
+  { "method": "log", "params": { "seq": 1, "phase": "SCENE_RUNNING", "level": "info", "message": "bundle carregado em 812 ms" } },
+  { "method": "plugin.log", "params": { "seq": 2, "phase": "ACTIVITY", "plugin": "vnstudio.fishing", "level": "debug", "message": "peixe raro sorteado" } },
+  { "method": "plugin.permission_denied", "params": { "seq": 3, "phase": "ACTIVITY", "plugin": "vnstudio.fishing", "capability": "runtime:state.write", "call": "VN.state.set(\"global.player_money\", 999)" } },
+  { "method": "plugin.faulted", "params": { "seq": 4, "phase": "ACTIVITY", "plugin": "vnstudio.fishing", "error": "res://vn_plugins/fishing/runtime/scenes/fishing_game.gd:42 - Invalid call. Nonexistent function 'reel'" } },
+  { "method": "error", "params": { "seq": 5, "phase": "SCENE_RUNNING", "code": "TYPE_MISMATCH", "message": "global.fishing_won é boolean, não 3", "scene": "019a7a00-1388-7f6b-b667-94bbd1305982", "node": "019a7a00-4a38-76e1-9cd6-55120fa376e8", "variable": "global.fishing_won" } },
+  { "method": "storage.delete", "params": { "seq": 6, "phase": "TITLE", "path": "saves/slot_1.json" } },
+  { "method": "session.closing", "params": { "seq": 7, "phase": "TITLE", "reason": "stop" } }
+]
