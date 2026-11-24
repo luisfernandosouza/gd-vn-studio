@@ -10,7 +10,8 @@ Runtime das visual novels: projeto Godot 4.7.2 + GDScript ([Runtime Spec](../doc
 | `vn_runtime/presets/` | Cópia gerada de `docs/specs/presets/` + fontes embutidas em `fonts/` (os ids `preset/font_*`); fora do Git e nunca editada à mão |
 | `vn_runtime/licenses/` | Gerada: licenças do runtime (MIT), do Godot e das bibliotecas dele, e a OFL de cada fonte do preset, com o índice `index.json` ([Build System §4.5](../docs/specs/05-build-system-specification.md)); fora do Git |
 | `tests/` | Testes e runner headless dos vetores (`--vn-test`) |
-| `tests/vn_test_runner.gd` | Executor dos vetores de conformidade (RT §12, spec 08 §4); por enquanto conta os casos e os dá como pulados (a tarefa M1-01 os executa) |
+| `tests/vn_test_runner.gd` | Executor dos vetores de conformidade (RT §12, spec 08 §4) |
+| `tests/conformance/` | Peças do executor: leitor de JSON que preserva inteiros, comparação, montagem do estado mínimo (`VNCaseModules`), um adaptador por `kind` em `adapters/` e o autoteste `test_runner.gd` |
 | `tests/fixtures/` | Bundles de teste com imagens e sons sintéticos, gerados por `python3 runtime/tests/fixtures/generate.py` ([README](tests/fixtures/README.md)), e placeholders feitos à mão: a única pasta do runtime onde pode haver mídia (spec 09 §1.1) |
 
 ## Presets, fontes e licenças
@@ -47,9 +48,32 @@ godot --headless --path runtime --quit     # abre e fecha; precisa sair com 0 e 
 godot --headless --path runtime -- --vn-test docs/specs/conformance   # vetores de conformidade (RT §12)
 ```
 
-O executor aceita a pasta `docs/specs/conformance/` (os `*.json` do primeiro nível) ou um arquivo dela; caminho relativo é relativo à pasta de onde o Godot foi chamado. Imprime `FALHOU <arquivo>#<id>` para cada falha e o resumo `N/M` (passaram/executados) com os pulados, e sai com 0 sem falhas, 1 com falha e 2 com erro de uso. Só existe no runtime de debug: `tests/` não entra nos templates de exportação (spec 09 §1.2).
+O executor aceita a pasta `docs/specs/conformance/` (os `*.json` do primeiro nível), um arquivo dela ou `<arquivo>#<id>` para um caso só; caminho relativo é relativo à pasta de onde o Godot foi chamado. Imprime `FALHOU <arquivo>#<id>` com o esperado e o obtido para cada falha, o resumo `N/M` (passaram/executados) e os pulados por motivo, e sai com 0 sem falhas, 1 com falha e 2 com erro de uso. Só existe no runtime de debug: `tests/` não entra nos templates de exportação (spec 09 §1.2).
 
-A workflow [`runtime.yml`](../.github/workflows/runtime.yml) roda esses três comandos, com o Godot em cache, e a referência `tools/conformance.py` em todo pull request que toca `runtime/` ou `docs/specs/conformance/` (spec 08 §4). O runner Web entra com a tarefa M4-03.
+### Como o executor monta cada caso (M1-01)
+
+- **Números.** O `JSON` do Godot lê todo número como `float`; o executor usa `VNCaseJson`, que devolve `int` para literais sem fração nem expoente, porque `2` e `2.0` têm tipos diferentes nos vetores (spec 08 §2.1). A comparação segue a de `tools/conformance.py`: float confere com número por valor, inteiro com inteiro, booleano nunca é número.
+- **Módulos reais.** Toda classe com `class_name`, não abstrata, em `vn_runtime/`, que estende um contrato do M0-07 é a implementação real dele (`VNCaseModules.discover()`). O executor monta um `VNModules` com os dublês e põe os reais por cima, e o cabeçalho da saída diz quais achou. Quem implementa um módulo não mexe no executor: os casos que dependem dele deixam de ser pulados sozinhos.
+- **Estado mínimo.** Um bundle mínimo com os padrões do compilador (variáveis do caso como `VariableDefinition`, capítulo e cenas com `scheduler`, `completion`, `scheduling` e `start` resolvidos) vai para `load_bundle()` de todos os módulos; depois `reset_game()` e os valores do caso. O Narrative Engine fica dublê nos casos sem cena inteira, só para dar capítulo e fase.
+- **Pulados.** Um caso é pulado, nunca passado, quando falta a implementação real de um módulo de que ele depende:
+
+  | `kind` | Chama | Pulado até |
+  |---|---|---|
+  | `expression`, `condition` | `VNConditionEvaluator` | M1-03, M1-04 |
+  | `effects` | `VNStateManager.apply_effects()` (com o Condition Evaluator); com erro, confere também que nada mudou | M1-06 |
+  | `selection` | `VNSceneScheduler.select()` (com o Condition Evaluator) | M1-10; o caso `weighted` também espera o contrato do estado do RNG (M1-08) |
+  | `flow` | Narrative Engine e o traço da spec 07 §4.2 | M1-12 (integração do núcleo) |
+  | `text`, `rng`, `canonical`, `hmac`, `record` | sem contrato no M0-07 | M1-07, M1-08, M2-10, M3-06: a tarefa cria o adaptador dela em `tests/conformance/adapters/` e tira o `kind` de `pending_adapter.gd` |
+
+  Um `kind` sem adaptador é falha, não pulado: caso novo só entra com o executor pronto para ele (spec 08 §4).
+
+O autoteste do executor confere a leitura dos números, a comparação, a descoberta dos módulos, o formato da saída e os códigos de saída, e liga os dublês como se fossem reais para exercitar cada adaptador:
+
+```bash
+godot --headless --path runtime --script res://tests/conformance/test_runner.gd
+```
+
+A workflow [`runtime.yml`](../.github/workflows/runtime.yml) roda esses três comandos e o autoteste do executor, com o Godot em cache, e a referência `tools/conformance.py` em todo pull request que toca `runtime/` ou `docs/specs/conformance/` (spec 08 §4). O runner Web entra com a tarefa M4-03.
 
 As ações `vn_*` em `project.godot` seguem a tabela do RT §10.1. Para mudar uma ação, edite pelo editor do Godot (Projeto → Configurações do Projeto → Mapa de Entrada) e mantenha `device = -1` (todos os dispositivos).
 

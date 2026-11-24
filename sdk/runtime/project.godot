@@ -1,0 +1,14 @@
+; Projeto Godot só para testar o addon do Runtime SDK (tarefa M3-02).
+; Não é distribuído: a release do SDK empacota apenas addons/vn_runtime_sdk/.
+
+config_version=5
+
+[application]
+
+config/name="VN Runtime SDK (testes)"
+config/features=PackedStringArray("4.7")
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
