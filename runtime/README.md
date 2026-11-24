@@ -5,7 +5,8 @@ Runtime das visual novels: projeto Godot 4.7.2 + GDScript ([Runtime Spec](../doc
 | Caminho | Conteúdo |
 |---|---|
 | `project.godot` | Projeto Godot: resolução base 1920×1080, `stretch_mode = canvas_items`, `stretch_aspect = expand` (RT §1.1), ações de input `vn_*` (RT §10.1), cena principal `res://vn_runtime/boot.tscn`. No build, o Build System gera um `project.godot` novo a partir deste (BS §4.3) |
-| `vn_runtime/boot.tscn`, `boot.gd` | Cena de boot. Por enquanto só despacha `--vn-test` para o executor de testes; o boot do RT §3.0 entra com o Narrative Engine |
+| `vn_runtime/boot.tscn`, `boot.gd` | Cena de boot: despacha `--vn-test`, lê `--vn-bundle` e `--vn-fakes` e roda o boot do RT §3.0 (ver [Boot](#boot)) |
+| `vn_runtime/boot/` | Boot (M2-01): leitor do bundle em JSON e `.vnb`, JSON canônico (JCS), constantes do build, sequência do RT §3.0 e tela dos erros fatais G001/G002 |
 | `vn_runtime/` | Narrative Engine, Scheduler, State Manager, UI Manager… |
 | `vn_runtime/presets/` | Cópia gerada de `docs/specs/presets/` + fontes embutidas em `fonts/` (os ids `preset/font_*`); fora do Git e nunca editada à mão |
 | `vn_runtime/licenses/` | Gerada: licenças do runtime (MIT), do Godot e das bibliotecas dele, e a OFL de cada fonte do preset, com o índice `index.json` ([Build System §4.5](../docs/specs/05-build-system-specification.md)); fora do Git |
@@ -52,7 +53,7 @@ O executor aceita a pasta `docs/specs/conformance/` (os `*.json` do primeiro ní
 
 ### Como o executor monta cada caso (M1-01)
 
-- **Números.** O `JSON` do Godot lê todo número como `float`; o executor usa `VNCaseJson`, que devolve `int` para literais sem fração nem expoente, porque `2` e `2.0` têm tipos diferentes nos vetores (spec 08 §2.1). A comparação segue a de `tools/conformance.py`: float confere com número por valor, inteiro com inteiro, booleano nunca é número.
+- **Números.** O `JSON` do Godot lê todo número como `float` (e erra o último bit de alguns); o executor usa `VNCaseJson`, que lê os `float` com arredondamento correto (`VNCanonicalJson.parse_number`) e devolve `int` para literais sem fração nem expoente, porque `2` e `2.0` têm tipos diferentes nos vetores (spec 08 §2.1). A comparação segue a de `tools/conformance.py`: float confere com número por valor, inteiro com inteiro, booleano nunca é número.
 - **Módulos reais.** Toda classe com `class_name`, não abstrata, em `vn_runtime/`, que estende um contrato do M0-07 é a implementação real dele (`VNCaseModules.discover()`). O executor monta um `VNModules` com os dublês e põe os reais por cima, e o cabeçalho da saída diz quais achou. Quem implementa um módulo não mexe no executor: os casos que dependem dele deixam de ser pulados sozinhos.
 - **Estado mínimo.** Um bundle mínimo com os padrões do compilador (variáveis do caso como `VariableDefinition`, capítulo e cenas com `scheduler`, `completion`, `scheduling` e `start` resolvidos) vai para `load_bundle()` de todos os módulos; depois `reset_game()` e os valores do caso. O Narrative Engine fica dublê nos casos sem cena inteira, só para dar capítulo e fase.
 - **Pulados.** Um caso é pulado, nunca passado, quando falta a implementação real de um módulo de que ele depende:
@@ -63,7 +64,8 @@ O executor aceita a pasta `docs/specs/conformance/` (os `*.json` do primeiro ní
   | `effects` | `VNStateManager.apply_effects()` (com o Condition Evaluator); com erro, confere também que nada mudou | M1-06 |
   | `selection` | `VNSceneScheduler.select()` (com o Condition Evaluator) | M1-10; o caso `weighted` também espera o contrato do estado do RNG (M1-08) |
   | `flow` | Narrative Engine e o traço da spec 07 §4.2 | M1-12 (integração do núcleo) |
-  | `text`, `rng`, `canonical`, `hmac`, `record` | sem contrato no M0-07 | M1-07, M1-08, M2-10, M3-06: a tarefa cria o adaptador dela em `tests/conformance/adapters/` e tira o `kind` de `pending_adapter.gd` |
+  | `canonical`, `hmac` | `VNCanonicalJson` (`vn_runtime/save_manager/`), sem depender de módulo | nunca pulado (M2-10) |
+  | `text`, `rng`, `record` | sem contrato no M0-07 | M1-07, M1-08, M3-06: a tarefa cria o adaptador dela em `tests/conformance/adapters/` e tira o `kind` de `pending_adapter.gd` |
 
   Um `kind` sem adaptador é falha, não pulado: caso novo só entra com o executor pronto para ele (spec 08 §4).
 
@@ -76,6 +78,29 @@ godot --headless --path runtime --script res://tests/conformance/test_runner.gd
 A workflow [`runtime.yml`](../.github/workflows/runtime.yml) roda esses três comandos e o autoteste do executor, com o Godot em cache, e a referência `tools/conformance.py` em todo pull request que toca `runtime/` ou `docs/specs/conformance/` (spec 08 §4). O runner Web entra com a tarefa M4-03.
 
 As ações `vn_*` em `project.godot` seguem a tabela do RT §10.1. Para mudar uma ação, edite pelo editor do Godot (Projeto → Configurações do Projeto → Mapa de Entrada) e mantenha `device = -1` (todos os dispositivos).
+
+## Boot
+
+`vn_runtime/boot/` implementa o RT §3.0 sobre o registro `VNModules`:
+
+| Arquivo | Classe | O que faz |
+|---|---|---|
+| `vn_canonical_json.gd` | `VNCanonicalJSON` | JCS (RFC 8785), `content_hash`, SHA-256 em SRI e o HMAC de saves e perfil (BS §5.1, §8.3). Conferido por `conformance/canonical.json` e por `tests/boot/numbers.json` |
+| `vn_build_config.gd` | `VNBuildConfig` | Constantes de `res://vn_runtime/build_config.gd` (BS §4.4); sem ele, os padrões de desenvolvimento e a chave de debug |
+| `vn_bundle_loader.gd` | `VNBundleLoader` | Lê `res://vn_content/` ou a pasta de `--vn-bundle`: a forma canônica em JSON (só debug e editor) ou os `.vnb` (zstd, AES-256-CBC), confere `format_version`, hashes e caminhos de asset; erros G001/G002 |
+| `vn_boot.gd` | `VNBoot` | Os passos 1 a 6: settings, bundle, idioma, perfil (G006 no título), plugins, `sys.locale`/`sys.ui.*`, pergunta da primeira abertura e título. Repassa o modo stream, os volumes e o modo de tela quando a configuração muda |
+| `vn_boot_messages.gd`, `vn_fatal_screen.gd` | `VNBootMessages`, `VNFatalScreen` | Mensagens `runtime/message/g00N` e a tela do erro fatal, sem tema nem UI Manager |
+
+Enquanto os módulos reais não existem (integrações M1-12 e M2-16), o boot sem opções só lê e confere o bundle. Com `--vn-fakes` (debug, com `tests/`), ele usa os dublês e chega ao título:
+
+```bash
+python3 runtime/tests/fixtures/generate.py
+godot --headless --path runtime --import
+godot --headless --path runtime --script res://tests/boot/test_boot.gd
+godot --headless --path runtime --quit -- --vn-fakes --vn-bundle res://tests/fixtures/bundles/dialogue/
+```
+
+A workflow [`runtime-boot.yml`](../.github/workflows/runtime-boot.yml) roda esses comandos. O leitor de JSON do Godot pode errar o último bit de números com mais de 17 dígitos; por isso o `content_hash` é conferido sobre o texto do bundle (que o compilador grava já canônico) e só cai no JCS dos valores quando o texto não está na forma canônica.
 
 ## Contratos dos módulos
 
@@ -122,3 +147,11 @@ godot --headless --path runtime --script res://tests/contracts/test_contracts.gd
 A workflow [`runtime-contracts.yml`](../.github/workflows/runtime-contracts.yml) roda esse teste em todo pull request que toca `runtime/vn_runtime/` ou `runtime/tests/`.
 
 **Mudar um contrato** (a assinatura, um sinal ou uma constante de um arquivo de contrato ou de `core/`) é um pull request próprio, que atualiza o dublê e o teste de fumaça juntos e avisa as tarefas em andamento que usam o módulo. Uma tarefa que implementa um módulo não muda o contrato dele no mesmo pull request.
+
+## Tipos e valores (M1-02)
+
+`vn_runtime/condition_evaluator/vn_value.gd` (`VNValue`) implementa a semântica de referência do RT §12.1 e do DM §5.1 e §6.1.1 sobre valores com tipo (`VNEvalResult` com `ok = true`): intervalo de inteiros ±(2^53 − 1) e `OUT_OF_RANGE`, aritmética com divisão e `mod` por zero, `round`/`floor`/`ceil`/`abs`/`min`/`max`/`clamp`, comparação de tipos (`1 = 1.0`, `enum` = `string`), conversão para texto do `concat` e o arredondamento sobre a representação decimal mais curta, base da formatação da interpolação. `vn_decimal.gd` (`VNDecimal`) calcula essa representação mais curta com aritmética exata, porque o `String.num_scientific` do Godot 4.7.2 erra o último dígito em alguns valores.
+
+Testes: `godot --headless --path runtime --script res://tests/condition_evaluator/test_vn_value.gd` (workflow [`runtime-condition-evaluator.yml`](../.github/workflows/runtime-condition-evaluator.yml)).
+
+`VNValue.from_literal` tipa um literal pelo tipo do Godot (`int` → `integer`, `float` → `number`), como o lê o `VNCaseJson` dos vetores. O `JSON` do Godot lê todo número como `float`; para conteúdo lido por ele, `integral_floats = true` faz um `float` com parte fracionária zero dentro do intervalo virar `integer`. Quem conhece o tipo esperado passa `hint`. `VNValue.typed` normaliza o valor de uma variável pelo tipo declarado.

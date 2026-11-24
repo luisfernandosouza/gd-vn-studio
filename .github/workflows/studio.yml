@@ -12,6 +12,7 @@ on:
       - studio/**
       - sdk/plugin-schema/**
       - docs/specs/schemas/**
+      - docs/specs/tools/validate.py
       - package.json
       - package-lock.json
       - .github/workflows/studio.yml
@@ -21,6 +22,7 @@ on:
       - studio/**
       - sdk/plugin-schema/**
       - docs/specs/schemas/**
+      - docs/specs/tools/validate.py
       - package.json
       - package-lock.json
       - .github/workflows/studio.yml
@@ -50,7 +52,14 @@ jobs:
         run: npm run lint
       - name: Typecheck
         run: npm run typecheck
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validador de referência (aceite do M6-01)
+        run: python -m pip install -q 'jsonschema>=4.18'
       - name: Testes unitários
+        env:
+          VNSTUDIO_REQUIRE_VALIDATOR: '1'
         run: npm test
 
   build:

@@ -1,0 +1,63 @@
+.project-manager {
+  width: min(640px, calc(100vw - 32px));
+  display: grid;
+  gap: 12px;
+}
+
+.project-manager label {
+  display: grid;
+  gap: 4px;
+}
+
+.project-manager input,
+.project-manager select,
+.project-manager button {
+  font: inherit;
+  padding: 6px 10px;
+}
+
+.pm-new,
+.pm-open {
+  display: grid;
+  gap: 10px;
+}
+
+.pm-folder,
+.pm-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.pm-open ul,
+.pm-changes {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.pm-recent {
+  width: 100%;
+  text-align: left;
+}
+
+.pm-recent small {
+  opacity: 0.6;
+  margin-left: 8px;
+}
+
+.pm-diff {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.pm-diff pre {
+  overflow: auto;
+  max-height: 240px;
+  font-size: 12px;
+  margin: 0;
+}
