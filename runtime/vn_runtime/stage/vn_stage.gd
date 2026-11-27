@@ -61,7 +61,11 @@ func module_id() -> StringName:
 ## Mostra uma fala já resolvida: [code]{ text, speaker?, voice?, text_path }[/code]
 ## ([code]text[/code] já interpolado, no idioma e no modo atuais). Digita a
 ## [code]text_speed[/code]; o primeiro [code]vn_advance[/code] completa, o segundo
-## emite [signal advanced].
+## emite [signal advanced]. Campos opcionais: [code]speaker[/code] (id da
+## personagem; sem ele a fala é narração), [code]seen[/code] (o texto já foi lido,
+## para o modo pular: o Engine calcula do [code]seen_text[/code] do perfil; ausente
+## vale [code]false[/code]) e [code]voice[/code] (asset de voz, tocado no canal
+## [code]voice[/code]; o modo automático espera o fim dele).
 @abstract func show_line(line: Dictionary) -> void
 
 ## Mostra as opções de [code]choice[/code]: [code][{ id, text, enabled }][/code],
