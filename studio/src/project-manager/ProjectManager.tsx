@@ -4,7 +4,7 @@ import { createProject } from './create';
 import { ProjectManagerError } from './errors';
 import { joinPath, type ProjectFs } from './fs';
 import { slugify } from './ids';
-import { PRODUCT_LOCALES } from './layout';
+import { LOCALE_NAMES, PRODUCT_LOCALES } from './layout';
 import { applyMigration, type MigrationPlan } from './migrate';
 import { openProject, type OpenedProject } from './open';
 import { loadRecents, rememberRecent, useProjectSession, type RecentProject } from './session';
@@ -14,18 +14,6 @@ export interface ProjectManagerProps {
   /** Abre o seletor de pasta do sistema; `null` se o autor cancelar. */
   pickFolder: (title: string) => Promise<string | null>;
 }
-
-const LOCALE_NAMES: Record<string, string> = {
-  'pt-BR': 'Português (Brasil)',
-  en: 'English',
-  es: 'Español',
-  fr: 'Français',
-  it: 'Italiano',
-  de: 'Deutsch',
-  ja: '日本語',
-  'zh-Hans': '简体中文',
-  'zh-Hant': '繁體中文',
-};
 
 function guessLocale(): string {
   const lang = typeof navigator === 'undefined' ? 'en' : navigator.language;

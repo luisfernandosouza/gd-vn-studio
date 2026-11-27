@@ -21,7 +21,7 @@ export function App({ io }: { io?: ProjectManagerProps } = {}) {
   return (
     <main className="app" data-ready={ready}>
       <h1>Visual Novel Studio</h1>
-      {current ? <OpenProjectSummary /> : <ProjectManager fs={projectIo.fs} pickFolder={projectIo.pickFolder} />}
+      {current ? <OpenProjectSummary fs={projectIo.fs} /> : <ProjectManager fs={projectIo.fs} pickFolder={projectIo.pickFolder} />}
     </main>
   );
 }
