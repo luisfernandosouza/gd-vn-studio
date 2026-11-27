@@ -85,6 +85,10 @@ var transport: Transport
 var features: PackedStringArray = []
 ## Registro dos módulos, de onde sai o [code]phase[/code] das notificações. Opcional.
 var modules: VNModules = null
+## Dados do jogador (PP §1.4, M4-08): cada [code]preview.load[/code] passa por
+## [method VNPreviewUserData.configure] antes do handler, que troca [code]modules.storage[/code].
+## Na janela, o transporte põe aqui a pasta de [code]--vn-user-dir[/code].
+var user_data: VNPreviewUserData
 
 var _token: String
 var _state: StringName = CONNECTED
@@ -101,6 +105,7 @@ var _long_running := ""              # método longo em curso, ou ""
 func _init(p_transport: Transport, p_token: String = "") -> void:
 	transport = p_transport
 	_token = p_token
+	user_data = VNPreviewUserData.new(p_transport)
 
 
 ## Registra o handler de um método [code]preview.*[/code] do protocolo (M4-05).
@@ -249,6 +254,12 @@ func receive(text: String) -> void:
 		_respond_error(id, VNPreviewError.new(VNPreviewError.METHOD_NOT_FOUND,
 			"Método ainda não implementado neste runtime: %s" % method))
 		return
+
+	if method == "preview.load":
+		var user_data_error := user_data.configure(params, self)
+		if user_data_error != null:
+			_respond_error(id, user_data_error)
+			return
 
 	var long := method in LONG_METHODS
 	if long:

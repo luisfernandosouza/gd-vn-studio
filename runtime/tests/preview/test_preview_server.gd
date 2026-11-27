@@ -51,11 +51,14 @@ func _run_all() -> void:
 		"painel_hello_e_estados", "painel_antes_do_hello", "painel_prazo_do_hello",
 		"painel_versao_e_parametros", "erros_jsonrpc", "estados_e_busy", "notificacoes_seq_phase",
 		"handler_com_erro_e_interno", "opcoes_da_linha_de_comando",
+		"user_dir_opcao", "user_dir_boot", "painel_dados_em_memoria", "painel_dados_no_projeto",
+		"painel_dados_reabrir", "painel_user_files_invalidos",
 	]:
 		await _run(t)
 	for t in [
 		"janela_hello_e_closing", "janela_token_errado", "janela_mensagem_antes_do_hello",
 		"janela_prazo_do_hello", "janela_segunda_conexao", "janela_queda_encerra",
+		"janela_dados_no_projeto",
 	]:
 		await _run(t)
 	if _transcript != null:
@@ -404,6 +407,216 @@ static func _game_state(preview: String) -> Dictionary:
 		"scene": "019a7a00-1388-7f6b-b667-94bbd1305982", "node": "019a7a00-2ee0-7000-8000-000000000001"}
 
 
+# --- Dados do jogador (M4-08; PP §1.2, §1.4, §4; RT §8.5) -------------------
+
+const _LOAD_RESULT := {"content_hash": "sha256-" + "0000000000000000000000000000000000000000000000000000000000000000",
+	"format_version": "1.0.0", "chapters": 2, "scenes": 5, "plugins": []}
+
+
+## Pasta temporária fora de user://, apagada no fim do teste.
+static func _temp_dir(prefix: String) -> String:
+	var d := DirAccess.create_temp(prefix, false)
+	assert(d != null)
+	return d.get_current_dir().replace("\\", "/") + "/"
+
+
+static func _remove_tree(dir: String) -> void:
+	var d := DirAccess.open(dir)
+	if d == null:
+		return
+	for sub in d.get_directories():
+		_remove_tree(dir.path_join(sub))
+	for f in d.get_files():
+		DirAccess.remove_absolute(dir.path_join(f))
+	DirAccess.remove_absolute(dir)
+
+
+## Painel com sessão autenticada, um registro de módulos vazio e um preview.load que devolve sucesso.
+func _panel_with_modules() -> Array:
+	var pair := _page()
+	var bridge: VNPreviewWebBridge = pair[0]
+	var page: FakePage = pair[1]
+	bridge.session.modules = VNModules.new()
+	bridge.session.register("preview.load", func(_p): return _LOAD_RESULT)
+	page.post(_hello())
+	page.take()
+	return pair
+
+
+func _load_params(extra: Dictionary = {}) -> Dictionary:
+	var p := {"bundle_url": "vnpreview://localhost/project/preview/narrative/",
+		"assets_base": "vnpreview://localhost/project/assets/"}
+	p.merge(extra, true)
+	return p
+
+
+func test_user_dir_opcao() -> String:
+	var F := VNPreviewUserData.USER_DIR_FLAG
+	if not VNPreviewUserData.user_dir_option(PackedStringArray(["--outra"])).is_empty():
+		return "sem a opção deveria vir vazio"
+	var ok := VNPreviewUserData.user_dir_option(PackedStringArray([F, "/proj/.vnstudio/preview/user"]))
+	if ok != {"dir": "/proj/.vnstudio/preview/user/"}:
+		return "pasta válida: %s" % [ok]
+	var win := VNPreviewUserData.user_dir_option(PackedStringArray([F + "=C:\\Jogos\\proj\\.vnstudio\\preview\\user"]))
+	if win != {"dir": "C:/Jogos/proj/.vnstudio/preview/user/"}:
+		return "pasta do Windows: %s" % [win]
+	for bad in ["", "relativa/user", "user://preview", "res://x", "/proj/../etc", OS.get_user_data_dir().path_join("preview")]:
+		var r := VNPreviewUserData.user_dir_option(PackedStringArray([F, bad]))
+		if not r.has("error"):
+			return "pasta inválida aceita: \"%s\" → %s" % [bad, r]
+	if not VNPreviewUserData.user_dir_option(PackedStringArray([F])).has("error"):
+		return "opção sem valor aceita"
+	return ""
+
+
+func test_user_dir_boot() -> String:
+	if VNPreviewUserData.boot_storage(false).kind() != VNStorage.KIND_USER:
+		return "fora do Preview o jogo grava em user://"
+	if not VNPreviewUserData.boot_storage(true, PackedStringArray()) is VNMemoryStorage:
+		return "Preview sem --vn-user-dir deveria começar na memória"
+	var dir := _temp_dir("vn_boot_user_dir")
+	var s := VNPreviewUserData.boot_storage(true, PackedStringArray([VNPreviewUserData.USER_DIR_FLAG, dir]))
+	_remove_tree(dir)
+	if not (s is VNFolderStorage and not (s as VNFolderStorage).is_panel_mode()):
+		return "Preview com --vn-user-dir deveria gravar na pasta"
+	if VNPreview.is_requested(PackedStringArray()):
+		return "sem opções da janela (e fora do Web) não é Preview"
+	if not VNPreview.is_requested(PackedStringArray([VNPreview.PORT_FLAG, "5123", VNPreview.TOKEN_FLAG, TOKEN])):
+		return "com porta e token é Preview"
+	return ""
+
+
+func test_painel_dados_em_memoria() -> String:
+	var pair := _panel_with_modules()
+	var bridge: VNPreviewWebBridge = pair[0]
+	var page: FakePage = pair[1]
+	var m := bridge.session.modules
+	page.post(_req(2, "preview.load", _load_params()))
+	var got := page.take()
+	if got.size() != 1 or not got[0].has("result"):
+		return "load: %s" % [got]
+	if not m.storage is VNMemoryStorage or bridge.session.user_data.mode() != "memory":
+		return "o padrão é a memória (PP §1.4): %s" % [m.storage]
+	m.storage.write_text("saves/slot_1.json", "{}")
+	m.storage.delete("saves/slot_1.json")
+	if not page.take().is_empty():
+		return "na memória não sai storage.write/storage.delete"
+	bridge.queue_free()
+	return ""
+
+
+func test_painel_dados_no_projeto() -> String:
+	var pair := _panel_with_modules()
+	var bridge: VNPreviewWebBridge = pair[0]
+	var page: FakePage = pair[1]
+	var m := bridge.session.modules
+	var files := {"settings.json": Marshalls.utf8_to_base64("{\"locale\":\"pt-BR\"}"),
+		"saves/slot_1.json": Marshalls.utf8_to_base64("{\"slot\":1}"), "saves/vazio.bin": ""}
+	page.post(_req(2, "preview.load", _load_params({"user_data": "project", "user_files": files})))
+	var got := page.take()
+	if got.size() != 1 or not got[0].has("result"):
+		return "load: %s" % [got]
+	var st := m.storage as VNFolderStorage
+	if st == null or not st.is_panel_mode():
+		return "no painel, a pasta do projeto fica na memória: %s" % [m.storage]
+	if st.read_text("settings.json") != "{\"locale\":\"pt-BR\"}" or st.read_text("saves/slot_1.json") != "{\"slot\":1}":
+		return "user_files não chegou ao VNStorage"
+	if not st.exists("saves/vazio.bin") or not st.read_bytes("saves/vazio.bin").is_empty():
+		return "arquivo vazio"
+	if not page.take().is_empty():
+		return "semear user_files não deveria gerar notificações"
+
+	var png := PackedByteArray([0x89, 0x50, 0x4e, 0x47, 0x00, 0xff])
+	st.write_bytes("saves/slot_2.png", png)
+	st.delete("saves/slot_1.json")
+	st.rename("settings.json", "settings.json.bad")
+	var notes := page.take()
+	var seen := notes.map(func(n): return [n["method"], n["params"]["path"]])
+	var expected := [["storage.write", "saves/slot_2.png"], ["storage.delete", "saves/slot_1.json"],
+		["storage.delete", "settings.json"], ["storage.write", "settings.json.bad"]]
+	if seen != expected:
+		return "notificações: %s" % [seen]
+	if Marshalls.base64_to_raw(notes[0]["params"]["data"]) != png:
+		return "data do storage.write não é o base64 dos bytes"
+	if notes[3]["params"]["data"] != files["settings.json"]:
+		return "rename deveria mandar o conteúdo inteiro"
+	for n in notes:
+		if n.has("id") or int(n["params"]["seq"]) < 1 or not n["params"].has("phase"):
+			return "forma da notificação: %s" % [n]
+
+	# Um segundo load em memória desliga as notificações do armazenamento antigo.
+	page.post(_req(3, "preview.load", _load_params({"user_data": "memory"})))
+	page.take()
+	st.write_text("saves/slot_3.json", "{}")
+	if not page.take().is_empty():
+		return "o armazenamento antigo continuou mandando storage.write"
+	if not m.storage is VNMemoryStorage:
+		return "o segundo load não trocou para a memória"
+	bridge.queue_free()
+	return ""
+
+
+## "Manter saves" no painel: o Studio aplica storage.write/delete na pasta e, ao reabrir, manda a
+## pasta em user_files; os saves voltam (aceite da M4-08).
+func test_painel_dados_reabrir() -> String:
+	var folder := {}  # o que o Studio guarda em .vnstudio/preview/user/: caminho → base64
+	for round in 2:
+		var pair := _panel_with_modules()
+		var bridge: VNPreviewWebBridge = pair[0]
+		var page: FakePage = pair[1]
+		page.post(_req(2, "preview.load", _load_params({"user_data": "project", "user_files": folder.duplicate()})))
+		page.take()
+		var st := bridge.session.modules.storage
+		if round == 0:
+			if st.exists("saves/quick.json"):
+				return "pasta vazia trouxe saves"
+			st.write_text("saves/quick.json", "{\"n\":1}")
+			st.write_text("profile.json", "{}")
+			st.delete("profile.json")
+		elif st.read_text("saves/quick.json") != "{\"n\":1}" or st.exists("profile.json"):
+			return "ao reabrir, a pasta voltou diferente: %s" % [st.list("saves")]
+		for n in page.take():
+			match n["method"]:
+				"storage.write":
+					folder[n["params"]["path"]] = n["params"]["data"]
+				"storage.delete":
+					folder.erase(n["params"]["path"])
+		bridge.queue_free()
+	if folder.keys() != ["saves/quick.json"]:
+		return "pasta do Studio: %s" % [folder.keys()]
+	return ""
+
+
+func test_painel_user_files_invalidos() -> String:
+	var pair := _panel_with_modules()
+	var bridge: VNPreviewWebBridge = pair[0]
+	var page: FakePage = pair[1]
+	var m := bridge.session.modules
+	var cases := [
+		{"user_data": "disco"},
+		{"user_data": "memory", "user_files": {}},
+		{"user_files": {"saves/a.json": ""}},
+		{"user_data": "project", "user_files": []},
+		{"user_data": "project", "user_files": {"../fora.json": ""}},
+		{"user_data": "project", "user_files": {"/abs.json": ""}},
+		{"user_data": "project", "user_files": {"C:/x.json": ""}},
+		{"user_data": "project", "user_files": {"saves\\a.json": ""}},
+		{"user_data": "project", "user_files": {"a.json": "não é base64!"}},
+		{"user_data": "project", "user_files": {"a.json": 12}},
+	]
+	var id := 10
+	for extra in cases:
+		id += 1
+		page.post(_req(id, "preview.load", _load_params(extra)))
+		var got := page.take()
+		if got.size() != 1 or _err_code(got[0]) != VNPreviewError.INVALID_PARAMS:
+			return "aceitou %s: %s" % [extra, got]
+		if m.storage != null or bridge.session.state() != VNPreviewSession.READY:
+			return "um load recusado mudou o armazenamento ou o estado (%s)" % [extra]
+	bridge.queue_free()
+	return ""
+
+
 # --- Janela (WebSocket de verdade em 127.0.0.1) ----------------------------
 
 func _server(lost_ms: int = 300) -> VNPreviewWebSocket:
@@ -592,4 +805,75 @@ func test_janela_queda_encerra() -> String:
 	if VNPreviewWebSocket.LOST_CONNECTION_EXIT_MS != 10000:
 		return "prazo padrão deveria ser 10 s"
 	server.queue_free()
+	return ""
+
+
+## Janela com "Manter saves": grava direto em --vn-user-dir e, numa nova conexão (reabrir), os
+## saves voltam. Sem a pasta, user_data "project" é recusado; nada vai para user:// (aceite da M4-08).
+func test_janela_dados_no_projeto() -> String:
+	var dir := _temp_dir("vn_window_user_dir")
+	var err := await _janela_dados(dir)
+	_remove_tree(dir)
+	return err
+
+
+func _janela_dados(dir: String) -> String:
+	var user_root := OS.get_user_data_dir()
+	var before := DirAccess.get_files_at(user_root).size() + DirAccess.get_directories_at(user_root).size()
+	for round in 2:
+		var server := _server()
+		server.modules = VNModules.new()
+		server.user_dir = dir
+		var seen := {}
+		server.session_created.connect(func(s: VNPreviewSession):
+			s.register("preview.load", func(_p):
+				var st := s.modules.storage
+				seen["existia"] = st.exists("saves/slot_1.json")
+				st.write_text("saves/slot_1.json", "{\"round\":%d}" % round)
+				return _LOAD_RESULT))
+		var ws := _client(server)
+		if not await _open(ws):
+			return "cliente não conectou"
+		_ws_send(ws, _hello(1, {"token": TOKEN}))
+		await _reply(ws)
+		_ws_send(ws, _req(2, "preview.load", {"bundle_path": "/p/.vnstudio/preview/narrative",
+			"assets_base": "/p/assets", "user_data": "project"}))
+		var got := await _reply(ws)
+		if got.size() != 1 or not got[0].has("result"):
+			return "load na rodada %d: %s" % [round, got]
+		if seen.get("existia") != (round == 1):
+			return "rodada %d: o save %s" % [round, "não voltou ao reabrir" if round == 1 else "já existia"]
+		if FileAccess.get_file_as_string(dir + "saves/slot_1.json") != "{\"round\":%d}" % round:
+			return "não gravou em --vn-user-dir"
+		if not server.session.modules.storage is VNFolderStorage or (server.session.modules.storage as VNFolderStorage).is_panel_mode():
+			return "na janela, a pasta é gravada direto"
+		if FileAccess.file_exists(dir + "saves/slot_1.json.tmp"):
+			return "sobrou o .tmp"
+		ws.close()
+		server.queue_free()
+		await process_frame
+
+	# Sem --vn-user-dir, user_data "project" na janela é recusado (e user_files nunca vem na janela).
+	var server2 := _server()
+	server2.modules = VNModules.new()
+	server2.session_created.connect(func(s: VNPreviewSession):
+		s.register("preview.load", func(_p): return _LOAD_RESULT))
+	var ws2 := _client(server2)
+	if not await _open(ws2):
+		return "cliente não conectou"
+	_ws_send(ws2, _hello(1, {"token": TOKEN}))
+	await _reply(ws2)
+	for params in [{"user_data": "project"}, {"user_data": "project", "user_files": {}}]:
+		var p := {"bundle_path": "/p/.vnstudio/preview/narrative", "assets_base": "/p/assets"}
+		p.merge(params)
+		_ws_send(ws2, _req(3, "preview.load", p))
+		var r := await _reply(ws2)
+		if r.size() != 1 or _err_code(r[0]) != VNPreviewError.INVALID_PARAMS:
+			return "janela aceitou %s sem --vn-user-dir: %s" % [params, r]
+	ws2.close()
+	server2.queue_free()
+	await process_frame
+	var after := DirAccess.get_files_at(user_root).size() + DirAccess.get_directories_at(user_root).size()
+	if after != before:
+		return "o Preview criou algo em user://"
 	return ""
