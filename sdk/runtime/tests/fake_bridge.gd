@@ -123,3 +123,103 @@ func deliver(name: String, payload: Dictionary, source: String) -> void:
 func request_scene(scene_id: String) -> VNResult:
 	requests.append(scene_id)
 	return VNResult.success()
+
+
+# --- M3-03: idioma, tema, modo stream, personagens, assets, áudio, overlays ---
+
+var locale := "en"
+var texts: Dictionary = {}                   # "<ns>:<chave>" → texto-fonte
+var stream_mode := false
+var resolution := Vector2i(1280, 720)
+var fonts: Dictionary = {}                   # papel → Font
+var font_sizes: Dictionary = {}
+var colors: Dictionary = {}
+var characters: Dictionary = {}              # id → dados
+var chosen_assets: Array[String] = []
+var assets: Dictionary = {}                  # id → Resource
+var hidden_assets: Array[String] = []        # censored.hide
+var played: Array[Dictionary] = []           # [{ asset, channel, volume }]
+var stopped_all: Array[float] = []
+var overlay_ok := true
+var overlays: Array[Node] = []
+var rngs: Dictionary = {}                    # namespace → VNRandom pronto
+var playing_sounds: Array[bool] = []         # estado de cada VNSound devolvido
+
+
+func set_locale(value: String) -> void:
+	locale = value
+	locale_changed.emit(value)
+
+
+func get_locale() -> String:
+	return locale
+
+
+func lookup_text(plugin_namespace: StringName, key: String) -> String:
+	return texts.get("%s:%s" % [plugin_namespace, key], "")
+
+
+func content_filter_enabled() -> bool:
+	return stream_mode
+
+
+func theme_resolution() -> Vector2i:
+	return resolution
+
+
+func theme_font(role: StringName) -> Font:
+	return fonts.get(role)
+
+
+func theme_font_size(role: StringName) -> int:
+	return font_sizes.get(role, 0)
+
+
+func theme_color(role: StringName) -> Color:
+	return colors.get(role, Color.WHITE)
+
+
+func create_rng(plugin_namespace: StringName) -> VNRandom:
+	return rngs.get(plugin_namespace, VNRandom.new())
+
+
+func character_data(character_id: String) -> Dictionary:
+	return characters.get(character_id, {})
+
+
+func character_ids() -> PackedStringArray:
+	return PackedStringArray(characters.keys())
+
+
+func is_author_chosen_asset(asset_id: String) -> bool:
+	return chosen_assets.has(asset_id)
+
+
+func load_asset(asset_id: String) -> Resource:
+	if hidden_assets.has(asset_id):
+		return null
+	return assets.get(asset_id)
+
+
+func play_sound(asset: String, channel: StringName, volume: float) -> VNSound:
+	if hidden_assets.has(asset):
+		return null
+	played.append({"asset": asset, "channel": channel, "volume": volume})
+	var idx := playing_sounds.size()
+	playing_sounds.append(true)
+	return VNSound.create(func(_fade: float) -> void: playing_sounds[idx] = false, func() -> bool: return playing_sounds[idx])
+
+
+func stop_sounds(fade: float) -> void:
+	stopped_all.append(fade)
+
+
+func add_overlay(node: Node) -> bool:
+	if not overlay_ok:
+		return false
+	overlays.append(node)
+	return true
+
+
+func remove_overlay(node: Node) -> void:
+	overlays.erase(node)
