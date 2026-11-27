@@ -1,0 +1,103 @@
+# Build Staging (tarefa M5-06, Build System §4): `vnstudio stage` monta o staging da demo, e o Godot 4.7.2
+# importa o projeto gerado e o abre até o boot conferir o bundle. O passo `--vn-selfcheck` (BS §12) entra
+# com a tarefa M5-08, que ainda não existe no runtime; até lá, o boot que confere o bundle é a verificação.
+name: Build Staging
+
+on:
+  pull_request:
+    paths:
+      - cli/**
+      - runtime/**
+      - sdk/runtime/**
+      - docs/specs/schemas/**
+      - docs/specs/presets/**
+      - docs/specs/tools/**
+      - docs/specs/examples/demo-project/SOURCE.json
+      - package.json
+      - package-lock.json
+      - .github/workflows/cli-staging.yml
+  push:
+    branches: [main]
+    paths:
+      - cli/**
+      - runtime/**
+      - sdk/runtime/**
+      - docs/specs/schemas/**
+      - docs/specs/presets/**
+      - docs/specs/tools/**
+      - package.json
+      - package-lock.json
+      - .github/workflows/cli-staging.yml
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: 4.7.2-stable
+
+concurrency:
+  group: cli-staging-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  staging:
+    name: Staging da demo abre no Godot
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -q fonttools==4.60.1
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Gera as cópias de presets e licenças do runtime
+        run: python docs/specs/tools/sync_generated_copies.py runtime
+      - name: Commit da demo que as specs copiam (SOURCE.json)
+        id: demo
+        run: echo "commit=$(jq -r .commit docs/specs/examples/demo-project/SOURCE.json)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v5
+        with:
+          repository: luisfernandosouza/gd-vn-studio-demo
+          ref: ${{ steps.demo.outputs.commit }}
+          path: demo
+      - name: Testes do staging
+        run: |
+          npm run build -w @vnstudio/cli
+          npx vitest run src/build
+        working-directory: cli
+      - name: Monta o staging da demo
+        run: node cli/dist/bin/vnstudio.js stage demo --plugin docs/specs/examples/fishing-plugin --out "$RUNNER_TEMP/staging"
+      - name: Cache do Godot ${{ env.GODOT_VERSION }}
+        id: cache-godot
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/godot-bin
+          key: godot-${{ env.GODOT_VERSION }}-linux-x86_64
+      - name: Baixa o Godot ${{ env.GODOT_VERSION }}
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          url="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/godot.zip" "$url"
+          mkdir -p ~/.cache/godot-bin
+          unzip -q "$RUNNER_TEMP/godot.zip" -d ~/.cache/godot-bin
+      - name: Instala o Godot
+        run: |
+          set -euo pipefail
+          install -m 755 ~/.cache/godot-bin/"Godot_v${GODOT_VERSION}_linux.x86_64" /usr/local/bin/godot
+          godot --headless --version
+      - name: Importa e abre o staging
+        run: |
+          set -euo pipefail
+          godot --headless --path "$RUNNER_TEMP/staging" --import 2>&1 | tee "$RUNNER_TEMP/import.log"
+          godot --headless --path "$RUNNER_TEMP/staging" --quit 2>&1 | tee "$RUNNER_TEMP/run.log"
+          grep -q "vn-boot: bundle res://vn_content/ conferido" "$RUNNER_TEMP/run.log"
+      - name: Sem erros no log do Godot
+        run: |
+          if grep -hE '(^|[^A-Z_])(ERROR|SCRIPT ERROR):' "$RUNNER_TEMP"/{import,run}.log; then
+            echo "::error title=Godot registrou erros::O staging da demo deve importar e abrir sem erros (M5-06)."
+            exit 1
+          fi
