@@ -1,0 +1,17 @@
+# Runner self-hosted do repositório (ver README.md desta pasta).
+# EPHEMERAL: cada contêiner pega um job, é descartado e o Docker sobe outro limpo.
+services:
+  runner:
+    build: .
+    restart: always
+    environment:
+      REPO_URL: https://github.com/luisfernandosouza/gd-vn-studio
+      ACCESS_TOKEN: ${GITHUB_PAT}        # vem do arquivo .env (não vai para o Git)
+      RUNNER_SCOPE: repo
+      EPHEMERAL: "true"
+      DISABLE_AUTO_UPDATE: "true"
+      LABELS: linux,vn-ci
+      RUNNER_NAME_PREFIX: pc-luis
+    # Sem docker.sock, sem privileged, sem pastas do PC montadas: o job só enxerga o próprio contêiner.
+    mem_limit: 8g
+    cpus: 4

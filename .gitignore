@@ -32,3 +32,6 @@ runtime/vn_runtime/presets/
 runtime/vn_runtime/licenses/
 studio/src-tauri/resources/specs/
 cli/schemas/
+
+# Segredos do runner local
+.github/runner/.env

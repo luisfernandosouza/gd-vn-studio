@@ -37,7 +37,7 @@ on:
 
 jobs:
   copies:
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, linux, vn-ci]
     env:
       VNSTUDIO_GENERATED_CACHE: ${{ github.workspace }}/../vnstudio-generated-cache
     steps:

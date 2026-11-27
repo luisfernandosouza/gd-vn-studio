@@ -23,7 +23,7 @@ env:
 
 jobs:
   lean-template:
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, linux, vn-ci]
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
@@ -52,7 +52,7 @@ jobs:
 
   export:
     needs: lean-template
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, linux, vn-ci]
     timeout-minutes: 30
     defaults:
       run:
@@ -133,7 +133,7 @@ jobs:
           - os: macos-latest
             godot: Godot.app/Contents/MacOS/Godot
             godot_zip: Godot_v4.7.2-stable_macos.universal.zip
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os == 'ubuntu-24.04' && fromJSON('["self-hosted","linux","vn-ci"]') || matrix.os }}
     timeout-minutes: 45
     defaults:
       run:

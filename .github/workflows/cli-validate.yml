@@ -36,7 +36,7 @@ concurrency:
 jobs:
   parity:
     name: Mesmo resultado que validate.py nos 144 casos
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, linux, vn-ci]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6

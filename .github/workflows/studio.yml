@@ -1,4 +1,4 @@
-# Studio (Tauri + React + TypeScript): lint, typecheck, testes unitários e build nos três sistemas (M0-05).
+# Studio (Tauri + React + TypeScript): lint, typecheck, testes unitários e build no Linux (M0-05; Windows e macOS saíram enquanto a CI roda no runner próprio).
 # O build de cada sistema abre o app com VNSTUDIO_SMOKE_TEST=1: a janela abre, a interface React
 # monta e avisa o processo nativo, que sai com 0. Sem esse aviso, o app sai com erro (src-tauri/src/smoke.rs).
 # Os ícones são gerados no build (scripts/gen-icons.mjs), porque o repositório não guarda imagens (spec 09 §1.1).
@@ -39,7 +39,7 @@ defaults:
 jobs:
   check:
     name: Lint, typecheck e testes
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, linux, vn-ci]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -67,8 +67,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, windows-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+        os: [ubuntu-24.04]  # Windows e macOS saíram enquanto a CI roda só no runner próprio (Linux); voltam quando houver runner hospedado
+    runs-on: ${{ matrix.os == 'ubuntu-24.04' && fromJSON('["self-hosted","linux","vn-ci"]') || matrix.os }}
     steps:
       - uses: actions/checkout@v5
       - name: Dependências do Tauri no Linux

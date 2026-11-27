@@ -15,7 +15,7 @@ on:
 
 jobs:
   specs:
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, linux, vn-ci]
     defaults:
       run:
         working-directory: docs/specs

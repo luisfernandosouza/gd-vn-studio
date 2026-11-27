@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   export:
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, linux, vn-ci]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
