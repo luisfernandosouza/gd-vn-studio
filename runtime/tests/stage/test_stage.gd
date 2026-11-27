@@ -40,6 +40,8 @@ func _run_all() -> void:
 		"transicao_cenario_dissolve_e_slide", "novo_comando_termina_transicao", "reduce_motion_corta_seco",
 		"set_parado_com_estado", "snapshot_e_restore", "modo_stream_resolve_assets",
 		"conteudo_sensivel", "clear_e_detach",
+		"stream_vetores_da_spec", "stream_snapshot_e_restore", "stream_cenario_sem_base_usa_placeholder",
+		"stream_substituta_ao_voltar_a_base",
 	]:
 		_run(t)
 	print("%d/%d testes do Stage passaram." % [_passed, _passed + _failed])
@@ -581,4 +583,179 @@ func test_clear_e_detach() -> String:
 	st.attach(_host)
 	if _screen_rect(st, ALICE) == Rect2() or not _approx(_screen_rect(st, ALICE).get_center().x, 960.0):
 		return "attach de novo não redesenhou o palco"
+	return ""
+
+
+# --- Modo stream: base por item (M2-12) --------------------------------------
+
+func _stream_bundle() -> Dictionary:
+	var bundle := _demo_bundle()
+	for id in ["bg/street", "bg/room", "music/theme", "music/spicy", "amb/waves", "amb/club", "amb/club_loud"]:
+		bundle.assets[id] = {"path": id + ".bin", "type": "background" if id.begins_with("bg/") else "audio_music"}
+	var chars := {}
+	for id in ["alice", "bob"]:
+		chars[id] = {"id": id, "key": id, "name": id,
+			"expressions": {"neutral": "char/alice/sad", "spicy": "char/alice/sad"}}
+	chars[PROBE] = bundle.characters[PROBE]
+	bundle.characters = chars
+	bundle.sets = {"beach_title": _read_json("sets/beach_title.json")}
+	return bundle
+
+
+## Monta o Stage e o Audio Manager reais (o Stage só com dados, sem texturas) e roda os nós
+## de apresentação de uma cena da spec 08, como o Narrative Engine fará: o passo cujo
+## [code]censor[/code] não vale no modo atual nem chega ao Stage (RT §5.5).
+func _drive_stream_case(c: Dictionary) -> String:
+	var m := VNFakeModules.create()
+	m.stage = VNRuntimeStage.new()
+	var au := VNRuntimeAudioManager.new()
+	m.audio = au
+	m.bind_all()
+	var bundle := _stream_bundle()
+	m.assets.load_bundle(bundle)
+	m.stage.load_bundle(bundle)
+	_host = SubViewport.new()
+	root.add_child(_host)
+	m.stage.attach(_host)
+	var st := m.stage as VNRuntimeStage
+	var filter: bool = c.get("content_filter", false)
+	for n: Dictionary in c.scene.nodes:
+		var cen := String(n.get("censor", ""))
+		if (cen == "skip" and filter) or (cen == "only" and not filter):
+			continue
+		match n.type:
+			"background": st.set_background(n)
+			"show": st.show_character(n)
+			"hide": st.hide_character(n)
+			"audio": au.run_audio_node(n)
+	var wants: Array = c.expect.trace.filter(func(t): return t is Dictionary and t.has("stage"))
+	var i := 0
+	for input: Variant in c.inputs:
+		if not (input is Dictionary and input.has("content_filter")):
+			continue
+		filter = bool(input.content_filter)
+		(m.assets as FakeAssets).set_content_filter(filter)
+		st.set_content_filter(filter)
+		au.set_content_filter(filter)
+		var want: Dictionary = wants[i].stage
+		i += 1
+		var got := st.displayed()
+		got["audio"] = au.audible()
+		var bg_want: Variant = want.background
+		if JSON.stringify(got.background) != JSON.stringify(bg_want):
+			return "%s: cenário %s, esperado %s" % [c.id, got.background, bg_want]
+		if JSON.stringify(got.characters) != JSON.stringify(want.characters):
+			return "%s: personagens %s, esperado %s" % [c.id, JSON.stringify(got.characters), JSON.stringify(want.characters)]
+		if JSON.stringify(got.audio) != JSON.stringify(want.audio):
+			return "%s: áudio %s, esperado %s" % [c.id, got.audio, want.audio]
+	if i != wants.size():
+		return "%s: %d estados conferidos de %d" % [c.id, i, wants.size()]
+	return ""
+
+
+func test_stream_vetores_da_spec() -> String:
+	var path := ProjectSettings.globalize_path("res://").path_join(DEMO).path_join("../../conformance/flow.json")
+	var f := FileAccess.open(path, FileAccess.READ)
+	if f == null:
+		return "flow.json não encontrado"
+	var data: Variant = JSON.parse_string(f.get_as_text())
+	var ran := 0
+	for c: Dictionary in data.cases:
+		if not String(c.id).begins_with("modo_stream_") or not c.expect.trace.any(func(t): return t is Dictionary and t.has("stage")):
+			continue
+		var err := _drive_stream_case(c)
+		if _host != null:
+			_host.free()
+			_host = null
+		if not err.is_empty():
+			return err
+		ran += 1
+	return "" if ran == 5 else "esperava 5 vetores com estado do palco, rodou %d" % ran
+
+
+func _stage_with_filter_steps() -> Array:
+	var m := VNFakeModules.create()
+	m.stage = VNRuntimeStage.new()
+	m.bind_all()
+	var bundle := _stream_bundle()
+	m.assets.load_bundle(bundle)
+	m.stage.load_bundle(bundle)
+	_host = SubViewport.new()
+	root.add_child(_host)
+	m.stage.attach(_host)
+	return [m, m.stage]
+
+
+func test_stream_snapshot_e_restore() -> String:
+	var r := _stage_with_filter_steps()
+	var m: VNModules = r[0]
+	var st: VNRuntimeStage = r[1]
+	st.set_background({"asset": "bg/street"})
+	st.show_character({"character": "alice", "expression": "neutral", "position": "center"})
+	st.set_background({"asset": "bg/room", "censor": "skip"})
+	st.show_character({"character": "alice", "expression": "spicy", "position": "left", "censor": "skip"})
+	var snap := st.snapshot()
+	if snap.get("background_censor") != "skip" or snap.get("background_base") != "bg/street" or snap.background != "bg/room":
+		return "cenário no save: %s" % snap
+	var a: Dictionary = snap.characters[0]
+	if a.get("censor") != "skip" or a.get("base") != {"expression": "neutral", "position": "center"}:
+		return "personagem no save: %s" % a
+	# Carregar com o modo ligado: mostra a base, sem transição, e o save continua igual.
+	(m.assets as FakeAssets).set_content_filter(true)
+	st.set_content_filter(true)
+	st.restore(snap)
+	var d := st.displayed()
+	if d.background != "bg/street" or d.characters != [{"id": "alice", "expression": "neutral", "position": "center"}]:
+		return "restaurado com o modo ligado: %s" % d
+	if JSON.stringify(st.snapshot()) != JSON.stringify(snap):
+		return "o save mudou ao restaurar: %s" % st.snapshot()
+	st.set_content_filter(false)
+	d = st.displayed()
+	if d.background != "bg/room" or d.characters[0].expression != "spicy" or d.characters[0].position != "left":
+		return "ao desligar o modo: %s" % d
+	# Um passo sem censor depois vira a nova base e apaga a marca.
+	st.set_background({"asset": "bg/street"})
+	if st.snapshot().has("background_censor"):
+		return "a marca do cenário devia sair"
+	return ""
+
+
+func test_stream_cenario_sem_base_usa_placeholder() -> String:
+	var r := _stage_with_filter_steps()
+	var m: VNModules = r[0]
+	var st: VNRuntimeStage = r[1]
+	(m.assets as FakeAssets).resources["test/placeholder"] = _texture(Vector2i(64, 64))
+	st.set_background({"asset": "bg/room", "censor": "skip"})
+	(m.assets as FakeAssets).set_content_filter(true)
+	st.set_content_filter(true)
+	if st.displayed().background != null:
+		return "sem base, nenhum cenário"
+	var img := _bg_view(st).get_node_or_null("Image") as Sprite2D
+	if img == null or img.texture != (m.assets as FakeAssets).resources["test/placeholder"]:
+		return "placeholder do projeto no lugar do cenário"
+	if st.snapshot().get("background_base", "x") != null:
+		return "background_base nulo no save"
+	return ""
+
+
+func test_stream_substituta_ao_voltar_a_base() -> String:
+	# A base também passa pelo censored dela: a substituta, não o original.
+	var r := _stage_with_filter_steps()
+	var m: VNModules = r[0]
+	var st: VNRuntimeStage = r[1]
+	var fa := m.assets as FakeAssets
+	fa.resources["test/tall"] = _texture(Vector2i(100, 400))
+	fa.resources["test/hot"] = _texture(Vector2i(100, 400))
+	fa.resources["char/alice/sad"] = _texture(Vector2i(100, 400))
+	fa.censored["test/hot"] = {"replace_with": "test/tall"}
+	st.show_character({"character": PROBE, "expression": "plain"})
+	st.show_character({"character": PROBE, "expression": "hot", "censor": "skip"})
+	fa.set_content_filter(true)
+	st.set_content_filter(true)
+	var d := st.displayed()
+	if d.characters != [{"id": PROBE, "expression": "plain", "position": "center"}]:
+		return "base da personagem: %s" % d
+	st.set_content_filter(false)
+	if _sprite(st, PROBE) == null:
+		return "personagem some ao desligar"
 	return ""
