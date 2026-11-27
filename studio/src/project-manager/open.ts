@@ -37,16 +37,16 @@ export async function openProject(fs: ProjectFs, root: string, options: OpenOpti
   if (!studioVersion) throw new Error('formatVersion inválido');
   const projectPath = joinPath(root, ROOT_FILES.project);
   if (!(await fs.exists(projectPath))) {
-    throw new ProjectManagerError('not_a_project', 'Esta pasta não tem um project.json. Escolha a pasta de um projeto do Visual Novel Studio.');
+    throw new ProjectManagerError('not_a_project', 'studio/error/not_a_project');
   }
   let project: Project;
   try {
     project = JSON.parse(await fs.readText(projectPath)) as Project;
   } catch {
-    throw new ProjectManagerError('unreadable', 'O project.json desta pasta não é um JSON válido.');
+    throw new ProjectManagerError('unreadable', 'studio/error/invalid_json');
   }
   const version = parseSemVer(project?.format_version);
-  if (!version) throw new ProjectManagerError('unreadable', `project.json tem format_version inválido ("${String(project?.format_version)}").`);
+  if (!version) throw new ProjectManagerError('unreadable', 'studio/error/invalid_format_version', { version: String(project?.format_version) });
   if (version.major > studioVersion.major) return { status: 'too_new', root, formatVersion: project.format_version };
   if (version.major < studioVersion.major) return { status: 'needs_migration', plan: await planMigration(fs, root, options) };
 
