@@ -1,3 +1,4 @@
+import { closeDocumentSession } from '../document/session';
 import { useProjectSession } from './session';
 
 /** Resumo do projeto aberto. Os editores (M6-02 em diante) ocupam este lugar. */
@@ -23,7 +24,9 @@ export function OpenProjectSummary() {
         <li>{entities.scenes.length} cena(s)</li>
         <li>{entities.characters.length} personagem(ns)</li>
       </ul>
-      <button type="button" onClick={() => setCurrent(null)}>
+      <button type="button" onClick={() => {
+          void closeDocumentSession().then(() => setCurrent(null));
+        }}>
         Fechar projeto
       </button>
     </section>
