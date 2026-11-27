@@ -3,9 +3,10 @@ extends Control
 ## Elemento [code]hotspot[/code] de tela (UI Spec §3.1, §5.2): área clicável
 ## sem visual próprio. [code]rect[/code] e [code]polygon[/code] são frações da
 ## resolução base; a tela posiciona o nó sobre a área. Áreas [code]layer[/code]
-## e [code]character[/code] dependem do set e do palco (tarefas M2-08 e
-## M2-04): até lá o nó fica sem área. Alcançável por teclado e gamepad, com
-## destaque no foco ou com [code]show_hotspots[/code].
+## e [code]character[/code] dependem do set e do palco: quem as resolve é o
+## Stage (M2-04, [VNStageInteraction]), que chama [method fit_rect] ou
+## [method fit_mask]; sem isso o nó fica sem área. Alcançável por teclado e
+## gamepad, com destaque no foco ou com [code]show_hotspots[/code].
 
 signal activated()
 
@@ -15,8 +16,16 @@ var highlight: String = "outline"
 var show_always: bool = false
 ## Nome lido por teclado e acessibilidade.
 var accessibility_label: String = ""
+## Visível mas sem resposta ([code]enabled_if[/code] falso num nó [code]interact[/code]).
+var disabled: bool = false:
+	set(value):
+		disabled = value
+		modulate.a = 0.4 if value else 1.0
 ## Polígono em coordenadas locais, calculado por [method fit].
 var _polygon: PackedVector2Array = []
+## Máscara alfa (área [code]layer[/code]): só os pixels com alfa acima de zero respondem.
+var _mask: Image = null
+var _mask_scale := Vector2.ONE
 var _hover: bool = false
 
 
@@ -52,16 +61,47 @@ func fit(origin: Vector2, base: Vector2) -> void:
 	queue_redraw()
 
 
+## Posiciona o nó sobre um retângulo já em pixels da área base (área
+## [code]character[/code]: o sprite da personagem no palco).
+func fit_rect(rect: Rect2) -> void:
+	_mask = null
+	position = rect.position
+	size = rect.size
+	if rect.size.x > 0.0 and rect.size.y > 0.0:
+		_polygon = PackedVector2Array([Vector2.ZERO, Vector2(size.x, 0), size, Vector2(0, size.y)])
+	else:
+		_polygon = PackedVector2Array()   # retângulo vazio: sem área
+	queue_redraw()
+
+
+## Como [method fit_rect], mas só os pixels não transparentes de [param image]
+## respondem (área [code]layer[/code]: máscara alfa da camada do set).
+## [param image_scale] é o tamanho de um pixel da imagem na tela.
+func fit_mask(rect: Rect2, image: Image, image_scale: Vector2) -> void:
+	fit_rect(rect)
+	_mask = image
+	_mask_scale = image_scale
+
+
 ## A área tem forma (rect ou polygon resolvidos).
 func has_area() -> bool:
 	return _polygon.size() >= 3
 
 
 func _has_point(point: Vector2) -> bool:
-	return has_area() and Geometry2D.is_point_in_polygon(point, _polygon)
+	if not has_area() or not Geometry2D.is_point_in_polygon(point, _polygon):
+		return false
+	if _mask != null:
+		var px := Vector2i((point / _mask_scale).floor())
+		if px.x < 0 or px.y < 0 or px.x >= _mask.get_width() or px.y >= _mask.get_height():
+			return false
+		return _mask.get_pixelv(px).a > 0.0
+	return true
 
 
 func _gui_input(event: InputEvent) -> void:
+	if disabled:
+		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		accept_event()
 		activated.emit()

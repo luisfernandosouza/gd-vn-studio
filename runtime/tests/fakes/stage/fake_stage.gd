@@ -97,8 +97,8 @@ func show_choices(prompt: String, options: Array[Dictionary]) -> void:
 	choices = options
 
 
-func show_hotspots(p_hotspots: Array[Dictionary], exit_option: Dictionary = {}) -> void:
-	_rec(&"show_hotspots", [p_hotspots, exit_option])
+func show_hotspots(p_hotspots: Array[Dictionary], exit_option: Dictionary = {}, prompt: String = "") -> void:
+	_rec(&"show_hotspots", [p_hotspots, exit_option, prompt])
 	hotspots = p_hotspots
 
 
