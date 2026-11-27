@@ -24,7 +24,7 @@ O addon não depende de nenhuma classe do runtime, porque é copiado sozinho par
 | `VNActivityHandle` | SDK §6 | `complete`/`fail` uma vez, `close()` do host; o resto em M3-04 |
 | `VNResult`, `VNRuntimeSDK` (capacidades, códigos de erro, `~chave`) | RT §6.3, SDK §4.2 | M3-02 |
 | `VNLogger` | SDK §5.2 | M3-02 |
-| `VNRandom` | SDK §5.6; RT §12.2 | M3-03: motor comum ou PCG32 reproduzível (`VNRandom.pcg32`, `plugin_seed`, `activity_seed`, estado em hex para o save), conferido com `conformance/rng.json` |
+| `VNRandom` | SDK §5.6; RT §12.2 | M3-03: o fluxo vem da ponte (`create_rng`); com `reproducible_rng` o host passa o PCG32 do runtime (M1-08), o SDK não duplica o gerador |
 | `VNCharacterAPI`, `VNAssetAPI`, `VNAudioAPI`, `VNSound`, `VNUIAPI`, `VNI18nAPI`, `VNThemeInfo`, `ctx.content_filter` | SDK §5.6–§5.7; RT §5.5 | M3-03 |
 | `VNProfileAPI` | SDK §9.1 | assinaturas; implementação em M3-06 |
 

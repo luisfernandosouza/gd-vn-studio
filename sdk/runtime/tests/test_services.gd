@@ -205,62 +205,10 @@ func test_overlay_sem_camada_no_host() -> void:
 
 func test_ctx_rng_vem_da_ponte() -> void:
 	var b := FakePluginBridge.new()
-	var fixed := VNRandom.pcg32(42)
+	var fixed := VNRandom.new()
 	b.rngs[&"fishing"] = fixed
 	var ctx := _ctx([], b)
 	check(ctx.rng == fixed, "fluxo do host")
-	check(ctx.rng.is_reproducible(), "reproduzível")
-	check(not VNRandom.new().is_reproducible(), "padrão é o motor")
-
-
-func test_pcg32_confere_com_os_vetores_de_conformidade() -> void:
-	var path := ProjectSettings.globalize_path("res://").path_join("../../docs/specs/conformance/rng.json")
-	var f := FileAccess.open(path, FileAccess.READ)
-	check(f != null, "abriu rng.json")
-	if f == null:
-		return
-	var doc: Dictionary = JSON.parse_string(f.get_as_text())
-	var n := 0
-	for c in doc.cases:
-		var expect: Dictionary = c.expect
-		match c.op:
-			"sequence":
-				var r := VNRandom.pcg32(VNRandom.seed_from_hex(c.seed))
-				var got: Array = []
-				for i in int(c.count):
-					got.append(r._next_u32())
-				eq(got, _ints(expect.values), "%s: valores" % c.id)
-				eq(r.get_state_hex(), expect.state_after, "%s: estado" % c.id)
-			"random_int":
-				var r := VNRandom.pcg32(VNRandom.seed_from_hex(c.seed))
-				var got: Array = []
-				for i in int(c.count):
-					got.append(r.randi_range(int(c.min), int(c.max)))
-				eq(got, _ints(expect.values), "%s: random_int" % c.id)
-			"activity_seed":
-				var s := VNRandom.activity_seed(VNRandom.seed_from_hex(c.seed), int(c.selection_count), c.node, int(c.activity_index))
-				eq(VNRandom.seed_to_hex(s), expect.seed, "%s: semente" % c.id)
-			"plugin_seed":
-				var s := VNRandom.plugin_seed(VNRandom.seed_from_hex(c.seed), c.namespace)
-				eq(VNRandom.seed_to_hex(s), expect.seed, "%s: semente" % c.id)
-			_:
-				continue
-		n += 1
-	check(n >= 8, "todos os casos rodaram (%d)" % n)
-
-
-func test_pcg32_estado_vai_e_volta_pelo_save() -> void:
-	var a := VNRandom.pcg32(7)
-	a.randi_range(1, 100)
-	var saved := a.get_state_hex()
-	var next_a := a.randi_range(1, 1000000)
-	var b := VNRandom.pcg32(999)
-	b.set_state_hex(saved)
-	eq(b.randi_range(1, 1000000), next_a, "retoma a sequência")
-	var plain := VNRandom.new()
-	eq(plain.get_state_hex(), "", "motor comum não tem estado")
-
-
 # --- Aceite da M3-03: o fishing de exemplo só usa APIs do SDK ---------------------------------
 
 func test_fishing_de_exemplo_usa_so_apis_do_sdk() -> void:

@@ -1,16 +1,16 @@
 # Runtime SDK (tarefas M3-02 em diante): addon GDScript em sdk/runtime/addons/vn_runtime_sdk/.
 # sdk/runtime/ é um projeto Godot só de teste; a release do SDK empacota apenas o addon.
 # 1. Testes unitários das fachadas contra uma ponte de teste (tests/fake_bridge.gd).
-# 1b. Os testes também conferem o PCG32 com conformance/rng.json e as APIs usadas pelo fishing de exemplo.
+# 1b. Os testes também conferem as APIs usadas pelo fishing de exemplo.
 # 2. Os plugins de exemplo das specs carregam com o addon (fishing-plugin e o probe das fixtures).
 name: Runtime SDK
 
 on:
   pull_request:
-    paths: [sdk/runtime/**, docs/specs/examples/fishing-plugin/**, docs/specs/conformance/rng.json, runtime/tests/fixtures/src/projects/*/plugins/**, .github/workflows/sdk-runtime.yml]
+    paths: [sdk/runtime/**, docs/specs/examples/fishing-plugin/**, runtime/tests/fixtures/src/projects/*/plugins/**, .github/workflows/sdk-runtime.yml]
   push:
     branches: [main]
-    paths: [sdk/runtime/**, docs/specs/examples/fishing-plugin/**, docs/specs/conformance/rng.json, runtime/tests/fixtures/src/projects/*/plugins/**, .github/workflows/sdk-runtime.yml]
+    paths: [sdk/runtime/**, docs/specs/examples/fishing-plugin/**, runtime/tests/fixtures/src/projects/*/plugins/**, .github/workflows/sdk-runtime.yml]
   workflow_dispatch:
 
 env:

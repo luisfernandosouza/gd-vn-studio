@@ -201,8 +201,8 @@ func theme_color(_role: StringName) -> Color:
 # --- RNG (RT §12.2) -----------------------------------------------------------
 
 ## Fluxo de [code]ctx.rng[/code] do plugin. Com [code]settings.reproducible_rng[/code],
-## um [code]VNRandom.pcg32[/code] semeado com [code]VNRandom.plugin_seed[/code]; sem
-## ela, o RNG comum do motor (o padrão).
+## o host devolve [code]VNRandom.new(VNGameRng.plugin_stream(namespace))[/code]
+## (PCG32 do runtime, M1-08); sem ela, o RNG comum do motor (o padrão).
 func create_rng(_plugin_namespace: StringName) -> VNRandom:
 	return VNRandom.new()
 
