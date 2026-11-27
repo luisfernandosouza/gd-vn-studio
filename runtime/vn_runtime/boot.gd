@@ -48,6 +48,12 @@ func _ready() -> void:
 	boot.run()
 
 
+## Janela fechada: grava o perfil pendente (RT §8.5, "ao sair").
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST and modules != null and modules.saves is VNRuntimeSaveManager:
+		(modules.saves as VNRuntimeSaveManager).flush_on_exit()
+
+
 func _bundle_dir(args: PackedStringArray) -> String:
 	var i := args.find(BUNDLE_FLAG)
 	if i < 0:

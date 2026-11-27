@@ -509,7 +509,7 @@ func start_activity(activity: StringName, params: Dictionary, mode: StringName =
 	_activity_token += 1
 	_activity = {
 		"activity": activity, "mode": mode, "params": params,
-		"skippable": bool(decl.get("skippable", false)),
+		"skippable": bool(decl.get("skippable", false)), "min_fps": int(decl.get("min_fps", 0)),
 		"plugin": ns, "id": StringName(act), "token": _activity_token,
 		"outcomes": decl.get("outcomes", []), "default_outcome": decl.get("default_outcome", ""),
 	}
@@ -543,6 +543,7 @@ func current_activity() -> Dictionary:
 	return {
 		"activity": _activity.activity, "mode": _activity.mode,
 		"params": _activity.params, "skippable": _activity.skippable,
+		"min_fps": _activity.get("min_fps", 0),
 	}
 
 

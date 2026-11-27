@@ -367,10 +367,13 @@ func _on_phase_changed(phase: StringName, previous: StringName) -> void:
 		set_hud_visible(true)
 	refresh_sys_ui()
 	_apply_activity_capture()
+	if VNPhase.ACTIVITY in [phase, previous]:
+		apply_fps_limit()   # novel × atividade (UI Spec §8)
 	refresh()
 
 
 func _on_activity_ended(status: StringName, outcome: StringName, _payload: Dictionary) -> void:
+	apply_fps_limit()
 	if _free_play_screen.is_empty():
 		refresh_sys_ui()
 		return
@@ -933,6 +936,8 @@ func load_settings() -> void:
 		_settings.player = {}
 		if m != null and m.storage != null:
 			m.storage.rename("settings.json", "settings.json.bad")
+	elif _settings.migrated and m != null and m.storage != null:
+		m.storage.write_json("settings.json", _settings.player)
 	_settings.screen_size = DisplayServer.screen_get_size() if DisplayServer.get_name() != "headless" else Vector2i.ZERO
 	_text.locale = String(get_setting(&"locale"))
 	_use_locale_strings()
@@ -990,12 +995,8 @@ func _apply_setting(key: String, value: Variant) -> void:
 		return
 	var windowed := DisplayServer.get_name() not in ["headless", ""] and platform != WEB
 	match key:
-		"fps_limit_vn":
-			if platform != WEB and (m == null or m.engine == null or m.engine.phase() != VNPhase.ACTIVITY):
-				Engine.max_fps = int(value)
-		"fps_limit_activity":
-			if platform != WEB and m != null and m.engine != null and m.engine.phase() == VNPhase.ACTIVITY:
-				Engine.max_fps = int(value)
+		"fps_limit_vn", "fps_limit_activity":
+			apply_fps_limit()
 		"vsync":
 			if windowed:
 				DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if value else DisplayServer.VSYNC_DISABLED)
@@ -1008,6 +1009,22 @@ func _apply_setting(key: String, value: Variant) -> void:
 		"resolution":
 			if windowed and DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_WINDOWED:
 				DisplayServer.window_set_size(Vector2i(int(value[0]), int(value[1])))
+
+
+## Limite de FPS em vigor (UI Spec §8): o da novel, ou o das atividades enquanto
+## uma atividade de plugin roda (com o [code]min_fps[/code] do manifesto, se o
+## limite vem do padrão do projeto). No Web o navegador controla a taxa.
+func fps_limit_now() -> int:
+	var m := modules()
+	var act: Dictionary = m.plugins.current_activity() if m != null and m.plugins != null else {}
+	if not act.is_empty() or (m != null and m.engine != null and m.engine.phase() == VNPhase.ACTIVITY):
+		return _settings.activity_fps_limit(int(act.get("min_fps", 0)))
+	return int(_settings.get_value("fps_limit_vn"))
+
+
+func apply_fps_limit() -> void:
+	if platform != WEB:
+		Engine.max_fps = fps_limit_now()
 
 
 ## Atualiza os controles ligados à configuração nas telas abertas, sem disparar sinal.

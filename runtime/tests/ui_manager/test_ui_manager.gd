@@ -60,7 +60,8 @@ func _main() -> void:
 	for t in [
 		"contrato", "titulo_condicoes", "titulo_novo_jogo", "titulo_continuar", "titulo_foco_teclado",
 		"titulo_on_open_set", "titulo_sair_confirma", "pilha_e_voltar", "settings_controles",
-		"settings_arquivo_invalido", "settings_traducao", "credits_licencas", "extras_modo_livre",
+		"settings_arquivo_invalido", "settings_sobrevivem_reinicio", "settings_legado_fullscreen",
+		"fps_novel_e_atividade", "settings_traducao", "credits_licencas", "extras_modo_livre",
 		"extras_recusado_no_jogo", "acoes_if_else", "acoes_confirm_then_else", "acoes_effects_titulo",
 		"acoes_effects_e_emit_no_jogo", "acoes_elementos", "pausa_pausa_o_engine", "hud_durante_atividade",
 		"textos_interpolacao", "reset_profile",
@@ -448,6 +449,80 @@ func test_settings_arquivo_invalido() -> String:
 	if ui.get_setting(&"auto_delay") != 1.5 or ui.get_setting(&"fps_limit_activity") != 0 or ui.get_setting(&"display_mode") != "windowed":
 		return "padrões do projeto"
 	return ""
+
+
+func test_settings_sobrevivem_reinicio() -> String:
+	var r := _setup()
+	var m: VNModules = r[0]
+	var ui: VNRuntimeUIManager = r[1]
+	ui.set_setting(&"volume.music", 0.25)
+	ui.set_setting(&"display_mode", "borderless")
+	ui.set_setting(&"fps_limit_vn", 30)
+	ui.set_setting(&"fps_limit_activity", 144)
+	ui.set_setting(&"locale", "en")
+	# Novo processo: outro UI Manager lendo o mesmo armazenamento.
+	var r2 := _setup()
+	var m2: VNModules = r2[0]
+	var ui2: VNRuntimeUIManager = r2[1]
+	m2.storage = m.storage
+	ui2.load_settings()
+	for pair in [["volume.music", 0.25], ["display_mode", "borderless"], ["fps_limit_vn", 30], ["fps_limit_activity", 144], ["locale", "en"]]:
+		if ui2.get_setting(StringName(pair[0])) != pair[1]:
+			return "%s não sobreviveu: %s" % [pair[0], ui2.get_setting(StringName(pair[0]))]
+	if ui2.get_setting(&"volume.sfx") != 0.8 or ui2.get_setting(&"vsync") != true:
+		return "o que o jogador não mudou continua com o padrão"
+	var saved: Dictionary = m.storage.read_json("settings.json")
+	return "" if saved.keys().size() == 4 + 1 and not saved.has("vsync") else "só o que mudou: %s" % saved
+
+
+func test_settings_legado_fullscreen() -> String:
+	var r := _setup()
+	var m: VNModules = r[0]
+	var ui: VNRuntimeUIManager = r[1]
+	m.storage.write_json("settings.json", {"fullscreen": true, "text_speed": 80})
+	ui.load_settings()
+	if m.storage.exists("settings.json.bad") or ui.get_setting(&"display_mode") != "fullscreen" or ui.get_setting(&"text_speed") != 80.0:
+		return "fullscreen:true deveria virar display_mode fullscreen"
+	var saved: Dictionary = m.storage.read_json("settings.json")
+	if saved.has("fullscreen") or saved.get("display_mode") != "fullscreen":
+		return "arquivo regravado no formato novo: %s" % saved
+	m.storage.write_json("settings.json", {"fullscreen": true, "display_mode": "borderless"})
+	ui.load_settings()
+	if ui.get_setting(&"display_mode") != "borderless":
+		return "display_mode gravado vence"
+	m.storage.write_json("settings.json", {"fullscreen": false})
+	ui.load_settings()
+	return "" if ui.get_setting(&"display_mode") == "windowed" and not m.storage.read_json("settings.json").has("fullscreen") else "fullscreen:false"
+
+
+func test_fps_novel_e_atividade() -> String:
+	var r := _setup()
+	var m: VNModules = r[0]
+	var ui: VNRuntimeUIManager = r[1]
+	var model := ui.settings_model()
+	# Padrões: 60 na novel, sem limite nas atividades.
+	if ui.fps_limit_now() != 60 or model.activity_fps_limit(30) != 0:
+		return "padrões 60 / 0"
+	# Limite do padrão do projeto sobe até o min_fps; o do jogador vale como está.
+	model.project = model.project.duplicate(true)
+	model.project.settings.display["fps_limit_activity"] = 30
+	if model.activity_fps_limit(60) != 60 or model.activity_fps_limit(0) != 30 or model.activity_fps_below_min(60):
+		return "limite do projeto sobe até min_fps"
+	ui.set_setting(&"fps_limit_activity", 30)
+	if model.activity_fps_limit(60) != 30 or not model.activity_fps_below_min(60) or model.activity_fps_below_min(24):
+		return "a escolha do jogador vence, com aviso"
+	# A troca acompanha a fase do jogo.
+	ui.set_setting(&"fps_limit_vn", 30)
+	ui.set_setting(&"fps_limit_activity", 120)
+	var e: FakeNarrativeEngine = m.engine
+	e.set_phase(VNPhase.SCENE_RUNNING)
+	if Engine.max_fps != 30:
+		return "novel: %d" % Engine.max_fps
+	e.set_phase(VNPhase.ACTIVITY)
+	if Engine.max_fps != 120:
+		return "atividade: %d" % Engine.max_fps
+	e.set_phase(VNPhase.SCENE_RUNNING)
+	return "" if Engine.max_fps == 30 else "volta à novel: %d" % Engine.max_fps
 
 
 func test_settings_traducao() -> String:
