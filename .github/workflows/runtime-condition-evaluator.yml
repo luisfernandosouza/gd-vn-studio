@@ -1,4 +1,4 @@
-# Testes unitários de tipos e valores do Condition Evaluator (tarefa M1-02; RT §12.1, DM §6.1.1).
+# Testes unitários do Condition Evaluator: tipos e valores (M1-02) e expressões e funções (M1-03).
 name: Runtime condition evaluator
 
 on:
@@ -43,10 +43,14 @@ jobs:
         run: |
           set -euo pipefail
           godot --headless --path runtime --script res://tests/condition_evaluator/test_vn_value.gd 2>&1 | tee "$RUNNER_TEMP/unit.log"
+      - name: Testes do Condition Evaluator
+        run: |
+          set -euo pipefail
+          godot --headless --path runtime --script res://tests/condition_evaluator/test_condition_evaluator.gd 2>&1 | tee "$RUNNER_TEMP/unit-eval.log"
       - name: Sem erros no log do Godot
         run: |
           # O Godot sai com 0 mesmo quando um script não compila; qualquer ERROR nos logs falha a CI.
-          if grep -hE '(^|[^A-Z_])(ERROR|SCRIPT ERROR):' "$RUNNER_TEMP"/{import,unit}.log; then
+          if grep -hE '(^|[^A-Z_])(ERROR|SCRIPT ERROR):' "$RUNNER_TEMP"/{import,unit,unit-eval}.log; then
             echo "::error title=Godot registrou erros::VNValue e os testes devem rodar sem erros (M1-02)."
             exit 1
           fi
