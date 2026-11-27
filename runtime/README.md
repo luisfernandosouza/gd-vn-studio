@@ -75,7 +75,24 @@ O autoteste do executor confere a leitura dos números, a comparação, a descob
 godot --headless --path runtime --script res://tests/conformance/test_runner.gd
 ```
 
-A workflow [`runtime.yml`](../.github/workflows/runtime.yml) roda esses três comandos e o autoteste do executor, com o Godot em cache, e a referência `tools/conformance.py` em todo pull request que toca `runtime/` ou `docs/specs/conformance/` (spec 08 §4). O runner Web entra com a tarefa M4-03.
+A workflow [`runtime.yml`](../.github/workflows/runtime.yml) roda esses três comandos e o autoteste do executor, com o Godot em cache, e a referência `tools/conformance.py` em todo pull request que toca `runtime/` ou `docs/specs/conformance/` (spec 08 §4). O job `web` da mesma workflow roda o runner Web (abaixo).
+
+### Export Web e runner Web dos vetores (M4-03)
+
+`export_presets.cfg` tem dois presets Web, os dois sem threads (`variant/thread_support=false`, BS §7.3, para rodar sem COOP/COEP):
+
+| Preset | Para quê |
+|---|---|
+| `Web` | O runtime do painel do Preview (spec 09 §1): `exclude_filter` do produto (`tests/*, */tests/*, docs/*, *.md`, spec 09 §1.2), sem o executor de testes |
+| `Web (vetores)` | O mesmo runtime **com** `tests/`, só para o runner Web dos vetores (spec 08 §4); nunca é distribuído |
+
+```bash
+python3 runtime/tests/web/fetch_web_templates.py 4.7.2-stable   # só os templates Web (~20 MB, em vez dos 1,3 GB do .tpz)
+godot --headless --path runtime --export-debug "Web (vetores)" ../build/runtime-web-vectors/index.html
+node runtime/tests/web/run_web_vectors.cjs build/runtime-web-vectors docs/specs/conformance   # precisa do pacote npm `playwright`
+```
+
+O runner sobe um servidor local, abre o export num Chromium headless do Playwright, passa os arquivos de casos para o sistema de arquivos em memória do motor e chama o mesmo `--vn-test` do nativo (áudio `Dummy`, porque o headless não tem `AudioWorklet`). Imprime o mesmo `FALHOU …`/`N/M` e sai com 0, 1 ou 2 como o nativo (3 se o runtime Web não chegou ao fim; `VN_WEB_TIMEOUT_MS` muda o limite de 300 s). A CI compara o resumo e os pulados dos dois runners e falha se diferirem.
 
 As ações `vn_*` em `project.godot` seguem a tabela do RT §10.1. Para mudar uma ação, edite pelo editor do Godot (Projeto → Configurações do Projeto → Mapa de Entrada) e mantenha `device = -1` (todos os dispositivos).
 
