@@ -7,7 +7,7 @@ import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-import { SPECS, materialize, readCases } from './fixtures.test-util.js';
+import { SPECS, materialize, readCases, type CompileCase } from './fixtures.test-util.js';
 import { compileProject, loadProject, writeBundle } from './index.js';
 
 const hasPython = spawnSync('python3', ['--version']).status === 0;
@@ -54,6 +54,17 @@ describe.skipIf(!hasPython)('mesmos bytes que compile_bundle.py', () => {
   const fishing = join(SPECS, 'examples', 'fishing-plugin');
   it('exemplo das specs (demo), edição completa', () => compare(demo, fishing));
   it('exemplo das specs (demo), edição censurada', () => compare(demo, fishing, 'censored'));
+  it('build.locales limita os idiomas (BS §5.3), nas duas edições', () => {
+    for (const edition of [undefined, 'censored'] as const) {
+      const c: CompileCase = { id: 'l', description: '', expect: {}, edits: [{ file: 'project.json', pointer: '/build/locales', value: ['pt-BR'] }] };
+      const m = materialize(c);
+      try {
+        compare(m.project, m.plugin, edition);
+      } finally {
+        m.dispose();
+      }
+    }
+  });
   for (const c of readCases()) {
     it(`vetor ${c.id}`, () => {
       const m = materialize(c);
