@@ -2,10 +2,11 @@ class_name VNUIHotspot
 extends Control
 ## Elemento [code]hotspot[/code] de tela (UI Spec §3.1, §5.2): área clicável
 ## sem visual próprio. [code]rect[/code] e [code]polygon[/code] são frações da
-## resolução base; a tela posiciona o nó sobre a área. Áreas [code]layer[/code]
-## e [code]character[/code] dependem do set e do palco (tarefas M2-08 e
-## M2-04): até lá o nó fica sem área. Alcançável por teclado e gamepad, com
-## destaque no foco ou com [code]show_hotspots[/code].
+## resolução base; a tela posiciona o nó sobre a área. Uma área
+## [code]layer[/code] usa a máscara alfa da camada do set ([method set_mask],
+## posta pelo [VNSetView]); [code]character[/code] depende do palco (M2-04): até
+## lá o nó fica sem área. Alcançável por teclado e gamepad, com destaque no
+## foco ou com [code]show_hotspots[/code].
 
 signal activated()
 
@@ -18,6 +19,11 @@ var accessibility_label: String = ""
 ## Polígono em coordenadas locais, calculado por [method fit].
 var _polygon: PackedVector2Array = []
 var _hover: bool = false
+## Máscara alfa (área [code]layer[/code]): pixels da imagem, escala até o
+## tamanho do nó e contornos já na escala do nó.
+var _mask: BitMap = null
+var _mask_scale := Vector2.ONE
+var _outlines: Array[PackedVector2Array] = []
 
 
 func _ready() -> void:
@@ -34,6 +40,8 @@ func fit(origin: Vector2, base: Vector2) -> void:
 		position = origin + Vector2(r[0], r[1]) * base
 		size = Vector2(r[2], r[3]) * base
 		_polygon = PackedVector2Array([Vector2.ZERO, Vector2(size.x, 0), size, Vector2(0, size.y)])
+	elif area.has("layer"):
+		return   # posição e máscara vêm do set (set_mask)
 	elif area.has("polygon"):
 		var pts := PackedVector2Array()
 		for p in area.polygon:
@@ -52,13 +60,40 @@ func fit(origin: Vector2, base: Vector2) -> void:
 	queue_redraw()
 
 
-## A área tem forma (rect ou polygon resolvidos).
+## Área [code]layer[/code] (UI Spec §5.2): o nó cobre a camada (posição e
+## tamanho em coordenadas do pai) e só os pixels não transparentes de
+## [param mask] contam. [code]null[/code] tira a área.
+func set_mask(mask: BitMap, rect: Rect2, outlines: Array[PackedVector2Array] = []) -> void:
+	_mask = mask
+	position = rect.position
+	size = rect.size
+	_polygon = PackedVector2Array()
+	_outlines.clear()
+	if mask == null or rect.size.x <= 0.0 or rect.size.y <= 0.0:
+		_mask = null
+		queue_redraw()
+		return
+	var ms := Vector2(mask.get_size())
+	_mask_scale = rect.size / ms
+	for o in outlines:
+		var pts := PackedVector2Array()
+		for p in o:
+			pts.append(p * _mask_scale)
+		_outlines.append(pts)
+	queue_redraw()
+
+
+## A área tem forma (rect ou polygon resolvidos, ou a máscara de uma camada).
 func has_area() -> bool:
-	return _polygon.size() >= 3
+	return _polygon.size() >= 3 or _mask != null
 
 
 func _has_point(point: Vector2) -> bool:
-	return has_area() and Geometry2D.is_point_in_polygon(point, _polygon)
+	if _mask != null:
+		var p := Vector2i((point / _mask_scale).floor())
+		var ms := _mask.get_size()
+		return p.x >= 0 and p.y >= 0 and p.x < ms.x and p.y < ms.y and _mask.get_bitv(p)
+	return _polygon.size() >= 3 and Geometry2D.is_point_in_polygon(point, _polygon)
 
 
 func _gui_input(event: InputEvent) -> void:
@@ -75,6 +110,22 @@ func _draw() -> void:
 		return
 	var lit := show_always or _hover or has_focus()
 	if not lit:
+		return
+	if _mask != null:
+		for o in _outlines:
+			if o.size() < 3:
+				continue
+			var ring := o.duplicate()
+			ring.append(o[0])
+			# Contornos de máscara podem ser côncavos: só linhas, sem preencher.
+			match highlight:
+				"tint":
+					draw_polyline(ring, Color(1, 1, 1, 0.5), 6.0, true)
+				"glow":
+					draw_polyline(ring, Color(1, 0.9, 0.5, 0.35), 8.0, true)
+					draw_polyline(ring, Color(1, 0.9, 0.5, 0.9), 3.0, true)
+				_:
+					draw_polyline(ring, Color(1, 1, 1, 0.9), 2.0, true)
 		return
 	var closed := _polygon.duplicate()
 	closed.append(_polygon[0])

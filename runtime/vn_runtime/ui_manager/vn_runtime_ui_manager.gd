@@ -12,9 +12,13 @@ extends VNUIManager
 ## uma tela durante o jogo pausa o Narrative Engine; a [code]hud[/code] não.
 ## Teclado e gamepad navegam pelas ações [code]vn_*[/code] do RT §10.1.
 ##
+## O set composto atrás da tela ([VNSetView], M2-08) é montado por
+## [method make_set_view]; as ações de alvo [code]set:[/code] vão para o set da
+## tela que as executa, e as de alvo [code]stage:[/code] saem por
+## [signal set_target_action] para o Stage.
+##
 ## O que fica para outras tarefas: estilos do tema e animações [code]idle[/code]
-## (M2-07), o set composto atrás da tela e os alvos [code]set:[/code] e
-## [code]stage:[/code] (M2-08, por [signal set_target_action]), telas do preset
+## (M2-07), telas do preset
 ## (M2-09), perfil e migração de [code]settings.json[/code] (M2-11), licenças do
 ## [code]licenses.json[/code] (M2-14, por [method set_licenses]) e acessibilidade (M2-15).
 
@@ -22,8 +26,9 @@ extends VNUIManager
 ## ([code]stage:[/code]): [param action] é [code]set_state[/code],
 ## [code]toggle_state[/code], [code]play_animation[/code], [code]show[/code],
 ## [code]hide[/code] ou [code]toggle_visible[/code]; [param args] traz
-## [code]state[/code], [code]states[/code] ou [code]animation[/code]. Quem desenha
-## o set (M2-08) escuta este sinal.
+## [code]state[/code], [code]states[/code] ou [code]animation[/code]. Sai para
+## os dois escopos (o set da tela já foi atualizado quando o escopo é
+## [code]set[/code]); o Stage escuta o escopo [code]stage[/code] (M2-08).
 signal set_target_action(scope: StringName, target: String, action: StringName, args: Dictionary)
 ## Modo automático ou pular mudou (ações [code]toggle_auto[/code]/[code]toggle_skip[/code]).
 signal play_mode_changed(auto: bool, skip: bool)
@@ -792,7 +797,12 @@ func _target_action(a: Dictionary, run: Dictionary) -> VNResult:
 		if a.has(k):
 			args[k] = a[k]
 	if target.contains(":"):
-		set_target_action.emit(StringName(target.get_slice(":", 0)), target.get_slice(":", 1), action, args)
+		var scope := target.get_slice(":", 0)
+		if scope == "set":
+			var view := _set_view_of(run)
+			if view == null or not view.apply_action(String(action), target, args):
+				push_warning("UI: %s: a tela %s não tem set com a camada %s" % [action, run.ctx.get("screen", ""), target.get_slice(":", 1)])
+		set_target_action.emit(StringName(scope), target.get_slice(":", 1), action, args)
 		return VNResult.success()
 	var screen := get_screen(String(run.ctx.get("screen", "")))
 	if screen == null or not screen.elements.has(target):
@@ -804,6 +814,49 @@ func _target_action(a: Dictionary, run: Dictionary) -> VNResult:
 		&"play_animation": VNUIAnimator.play(screen.elements[target], a.animation, bool(get_setting(&"reduce_motion")))
 		_: pass   # elementos não têm estados; set_state/toggle_state valem para sets (U001)
 	return VNResult.success()
+
+
+## O set da tela que executa a ação, ou o da tela do topo.
+func _set_view_of(run: Dictionary) -> VNSetView:
+	var screen := get_screen(String(run.ctx.get("screen", "")))
+	if screen != null and screen.set_view != null:
+		return screen.set_view
+	var top := top_screen()
+	return top.set_view if top != null else null
+
+
+## Monta o [VNSetView] do set [param set_id] para o fundo de uma tela
+## (M2-08): imagens pelo [VNAssets], textos de [code]sets/<set>/<hotspot>[/code],
+## condições e sons pelos módulos, hotspots alcançáveis por teclado. Devolve
+## [code]null[/code] se o bundle não tem o set (U001).
+func make_set_view(set_id: String, base: Vector2, view: Vector2) -> VNSetView:
+	var def: Variant = _bundle.get("sets", {}).get(set_id)
+	if not def is Dictionary:
+		push_warning("UI: set desconhecido: %s" % set_id)
+		return null
+	var v := VNSetView.new()
+	v.set_id = set_id
+	v.base_size = base
+	v.view_size = view
+	v.reduce_motion = bool(get_setting(&"reduce_motion"))
+	v.show_hotspots = bool(get_setting(&"show_hotspots"))
+	v.keyboard_focus = true
+	v.asset_loader = func(asset_id: String) -> Resource:
+		var m := modules()
+		if asset_id.is_empty() or m == null or m.assets == null or not m.assets.has_asset(asset_id):
+			return null
+		return m.assets.load_asset(asset_id)
+	v.text_fn = func(path: String, fallback: String) -> String: return text(path, fallback)
+	v.check_fn = func(conditions: Array) -> bool: return check(conditions)
+	v.sfx_fn = func(asset_id: String):
+		var m := modules()
+		if m != null and m.audio != null:
+			m.audio.play(asset_id, VNAudioManager.SFX)
+	v.gate = func() -> bool: return _dialogs.is_empty()
+	var d := (def as Dictionary).duplicate()
+	d["id"] = set_id
+	v.build(d)
+	return v
 
 
 ## Clique, toque ou confirmação num elemento.
@@ -1031,7 +1084,12 @@ func _sync_bound_controls(key: String) -> void:
 				for i in opts.size():
 					if VNUIElements._same_value(opts[i].value, value):
 						fc.select(i)
+		if key == "reduce_motion" and s.set_view != null:
+			s.set_view.reduce_motion = bool(value)
+			s.set_view.relayout()
 		if key == "show_hotspots":
+			if s.set_view != null:
+				s.set_view.set_show_hotspots(bool(value))
 			for id in s.order:
 				if s.elements[id] is VNUIHotspot:
 					s.elements[id].show_always = bool(value)
@@ -1136,7 +1194,10 @@ func handle_input(event: InputEvent) -> bool:
 		if focus == null or not top.is_ancestor_of(focus):
 			top.focus_first()
 			return true
-		if focus is VNUIHotspot:
+		if focus is VNSetHotspot:
+			focus.activated.emit()
+			focus.released.emit()
+		elif focus is VNUIHotspot:
 			focus.activated.emit()
 		elif focus is OptionButton:
 			focus.show_popup()
