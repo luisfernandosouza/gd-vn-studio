@@ -153,6 +153,9 @@ export function createContext(input: ProjectInput, options: CompileOptions = {})
   let locales = arr(get(project, 'locales', null)).map(str);
   if (!locales.length) locales = [str(project.default_locale)];
   if (!locales.includes(str(project.default_locale))) locales = [str(project.default_locale), ...locales];
+  // BS §5.3: `build.locales` limita os idiomas do build (R013 garante o default_locale e a inclusão em `locales`)
+  const buildLocales = arr(get(obj(get(project, 'build', {})), 'locales', null)).map(str);
+  if (buildLocales.length) locales = locales.filter((l) => buildLocales.includes(l));
 
   const manifests = new Map<string, Obj>();
   const pluginLicenses = new Map<string, string | undefined>();

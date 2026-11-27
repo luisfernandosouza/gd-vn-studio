@@ -117,6 +117,8 @@ def compile_project(root, plugin_dirs=(), edition=None):
     proj_sched = {"tie_breaker": "deterministic", "include_global_scenes": True, **project.get("scheduler", {})}
     locales = project.get("locales") or [project["default_locale"]]
     if project["default_locale"] not in locales: locales = [project["default_locale"]] + locales
+    build_locales = project.get("build", {}).get("locales")      # Build System §5.3: limita os idiomas do build
+    if build_locales: locales = [l for l in locales if l in build_locales]
     proj = {k: v for k, v in strip(project).items() if k not in ("theme", "build")}
     proj.update({"settings": settings, "scheduler": proj_sched, "locales": locales,
                  "chapters": project.get("chapters") or sorted(chapters_src),

@@ -36,6 +36,12 @@ writeBundle('out', compileProject(loadProject('docs/specs/examples/demo-project'
 
 Os testes conferem os 7 vetores de `conformance/canonical.json`, os 8 de `conformance/compile/cases.json`, a equivalência incremental em cada vetor e a igualdade byte a byte com `compile_bundle.py` (exemplo das specs nas duas edições e os 8 vetores; precisa de `python3`, sem `jsonschema`).
 
+### Idiomas e edição censurada no build (M5-04)
+
+- `project.json → build.locales` limita os idiomas do build ([BS §5.3](../docs/specs/05-build-system-specification.md)): só esses `locales/<idioma>.json` são gerados e `bundle.project.locales` traz a mesma lista (na ordem de `project.locales`), então o `content_hash` muda com ela. Sem o campo entram todos. O `compile_bundle.py` faz o mesmo.
+- `--edition censored` (BS §5.4) tira os originais: [`stage.ts`](src/bundle/stage.ts) (`assetFilesFor`, `stageAssets`) não copia o arquivo de um asset com `censored.hide`, e o de um com `censored.replace_with` nem é referenciado, pois o bundle aponta para a substituta.
+- `vnstudio compile [--edition standard|censored] [--stage] <projeto> <saída> [<plugin>...]` valida, compila e, com `--stage`, copia os assets. É o equivalente em TypeScript do `compile_bundle.py`; o `vnstudio build` completo é o M5-11.
+
 ## Validador de conteúdo (M5-01)
 
 `vnstudio validate [--export] [--json] <projeto> [<plugin>...]` aplica as regras do Content Validator (Data Model §11, UI Spec §11, spec 09 §5): todos os códigos S, R, T, P, W e U. `--export` liga as regras de exportação (R021, P013; W013 e U009 viram erro). Sai com 1 se houver erro.
