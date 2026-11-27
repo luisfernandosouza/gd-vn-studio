@@ -36,6 +36,18 @@ writeBundle('out', compileProject(loadProject('docs/specs/examples/demo-project'
 
 Os testes conferem os 7 vetores de `conformance/canonical.json`, os 8 de `conformance/compile/cases.json`, a equivalência incremental em cada vetor e a igualdade byte a byte com `compile_bundle.py` (exemplo das specs nas duas edições e os 8 vetores; precisa de `python3`, sem `jsonschema`).
 
+## Build Staging (`src/build/`, M5-06)
+
+`vnstudio stage <projeto> --out <pasta> [--plugin <pasta>...] [--offline] [--edition ...]` monta o Build Staging do [Build System §4](../docs/specs/05-build-system-specification.md) e para aí (o export é a M5-09; `vnstudio build`, a M5-11). Sem `--plugin`, os plugins vêm do `plugin-lock.json` pela etapa de dependências (M5-05); com ele, das pastas dadas (desenvolvimento e testes).
+
+| Módulo | O que faz |
+|---|---|
+| `godot-project.ts` | `project.godot` do zero: nome, versão, cena principal, ícone/splash, resolução, esticamento, ações `vn_*` e renderizador do template, traduções vazias, filtro linear (BS §4.3) |
+| `build-config.ts` | `build_config.gd` com as constantes de `VNBuildConfig` (BS §4.4) |
+| `staging.ts` | `stageBuild`: template do runtime e do SDK, `vn_content/` (bundle, idiomas, plugins, licenças, assets, `build.json`), `vn_plugins/<namespace>/` só com `plugin.json`, `LICENSE` e `runtime/` (BS §4.5), `build_id`, B005, B014, B018 |
+
+Escolhas onde a spec é omissa: o bundle entra na forma canônica em JSON (o runtime de debug a lê, RT §2.1) porque o `.vnb` é a M5-03, então o tipo `release` é recusado até lá; `CONTENT_HASHES` já traz o hash do JSON canônico de cada `.vnb`; sem `autoload/*`, porque o runtime não tem scripts de autoload (a cena `boot.tscn` monta os módulos); sem splash, `boot_splash/show_image=false` com a cor `colors.background` do tema, ou preto se o tema não a define; todos os assets de `assets.json` são copiados (a seleção só dos usados é a M5-07). A workflow [`cli-staging.yml`](../.github/workflows/cli-staging.yml) monta o staging da demo e o abre no Godot 4.7.2; o `--vn-selfcheck` entra com a M5-08.
+
 ## Validador de conteúdo (M5-01)
 
 `vnstudio validate [--export] [--json] <projeto> [<plugin>...]` aplica as regras do Content Validator (Data Model §11, UI Spec §11, spec 09 §5): todos os códigos S, R, T, P, W e U. `--export` liga as regras de exportação (R021, P013; W013 e U009 viram erro). Sai com 1 se houver erro.
