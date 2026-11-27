@@ -13,6 +13,10 @@ var area: Dictionary = {}
 var highlight: String = "outline"
 ## [code]PlayerSettings.show_hotspots[/code]: destaca sempre.
 var show_always: bool = false
+## Cores e largura do contorno do estilo [code]hotspot[/code] do tema (UI Spec §7.1).
+var border_hover: Color = Color(1, 1, 1, 0.9)
+var border_focus: Color = Color(0.42, 0.66, 1.0, 1.0)
+var border_width: float = 2.0
 ## Nome lido por teclado e acessibilidade.
 var accessibility_label: String = ""
 ## Polígono em coordenadas locais, calculado por [method fit].
@@ -85,4 +89,5 @@ func _draw() -> void:
 			draw_colored_polygon(_polygon, Color(1, 0.9, 0.5, 0.12))
 			draw_polyline(closed, Color(1, 0.9, 0.5, 0.9), 3.0, true)
 		_:
-			draw_polyline(closed, Color(1, 1, 1, 0.9), 2.0, true)
+			var c := border_focus if has_focus() else border_hover
+			draw_polyline(closed, c, border_width, true)

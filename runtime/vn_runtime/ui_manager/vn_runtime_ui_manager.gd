@@ -12,8 +12,9 @@ extends VNUIManager
 ## uma tela durante o jogo pausa o Narrative Engine; a [code]hud[/code] não.
 ## Teclado e gamepad navegam pelas ações [code]vn_*[/code] do RT §10.1.
 ##
-## O que fica para outras tarefas: estilos do tema e animações [code]idle[/code]
-## (M2-07), o set composto atrás da tela e os alvos [code]set:[/code] e
+## O tema (M2-07: estilos de botão, fontes por idioma, [code]auto_shrink[/code],
+## alto contraste, animações e sons) vem de [VNUITheme]. Ficam para outras
+## tarefas: o set composto atrás da tela e os alvos [code]set:[/code] e
 ## [code]stage:[/code] (M2-08, por [signal set_target_action]), telas do preset
 ## (M2-09), perfil e migração de [code]settings.json[/code] (M2-11), licenças do
 ## [code]licenses.json[/code] (M2-14, por [method set_licenses]) e acessibilidade (M2-15).
@@ -47,6 +48,7 @@ var skip_mode: bool = false
 var _bundle: Dictionary = {}
 var _settings := VNUISettings.new()
 var _text := VNUIText.new()
+var _theme := VNUITheme.new()
 var _licenses: Array = []
 var _root: Control = null
 var _layers: Dictionary = {}       # camada → CanvasLayer
@@ -71,6 +73,11 @@ func load_bundle(bundle: Dictionary) -> void:
 	_bundle = bundle
 	_settings.project = bundle.get("project", {})
 	_text.number_formats = _settings.project.get("settings", {}).get("number_formats", {})
+	_theme.configure(bundle.get("theme", {}), bundle.get("assets", {}))
+	_theme.texture_loader = load_texture
+	_theme.font_loader = load_font
+	_theme.sound_player = play_ui_sound
+	_apply_global_cursor()
 	_connect_modules()
 	var locales: Variant = bundle.get("locales")
 	if locales is Dictionary:
@@ -105,6 +112,22 @@ func license_entries() -> Array:
 	]
 	out.append_array(_licenses)
 	return out
+
+
+## O tema do bundle (estilos, fontes, contraste).
+func theme_model() -> VNUITheme:
+	_sync_theme()
+	return _theme
+
+
+## Copia para o tema as configurações que mudam o visual.
+func _sync_theme() -> void:
+	_theme.locale = _text.locale
+	_theme.text_scale = float(get_setting(&"text_scale"))
+	_theme.high_contrast = bool(get_setting(&"high_contrast"))
+	_theme.reduce_motion = bool(get_setting(&"reduce_motion"))
+	var res: Array = _settings.project.get("settings", {}).get("resolution", [1920, 1080])
+	_theme.base_size = Vector2(float(res[0]), float(res[1]))
 
 
 func settings_model() -> VNUISettings:
@@ -254,6 +277,7 @@ func set_hud_visible(visible: bool) -> void:
 			if _layers.has(VNLayers.HUD):
 				_layers[VNLayers.HUD].add_child(_hud)
 			_hud.refresh()
+			_hud.start_idle()
 			run_actions(data.get("on_open", []), {"screen": "hud", "list": "on_open"})
 	elif _hud != null:
 		var old := _hud
@@ -268,6 +292,8 @@ func is_hud_visible() -> bool:
 
 
 func _make_screen(screen_id: String, data: Dictionary) -> VNUIScreen:
+	_sync_theme()
+	_style_captions()
 	var s := VNUIScreen.new()
 	var res: Array = _settings.project.get("settings", {}).get("resolution", [1920, 1080])
 	s.setup(self, screen_id, data, Vector2(float(res[0]), float(res[1])))
@@ -341,6 +367,7 @@ func _play_appear(screen: VNUIScreen) -> void:
 		var def: Dictionary = screen.definition(id)
 		if def.has("appear"):
 			VNUIAnimator.play(screen.elements[id], def.appear, reduce, true)
+	screen.start_idle()
 
 
 func _play_screen_music(data: Dictionary) -> void:
@@ -428,6 +455,7 @@ func refresh() -> void:
 
 
 func _rebuild_open_screens() -> void:
+	_theme.clear_font_cache()
 	var ids := screen_stack()
 	if ids.is_empty() and _hud == null:
 		return
@@ -447,9 +475,36 @@ func _rebuild_open_screens() -> void:
 		if _layers.has(VNLayers.SCREENS):
 			_layers[VNLayers.SCREENS].add_child(s)
 		s.refresh()
+		s.start_idle()
 	if had_hud:
 		set_hud_visible(true)
 	_focus_top()
+
+
+## Fonte do bundle (TTF/OTF) ou [code]null[/code].
+func load_font(asset_id: String) -> Font:
+	var m := modules()
+	if asset_id.is_empty() or m == null or m.assets == null or not m.assets.has_asset(asset_id):
+		return null
+	return m.assets.load_asset(asset_id) as Font
+
+
+## Toca um som de interface (hover, clique) no canal sfx; o modo stream vale
+## como em qualquer asset ([code]censored[/code]).
+func play_ui_sound(asset_id: String) -> void:
+	var m := modules()
+	if m != null and m.audio != null and m.assets != null and m.assets.has_asset(asset_id):
+		m.audio.play(asset_id, VNAudioManager.SFX)
+
+
+## Cursor padrão do jogo ([code]theme.cursor[/code]).
+func _apply_global_cursor() -> void:
+	var id := String(_bundle.get("theme", {}).get("cursor", ""))
+	if id.is_empty() or DisplayServer.get_name() in ["headless", ""]:
+		return
+	var tex := load_texture(id)
+	if tex != null:
+		Input.set_custom_mouse_cursor(tex, Input.CURSOR_ARROW)
 
 
 func load_texture(asset_id: String) -> Texture2D:
@@ -882,12 +937,14 @@ func confirm(text_path: String, on_answer: Callable) -> void:
 func show_message(text_path: String) -> void:
 	var d := VNUIDialog.new()
 	d.setup(text(text_path, text_path), text("runtime/message/ok", "OK"), "")
+	theme_model().style_dialog(d)
 	_show_dialog(d, func(_ok): pass)
 
 
 func _confirm_text(value: String, on_answer: Callable) -> void:
 	var d := VNUIDialog.new()
 	d.setup(value, text("runtime/confirm/yes", "Yes"), text("runtime/confirm/no", "No"))
+	theme_model().style_dialog(d)
 	_show_dialog(d, on_answer)
 
 
@@ -964,8 +1021,30 @@ func set_setting(setting: StringName, value: Variant) -> VNResult:
 			_use_locale_strings()
 		elif key == "content_filter":
 			_set_sys("sys.ui.content_filter", norm[1])
+		elif key in ["text_scale", "high_contrast", "reduce_motion"]:
+			_restyle_open_screens()
 		_sync_bound_controls(key)
 	return VNResult.success()
+
+
+## Repassa o tema à legenda de sons, se o Audio Manager tiver uma (o runtime tem; os dublês não).
+func _style_captions() -> void:
+	var m := modules()
+	if m != null and m.audio != null and m.audio.has_method(&"caption_view"):
+		var view: VNCaptionView = m.audio.caption_view()
+		if view != null:
+			view.apply_theme(_theme)
+
+
+func _restyle_open_screens() -> void:
+	_sync_theme()
+	_style_captions()
+	for s in _stack:
+		s.restyle()
+	if _hud != null:
+		_hud.restyle()
+	for d in _dialogs:
+		_theme.style_dialog(d)
 
 
 func _use_locale_strings() -> void:
