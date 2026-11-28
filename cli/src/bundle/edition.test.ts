@@ -23,7 +23,7 @@ describe('build.locales (BS §5.3)', () => {
   it('build.locales limita os arquivos de idioma e project.locales', () => {
     const { m, out } = build([{ file: 'project.json', pointer: '/build/locales', value: ['pt-BR'] }]);
     expect(Object.keys(out.locales)).toEqual(['pt-BR']);
-    expect((out.bundle.project as { locales: string[] }).locales).toEqual(['pt-BR']);
+    expect((out.bundle.project as unknown as { locales: string[] }).locales).toEqual(['pt-BR']);
     m.dispose();
   });
   it('mantém a ordem de project.locales e o default_locale', () => {
