@@ -6,7 +6,7 @@ extends RefCounted
 ## [code]vn_def[/code] (o dicionário do bundle) e [code]vn_focus[/code] (o
 ## [Control] que recebe foco e clique, que pode ser o próprio nó ou um filho,
 ## como o [HSlider] de um [code]slider[/code]). O estilo visual (tema, estados,
-## sons) é da tarefa M2-07; aqui vale o tema padrão do Godot.
+## sons) é aplicado depois por [method VNUITheme.apply_element] (M2-07).
 
 const CLICKABLE := ["button", "hotspot", "slider", "toggle", "select"]
 

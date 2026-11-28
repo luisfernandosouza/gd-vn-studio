@@ -77,7 +77,40 @@ func add_element(def: Dictionary, parent_id: String) -> Control:
 	order.append(id)
 	var node := VNUIElements.build(self, def)
 	elements[id] = node
+	manager.theme_model().apply_element(node, def)
 	return node
+
+
+## Reaplica o tema a todos os elementos (mudou texto maior, alto contraste,
+## movimento reduzido), sem refazer a tela: o foco e os controles seguem iguais.
+func restyle() -> void:
+	var theme := manager.theme_model()
+	for id in order:
+		theme.apply_element(elements[id], definition(id))
+	layout()
+	start_idle()
+
+
+## Liga as animações [code]idle[/code] dos botões estilizados.
+func start_idle() -> void:
+	for fx in _fx_of(self):
+		fx.start_idle()
+
+
+func _fx_of(node: Node) -> Array[VNUIButtonFx]:
+	var out: Array[VNUIButtonFx] = []
+	if node.has_meta(&"vn_fx"):
+		out.append(node.get_meta(&"vn_fx"))
+	for c in node.get_children():
+		out.append_array(_fx_of(c))
+	return out
+
+
+## Foco por navegação (teclado, gamepad): leva o foco e toca o som de hover do estilo.
+func _navigate_to(c: Control) -> void:
+	c.grab_focus()
+	if c.has_meta(&"vn_fx"):
+		c.get_meta(&"vn_fx").navigated()
 
 
 ## Texto de um campo do elemento: caminho [code]ui/<tela>/<elemento>[/suffix][/code].
@@ -320,7 +353,7 @@ func move_focus(dir: Vector2) -> void:
 	if not np.is_empty():
 		var n := cur.get_node_or_null(np) as Control
 		if n != null and all.has(n):
-			n.grab_focus()
+			_navigate_to(n)
 			return
 	var from := cur.get_global_rect().get_center()
 	var best: Control = null
@@ -338,7 +371,7 @@ func move_focus(dir: Vector2) -> void:
 			best_score = score
 			best = c
 	if best != null:
-		best.grab_focus()
+		_navigate_to(best)
 
 
 ## O elemento de tela dono do controle focado, ou "".

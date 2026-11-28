@@ -45,6 +45,13 @@ static func apply_text_scale(root: Node, scale: float) -> void:
 		apply_text_scale(child, s)
 
 
+## Esquece o tamanho base guardado de [param c] (o tema pôs um novo): a próxima
+## [method apply_text_scale] parte dele.
+static func forget_base(c: Control) -> void:
+	if c.has_meta(_BASE_META):
+		c.remove_meta(_BASE_META)
+
+
 static func _scale_control(c: Control, scale: float) -> void:
 	var bases: Dictionary = c.get_meta(_BASE_META, {})
 	if bases.is_empty():
@@ -86,7 +93,9 @@ static func focus_style(color: Color) -> StyleBoxFlat:
 ## Dá a moldura de foco a todo controle focável de [param root] (botões, sliders,
 ## listas e o resto). [VNUIHotspot] desenha o próprio foco.
 static func apply_focus_style(root: Node, color: Color) -> void:
-	if root is Control and root.focus_mode != Control.FOCUS_NONE and not root is VNUIHotspot:
+	# Controles que o tema (VNUITheme) já estilizou têm a moldura própria, com a forma do estilo.
+	if root is Control and root.focus_mode != Control.FOCUS_NONE and not root is VNUIHotspot \
+			and not root.has_theme_stylebox_override(&"focus"):
 		root.add_theme_stylebox_override(&"focus", focus_style(color))
 	for child in root.get_children():
 		apply_focus_style(child, color)
