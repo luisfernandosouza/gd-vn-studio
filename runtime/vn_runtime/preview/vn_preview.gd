@@ -18,6 +18,18 @@ static func is_allowed() -> bool:
 	return OS.is_debug_build() or OS.has_feature(FEATURE)
 
 
+## O runtime foi aberto pelo Studio como Preview: no painel (export Web com
+## [code]window.vnPreview[/code]) ou na janela (com [code]--vn-preview-port[/code] e
+## [code]--vn-preview-token[/code]). O boot usa para escolher o [VNStorage]
+## ([method VNPreviewUserData.boot_storage]): no Preview, nunca [code]user://[/code] (PP §1.4).
+static func is_requested(args: PackedStringArray = _all_args()) -> bool:
+	if not is_allowed():
+		return false
+	if OS.has_feature("web"):
+		return JavaScriptBridge.get_interface(VNPreviewWebBridge.PAGE_OBJECT) != null
+	return not window_options(args).is_empty()
+
+
 ## Opções da janela na linha de comando: [code]{port, token}[/code], ou vazio se não vieram.
 ## Com opções inválidas, devolve [code]{error}[/code]. O token nunca vai para o log (PP §7).
 static func window_options(args: PackedStringArray = _all_args()) -> Dictionary:
@@ -59,6 +71,10 @@ static func launch(parent: Node, modules: VNModules = null, on_session: Callable
 	var server := VNPreviewWebSocket.new()
 	server.name = "VNPreviewWebSocket"
 	server.modules = modules
+	var user_dir_opt := VNPreviewUserData.user_dir_option()
+	if user_dir_opt.has("error"):
+		push_warning("Preview: %s; os dados do jogador ficam na memória." % user_dir_opt["error"])
+	server.user_dir = user_dir_opt.get("dir", "")
 	server.features = features
 	if on_session.is_valid():
 		server.session_created.connect(on_session)

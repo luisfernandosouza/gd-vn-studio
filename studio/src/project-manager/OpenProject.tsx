@@ -1,4 +1,5 @@
 import { PreviewPanel } from '../../preview/PreviewPanel';
+import { closeDocumentSession } from '../document/session';
 import { useT } from '../i18n';
 import type { ProjectFs } from './fs';
 import { useProjectSession } from './session';
@@ -27,7 +28,12 @@ export function OpenProjectSummary({ fs }: { fs?: ProjectFs } = {}) {
         <li>{t('studio/project/characters', { count: entities.characters.length })}</li>
       </ul>
       {fs && <PreviewPanel fs={fs} root={current.root} />}
-      <button type="button" onClick={() => setCurrent(null)}>
+      <button
+        type="button"
+        onClick={() => {
+          void closeDocumentSession().then(() => setCurrent(null));
+        }}
+      >
         {t('studio/project/close')}
       </button>
     </section>

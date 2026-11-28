@@ -4,8 +4,9 @@ extends Control
 ## sem visual próprio. [code]rect[/code] e [code]polygon[/code] são frações da
 ## resolução base; a tela posiciona o nó sobre a área. Uma área
 ## [code]layer[/code] usa a máscara alfa da camada do set ([method set_mask],
-## posta pelo [VNSetView]); [code]character[/code] depende do palco (M2-04): até
-## lá o nó fica sem área. Alcançável por teclado e gamepad, com destaque no
+## posta pelo [VNSetView] ou, num [code]interact[/code], pelo [VNStageInteraction]);
+## [code]character[/code] é o retângulo do sprite no palco ([method fit_rect], posto
+## pelo [VNStageInteraction]); sem isso o nó fica sem área. Alcançável por teclado e gamepad, com destaque no
 ## foco ou com [code]show_hotspots[/code].
 
 signal activated()
@@ -16,6 +17,11 @@ var highlight: String = "outline"
 var show_always: bool = false
 ## Nome lido por teclado e acessibilidade.
 var accessibility_label: String = ""
+## Visível mas sem resposta ([code]enabled_if[/code] falso num nó [code]interact[/code]).
+var disabled: bool = false:
+	set(value):
+		disabled = value
+		modulate.a = 0.4 if value else 1.0
 ## Polígono em coordenadas locais, calculado por [method fit].
 var _polygon: PackedVector2Array = []
 var _hover: bool = false
@@ -60,6 +66,20 @@ func fit(origin: Vector2, base: Vector2) -> void:
 	queue_redraw()
 
 
+## Posiciona o nó sobre um retângulo já em pixels da área base (área
+## [code]character[/code]: o sprite da personagem no palco). Retângulo vazio: sem área.
+func fit_rect(rect: Rect2) -> void:
+	_mask = null
+	_outlines.clear()
+	position = rect.position
+	size = rect.size
+	if rect.size.x > 0.0 and rect.size.y > 0.0:
+		_polygon = PackedVector2Array([Vector2.ZERO, Vector2(size.x, 0), size, Vector2(0, size.y)])
+	else:
+		_polygon = PackedVector2Array()
+	queue_redraw()
+
+
 ## Área [code]layer[/code] (UI Spec §5.2): o nó cobre a camada (posição e
 ## tamanho em coordenadas do pai) e só os pixels não transparentes de
 ## [param mask] contam. [code]null[/code] tira a área.
@@ -97,6 +117,8 @@ func _has_point(point: Vector2) -> bool:
 
 
 func _gui_input(event: InputEvent) -> void:
+	if disabled:
+		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		accept_event()
 		activated.emit()
