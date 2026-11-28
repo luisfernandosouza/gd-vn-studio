@@ -142,4 +142,4 @@ func _test_all_adapters_with_fakes() -> void:
 				total += int(line.get_slice("/", 1).get_slice(" ", 0))
 	_check(out[0] == 1, "com dublês no lugar dos módulos reais os vetores falham (exit 1)")
 	_check("sem implementação real" not in out[1], "com todos os módulos, nenhum caso é pulado por falta de módulo")
-	_check(total == 68, "expressões, condições e seleção executadas (exceto weighted): %d" % total)
+	_check(total == 69, "expressões, condições e seleção executadas (inclusive weighted, M1-08): %d" % total)

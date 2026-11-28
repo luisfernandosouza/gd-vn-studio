@@ -43,9 +43,9 @@ const ALLOWED_IN_NEW_FOLDER = /^(\.git|\.gitignore|\.gitattributes|readme(\..*)?
  */
 export async function createProject(fs: ProjectFs, options: NewProjectOptions): Promise<CreatedProject> {
   const title = options.title.trim();
-  if (!title) throw new ProjectManagerError('invalid_title', 'O projeto precisa de um nome.');
+  if (!title) throw new ProjectManagerError('invalid_title', 'studio/error/needs_title');
   if (!LOCALE_PATTERN.test(options.defaultLocale)) {
-    throw new ProjectManagerError('invalid_locale', `"${options.defaultLocale}" não é um código de idioma válido (ex.: pt-BR, en, ja).`);
+    throw new ProjectManagerError('invalid_locale', 'studio/error/invalid_locale', { locale: options.defaultLocale });
   }
   const { root } = options;
   if (await fs.exists(root)) {
@@ -53,7 +53,8 @@ export async function createProject(fs: ProjectFs, options: NewProjectOptions): 
     if (blocking.length > 0) {
       throw new ProjectManagerError(
         'folder_not_empty',
-        `A pasta escolhida já tem arquivos (${blocking.map((e) => e.name).slice(0, 3).join(', ')}). Escolha uma pasta vazia.`,
+        'studio/error/folder_not_empty',
+        { names: blocking.map((e) => e.name).slice(0, 3).join(', ') },
       );
     }
   }

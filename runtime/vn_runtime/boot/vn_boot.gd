@@ -82,6 +82,7 @@ func run() -> bool:
 	if not loader.load_all():
 		return _fatal(loader.error_code, loader.error_detail)
 	modules.load_bundle(loader.bundle)
+	modules.ui.set_licenses(loader.licenses)
 	if loader.dir != VNBundleLoader.DEFAULT_DIR:
 		# --vn-bundle: os assets vêm de <pasta>/assets/ (RT §2.1), pelo mesmo
 		# mecanismo do assets_base do Preview.

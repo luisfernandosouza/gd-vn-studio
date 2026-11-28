@@ -23,14 +23,24 @@ var profile: VNProfileAPI                ## profile.data (§9.1)
 var rng: VNRandom                        ## fluxo do plugin fora de atividades (RT §12.2); na atividade, handle.rng
 var i18n: VNI18nAPI                      ## idioma do jogo e textos runtime/ do plugin (§5.7)
 var theme: VNThemeInfo                   ## aparência do projeto, somente leitura (§5.7)
-var content_filter: bool = false         ## modo stream ligado (§5.6); somente leitura para o plugin
+## Modo stream ligado (§5.6; RT §5.5), somente leitura: atribuir só avisa o log.
+## Na edição censurada vale sempre [code]true[/code]. Para reagir a uma mudança durante
+## a atividade, assine [code]sys.content_filter_changed[/code].
+var content_filter: bool:
+	get:
+		return _bridge.content_filter_enabled()
+	set(_value):
+		_bridge.write_log(&"warn", "ctx.content_filter é somente leitura")
 var log: VNLogger                        ## log do plugin
+
+var _bridge: VNPluginBridge
 
 
 ## Monta o contexto de um plugin sobre a [param bridge] do host.
 ## [param p_config] já vem validada e com os defaults do [code]config_schema[/code].
 static func create(bridge: VNPluginBridge, p_plugin_id: StringName, p_namespace: StringName, p_config: Dictionary = {}) -> VNPluginContext:
 	var ctx := VNPluginContext.new()
+	ctx._bridge = bridge
 	ctx.plugin_id = p_plugin_id
 	ctx.plugin_namespace = p_namespace
 	ctx.config = p_config
@@ -41,8 +51,8 @@ static func create(bridge: VNPluginBridge, p_plugin_id: StringName, p_namespace:
 	ctx.audio = VNAudioAPI.new(bridge, p_namespace)
 	ctx.ui = VNUIAPI.new(bridge, p_namespace)
 	ctx.profile = VNProfileAPI.new(bridge, p_namespace)
-	ctx.rng = VNRandom.new()
+	ctx.rng = bridge.create_rng(p_namespace)
 	ctx.i18n = VNI18nAPI.new(bridge, p_namespace)
-	ctx.theme = VNThemeInfo.new()
+	ctx.theme = VNThemeInfo.new(bridge)
 	ctx.log = VNLogger.new(bridge, p_namespace)
 	return ctx

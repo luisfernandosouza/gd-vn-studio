@@ -59,7 +59,7 @@ func _initialize() -> void:
 func _main() -> void:
 	for t in [
 		"contrato", "titulo_condicoes", "titulo_novo_jogo", "titulo_continuar", "titulo_foco_teclado",
-		"titulo_on_open_set", "titulo_sair_confirma", "pilha_e_voltar", "settings_controles",
+		"titulo_on_open_set", "titulo_set_composto", "titulo_sair_confirma", "pilha_e_voltar", "settings_controles",
 		"settings_arquivo_invalido", "settings_traducao", "credits_licencas", "extras_modo_livre",
 		"extras_recusado_no_jogo", "acoes_if_else", "acoes_confirm_then_else", "acoes_effects_titulo",
 		"acoes_effects_e_emit_no_jogo", "acoes_elementos", "pausa_pausa_o_engine", "hud_durante_atividade",
@@ -311,6 +311,60 @@ func test_titulo_on_open_set() -> String:
 	return ""
 
 
+func _tex(size: Vector2i) -> Texture2D:
+	var img := Image.create_empty(size.x, size.y, false, Image.FORMAT_RGBA8)
+	img.fill(Color.WHITE)
+	return ImageTexture.create_from_image(img)
+
+
+## O set beach_title atrás do título (M2-08): camadas, on_open, hotspot da
+## lâmpada com o mouse e com o teclado.
+func test_titulo_set_composto() -> String:
+	var r := _setup()
+	var m: VNModules = r[0]
+	var ui: VNRuntimeUIManager = r[1]
+	var fa := m.assets as FakeAssets
+	for id in ["bg/sky_day", "bg/sky_night", "bg/sea"]:
+		fa.resources[id] = _tex(Vector2i(1920, 1080))
+	for id in ["obj/lamp_off", "obj/lamp_on"]:
+		fa.resources[id] = _tex(Vector2i(220, 420))
+	fa.resources["obj/shell"] = _tex(Vector2i(140, 120))
+	m.state.set_system_value("sys.endings.festival_ending", true)
+	_to_title(m)
+	await process_frame
+	var screen := ui.top_screen()
+	var view := screen.set_view
+	if view == null or view.set_id != "beach_title":
+		return "a tela title tem o set beach_title atrás"
+	if view.layer_ids().size() != 4 or view.state_of("sky") != "night":
+		return "on_open com set_state:set:sky muda o céu do set da tela: %s" % view.states()
+	if (view.layer_node("sky") as Sprite2D).texture != fa.resources["bg/sky_night"]:
+		return "céu da noite"
+	var lamp := view.hotspot_node("lamp_click")
+	if lamp == null or lamp.focus_mode != Control.FOCUS_ALL:
+		return "hotspot da lâmpada alcançável por teclado"
+	if not screen.focusables().has(lamp):
+		return "o hotspot do set entra na navegação da tela"
+	lamp.activated.emit()
+	if view.state_of("lamp") != "on":
+		return "clicar acende a lâmpada"
+	if (m.audio as FakeAudioManager).calls.filter(func(c): return c.method == &"play" and c.args[0] == "sfx/click").size() != 1:
+		return "play_sfx da lâmpada"
+	lamp.grab_focus()
+	if not _press(ui, &"vn_confirm") or view.state_of("lamp") != "default":
+		return "vn_confirm no hotspot focado apaga a lâmpada"
+	var got := []
+	ui.set_target_action.connect(func(scope, target, action, args): got.append([scope, target]))
+	ui.run_actions([{"do": "toggle_state", "target": "set:lamp", "states": ["default", "on"]}], {"screen": "title"})
+	if view.state_of("lamp") != "on" or got != [[&"set", "lamp"]]:
+		return "ação set: da tela chega ao set: %s" % view.states()
+	ui.run_actions([{"do": "set_state", "target": "set:nao_existe", "state": "on"}], {"screen": "title"})
+	ui.set_setting(&"show_hotspots", true)
+	if not lamp.show_always:
+		return "show_hotspots destaca os hotspots do set"
+	return ""
+
+
 func test_titulo_sair_confirma() -> String:
 	var r := _setup()
 	var m: VNModules = r[0]
@@ -476,8 +530,9 @@ func test_credits_licencas() -> String:
 	ui.open_screen("credits")
 	var s := ui.top_screen()
 	var list: Control = s.elements["licenses"]
-	if int(list.get_meta(&"vn_count", 0)) != 3:
-		return "Godot, runtime e o plugin de pesca: %d" % list.get_meta(&"vn_count", 0)
+	var base := VNRuntimeUIManager.engine_notice_entries().size()
+	if int(list.get_meta(&"vn_count", 0)) != base + 1:
+		return "aviso do motor (%d) e o plugin de pesca: %d" % [base, list.get_meta(&"vn_count", 0)]
 	var text := ""
 	for l in list.get_child(0).get_children():
 		text += l.text
@@ -488,9 +543,62 @@ func test_credits_licencas() -> String:
 		return "label: %s" % lbl.text
 	# Só engine: o aviso do motor aparece mesmo assim, o plugin não.
 	var only := VNUIElements.build(s, {"id": "x", "type": "licenses_list", "include": ["fonts"]})
-	if int(only.get_meta(&"vn_count")) != 2:
+	if int(only.get_meta(&"vn_count")) != base:
 		return "include sem plugins: %d" % only.get_meta(&"vn_count")
 	only.free()
+	return ""
+
+
+func test_licencas_aviso_do_motor_e_creditos() -> String:
+	# Pasta de licenças no formato gerado por sync_generated_copies.py.
+	var dir := "user://vn_test_licenses/"
+	DirAccess.make_dir_recursive_absolute(dir)
+	var files := {
+		"vn_runtime-LICENSE.txt": "MIT runtime text",
+		"OFL-NotoSans.txt": "OFL text",
+		"index.json": JSON.stringify({"licenses": [
+			{"kind": "runtime", "name": "VN Studio runtime", "license": "MIT", "file": "vn_runtime-LICENSE.txt"},
+			{"kind": "font", "name": "Noto Sans", "license": "OFL-1.1", "file": "OFL-NotoSans.txt"},
+			{"kind": "font", "name": "Noto Sans JP", "license": "OFL-1.1", "file": "OFL-NotoSans.txt"},
+		]}),
+	}
+	for f in files:
+		var fa := FileAccess.open(dir + f, FileAccess.WRITE)
+		fa.store_string(files[f])
+		fa.close()
+	var notice := VNRuntimeUIManager.engine_notice_entries(dir)
+	for e in notice:
+		if e.kind != "engine":
+			return "aviso do motor tem kind engine"
+	var titles: Array = notice.map(func(e): return e.title)
+	if not titles.has("Godot Engine") or not titles.has("Visual Novel Studio runtime"):
+		return "Godot e runtime: %s" % [titles]
+	if not titles.has("Noto Sans, Noto Sans JP"):
+		return "fontes do preset agrupadas por licença: %s" % [titles]
+	for e in notice:
+		if e.title == "Visual Novel Studio runtime" and e.get("text", "") != "MIT runtime text":
+			return "texto do runtime"
+		if e.title == "Noto Sans, Noto Sans JP" and e.get("text", "") != "OFL text":
+			return "texto da OFL"
+	for f in files:
+		DirAccess.remove_absolute(dir + f)
+	DirAccess.remove_absolute(dir)
+	# Créditos de assets (Noraneko e sutemo) aparecem na lista, e o aviso do motor com include vazio.
+	var r := _setup()
+	var ui: VNRuntimeUIManager = r[1]
+	_to_title(r[0])
+	ui.open_screen("credits")
+	ui.set_licenses({"entries": [
+		{"kind": "asset", "title": "Noraneko Games", "author": "Noraneko Games", "license": "Noraneko terms"},
+		{"kind": "asset", "title": "sutemo", "author": "sutemo", "license": "sutemo terms"},
+	]})
+	var list := VNUIElements.build(ui.top_screen(), {"id": "x", "type": "licenses_list", "include": ["assets"]})
+	var text := ""
+	for l in list.get_child(0).get_children():
+		text += l.text
+	list.free()
+	if not text.contains("Noraneko Games") or not text.contains("sutemo") or not text.contains("Godot Engine"):
+		return "créditos e aviso do motor: %s" % text
 	return ""
 
 
