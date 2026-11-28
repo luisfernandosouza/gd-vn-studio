@@ -125,6 +125,14 @@ Cada módulo da tabela do RT §1 tem uma classe base abstrata (`@abstract`) em `
 
 O Audio Manager faz parte do Stage no RT §1 ("Stage (UI/Audio/Asset Manager)"), mas tem contrato e pasta próprios porque M2-02 e M2-05 andam na mesma onda.
 
+### Caixa de diálogo, digitação e histórico (M2-03)
+
+- `stage/vn_dialog_box.gd` (`VNDialogBox`): a caixa da camada 30, criada pelo `VNRuntimeStage`. Digita a fala a `text_speed`, trata `vn_advance` (completa, depois avança), `vn_skip` (segurar), `vn_auto`, `vn_hide` e `vn_backlog`, e não age com tela aberta, Engine pausado ou atividade que captura a entrada.
+- `stage/vn_text_script.gd` (`VNTextScript`): analisa a marcação do DM §9.1 (`[b]`, `[i]`, `[color]`, `[pause]`, `[speed]`) e calcula a linha do tempo da digitação, sem nós.
+- `narrative_engine/vn_backlog.gd` (`VNBacklog`): o histórico (caminho do texto, personagem e valores interpolados) com `record`/`snapshot`/`restore`. O Narrative Engine (M1-11) o usa; o elemento `backlog_list` do UI Manager já lê `engine.snapshot().backlog`.
+- A fala que o Engine passa a `show_line` ganhou `speaker` (id da personagem), `seen` (o texto já foi lido, para o modo pular) e `voice`; ver `VNStage.show_line`.
+- Testes: `godot --headless --path runtime --script res://tests/stage/test_dialog.gd` (workflow `runtime-stage.yml`).
+
 Tipos compartilhados, em `vn_runtime/core/`:
 
 - `VNModule`: base de todos os contratos (`module_id()`, `load_bundle()`, `attach()`/`detach()` para os módulos que desenham). Todos são `RefCounted`, inclusive os que desenham, que recebem o nó por `attach()`; assim os módulos lógicos testam sem árvore de cena.

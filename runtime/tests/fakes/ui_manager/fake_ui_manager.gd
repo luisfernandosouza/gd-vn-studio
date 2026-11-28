@@ -22,6 +22,15 @@ var settings: Dictionary = {}
 ## Resposta automática de confirm().
 var confirm_answer: bool = true
 var messages: PackedStringArray = []
+## Modo automático e pular, como no UI Manager real (ações toggle_auto/toggle_skip).
+var auto_mode: bool = false
+var skip_mode: bool = false
+
+
+func set_play_mode(auto: bool, skip: bool) -> void:
+	_rec(&"set_play_mode", [auto, skip])
+	auto_mode = auto
+	skip_mode = skip
 
 
 func open_screen(screen_id: String) -> VNResult:
@@ -61,6 +70,12 @@ func run_actions(actions: Array, context: Dictionary = {}) -> VNResult:
 					return r
 			"emit":
 				modules().events.emit(String(a.event), a.get("payload", {}), VNEventBus.SOURCE_STORY)
+			"toggle_auto":
+				auto_mode = not auto_mode
+			"toggle_skip":
+				skip_mode = not skip_mode
+			"open_backlog":
+				open_screen("backlog")
 			"open_screen":
 				open_screen(String(a.screen))
 			"close_screen", "back":

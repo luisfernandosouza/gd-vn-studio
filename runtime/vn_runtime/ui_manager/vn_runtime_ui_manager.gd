@@ -472,6 +472,16 @@ func backlog_text(entry: Dictionary) -> String:
 	return t.text(String(entry.get("path", "")), "")
 
 
+## Liga ou desliga o modo automático e o pular de uma vez (a caixa de diálogo
+## desliga o pular ao chegar num texto não lido, RT §8.5). Só emite se mudou.
+func set_play_mode(auto: bool, skip: bool) -> void:
+	if auto == auto_mode and skip == skip_mode:
+		return
+	auto_mode = auto
+	skip_mode = skip
+	play_mode_changed.emit(auto_mode, skip_mode)
+
+
 func _read_variable(id: String) -> Variant:
 	var m := modules()
 	if m == null or m.state == null:

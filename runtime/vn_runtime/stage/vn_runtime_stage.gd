@@ -38,10 +38,16 @@ extends VNStage
 ## [method snapshot]. As ações [code]stage:<camada>[/code] das telas chegam
 ## pelo sinal [signal VNRuntimeUIManager.set_target_action].
 ##
-## [b]Fora desta tarefa.[/b] Caixa de texto e digitação (M2-03), escolhas e
-## hotspots de [code]interact[/code] (M2-04), base por item do modo stream
-## (M2-12) e miniatura do save (M2-10). Os métodos dessas partes guardam os
-## dados e ficam documentados como tal.
+## [b]Caixa de diálogo (M2-03).[/b] [method show_line] mostra a fala na
+## [VNDialogBox] (camada 30): plaquinha com o nome da personagem, digitação a
+## [code]text_speed[/code] com [code][speed][/code]/[code][pause][/code]
+## ([VNTextScript]), voz, e a entrada [code]vn_advance[/code]/[code]vn_skip[/code]/
+## [code]vn_auto[/code]/[code]vn_hide[/code]/[code]vn_backlog[/code]. O histórico
+## em si é do Narrative Engine ([VNBacklog]).
+##
+## [b]Fora desta tarefa.[/b] Escolhas e hotspots de [code]interact[/code]
+## (M2-04), base por item do modo stream (M2-12) e miniatura do save (M2-10).
+## Os métodos dessas partes guardam os dados e ficam documentados como tal.
 
 ## Camadas criadas pelo Stage. HUD (40) e telas (50) são do UI Manager;
 ## atividade (60) é do Plugin Host; a camada do sistema (100) é compartilhada.
@@ -100,6 +106,8 @@ var _choices_prompt: String = ""
 var _hotspots: Array[Dictionary] = []
 var _exit_option: Dictionary = {}
 var _textbox_hidden := false
+var _theme_textbox: Dictionary = {}
+var _dialog: VNDialogBox = null
 
 
 func _init() -> void:
@@ -119,6 +127,7 @@ func load_bundle(bundle: Dictionary) -> void:
 	if res is Array and res.size() == 2 and float(res[0]) > 0 and float(res[1]) > 0:
 		base_size = Vector2(float(res[0]), float(res[1]))
 	_placeholder = String(project.get("content_filter", {}).get("placeholder", ""))
+	_theme_textbox = bundle.get("theme", {}).get("textbox", {}) if bundle.get("theme") is Dictionary else {}
 	if _root != null:
 		_relayout()
 
@@ -141,6 +150,10 @@ func attach(parent: Node) -> void:
 	_bg_holder = Node2D.new()
 	_bg_holder.name = "Scenery"
 	_layers[VNLayers.BACKGROUND].add_child(_bg_holder)
+	_dialog = VNDialogBox.new(self)
+	_dialog.advance_requested.connect(func(): advanced.emit())
+	_layers[VNLayers.TEXTBOX].add_child(_dialog)
+	_dialog.layout(base_size, _theme_textbox)
 	_root.tree_entered.connect(_on_tree_entered)
 	_root.tree_exiting.connect(_on_tree_exiting)
 	parent.add_child(_root)
@@ -157,6 +170,7 @@ func detach() -> void:
 		_root.free()
 	_root = null
 	_layers.clear()
+	_dialog = null
 	_backdrop = null
 	_bg_holder = null
 	_bg_view = null
@@ -727,6 +741,8 @@ func _relayout() -> void:
 	var offset := VNStageLayout.base_offset(base_size, view_size())
 	for layer in _layers:
 		(_layers[layer] as CanvasLayer).offset = offset
+	if _dialog != null:
+		_dialog.layout(base_size, _theme_textbox)
 	if _backdrop != null:
 		var vr := view_rect()
 		_backdrop.position = vr.position
@@ -760,9 +776,50 @@ func _redraw_all() -> void:
 
 # --- Texto, escolhas e hotspots (tarefas M2-03 e M2-04) ----------------------
 
-## Guarda a fala; a caixa de texto e a digitação são da tarefa M2-03.
+## Mostra a fala na caixa de diálogo e começa a digitar (RT §5.2). A fala traz
+## [code]text[/code] (já interpolado) e, opcionais, [code]speaker[/code] (id da
+## personagem; sem ele é narração), [code]voice[/code] (asset da voz), [code]seen[/code]
+## (o texto já foi lido, para o modo pular; ausente vale [code]false[/code]) e
+## [code]text_path[/code]. O nome vem de [code]character/<id>/name[/code] traduzido
+## ([method VNUIManager.text] não existe no contrato, então o UI Manager real é
+## consultado se tiver [code]text()[/code]) e, sem tradução, do [code]name[/code]
+## da personagem.
 func show_line(line: Dictionary) -> void:
 	_line = line
+	if _dialog == null:
+		return
+	var id := String(line.get("speaker", ""))
+	var display := ""
+	var color: Variant = null
+	if not id.is_empty():
+		var def: Dictionary = _character_defs.get(id, {})
+		display = String(def.get("name", ""))
+		var m := modules()
+		if m != null and m.ui != null and m.ui.has_method(&"text"):
+			display = String(m.ui.call(&"text", "character/%s/name" % id, display))
+		if def.get("color") is String and Color.html_is_valid(String(def.color)):
+			color = Color.html(String(def.color))
+	_dialog.show_line(line, display, color)
+
+
+## A fala atual está sendo digitada (ainda não apareceu inteira).
+func is_typing() -> bool:
+	return _dialog != null and _dialog.is_typing()
+
+
+## O que [code]vn_advance[/code] faz na fala: completa a digitação; já completa, avança.
+func advance_input() -> void:
+	if _dialog != null:
+		_dialog.advance_input()
+
+
+## A caixa de diálogo, para o UI Manager e os testes.
+func dialog_box() -> VNDialogBox:
+	return _dialog
+
+
+func is_textbox_hidden() -> bool:
+	return _textbox_hidden
 
 
 ## Guarda as opções; os botões de escolha são da tarefa M2-04.
@@ -778,6 +835,8 @@ func show_hotspots(hotspots: Array[Dictionary], exit_option: Dictionary = {}) ->
 
 
 func clear_interaction() -> void:
+	if _dialog != null:
+		_dialog.clear_line()
 	_line = {}
 	_choices = []
 	_choices_prompt = ""
