@@ -35,6 +35,8 @@ var lost_connection_exit_ms := LOST_CONNECTION_EXIT_MS
 ## Repassado a cada sessão nova.
 var features: PackedStringArray = []
 var modules: VNModules = null
+## Pasta de [code]--vn-user-dir[/code] (PP §1.2, §1.4), ou vazio.
+var user_dir := ""
 
 var session: VNPreviewSession = null
 
@@ -174,6 +176,7 @@ func _new_session(_now: int) -> void:
 	session = VNPreviewSession.new(VNPreviewSession.Transport.WINDOW, _token)
 	session.features = features
 	session.modules = modules
+	session.user_data = VNPreviewUserData.new(VNPreviewSession.Transport.WINDOW, user_dir)
 	session.outgoing.connect(_on_outgoing)
 	session.close_requested.connect(_on_close_requested)
 	session.authenticated.connect(func(): _used = true)
