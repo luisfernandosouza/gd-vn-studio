@@ -1,0 +1,56 @@
+# Testes unitários do RNG reproduzível PCG32 (tarefa M1-08; RT §12.2, DM §6.1.1).
+name: Runtime RNG
+
+on:
+  pull_request:
+    paths: [runtime/vn_runtime/rng/**, runtime/vn_runtime/core/**, runtime/tests/rng/**, runtime/tests/conformance/**, runtime/project.godot, sdk/runtime/**, .github/workflows/runtime-rng.yml]
+  push:
+    branches: [main]
+    paths: [runtime/vn_runtime/rng/**, runtime/vn_runtime/core/**, runtime/tests/rng/**, runtime/tests/conformance/**, runtime/project.godot, sdk/runtime/**, .github/workflows/runtime-rng.yml]
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: 4.7.2-stable
+
+jobs:
+  unit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Cache do Godot ${{ env.GODOT_VERSION }}
+        id: cache-godot
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/godot-bin
+          key: godot-${{ env.GODOT_VERSION }}-linux-x86_64
+      - name: Baixa o Godot ${{ env.GODOT_VERSION }}
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          url="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/godot.zip" "$url"
+          mkdir -p ~/.cache/godot-bin
+          unzip -q "$RUNNER_TEMP/godot.zip" -d ~/.cache/godot-bin
+      - name: Instala o Godot
+        run: |
+          set -euo pipefail
+          install -m 755 ~/.cache/godot-bin/"Godot_v${GODOT_VERSION}_linux.x86_64" /usr/local/bin/godot
+          godot --headless --version
+      - name: Importa o projeto
+        run: godot --headless --path runtime --import 2>&1 | tee "$RUNNER_TEMP/import.log"
+      - name: Testes do PCG32 e das sementes
+        run: |
+          set -euo pipefail
+          godot --headless --path runtime --script res://tests/rng/test_vn_rng.gd 2>&1 | tee "$RUNNER_TEMP/unit.log"
+      - name: Vetores rng.json (--vn-test)
+        run: |
+          set -euo pipefail
+          godot --headless --path runtime -- --vn-test docs/specs/conformance/rng.json 2>&1 | tee "$RUNNER_TEMP/vn-test.log"
+          grep -q "8/8 (passaram/executados)" "$RUNNER_TEMP/vn-test.log"
+      - name: Sem erros no log do Godot
+        run: |
+          if grep -hE '(^|[^A-Z_])(ERROR|SCRIPT ERROR):' "$RUNNER_TEMP"/{import,unit,vn-test}.log; then
+            echo "::error title=Godot registrou erros::O RNG deve rodar sem erros (M1-08)."
+            exit 1
+          fi
