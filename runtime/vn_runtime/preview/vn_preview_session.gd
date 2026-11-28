@@ -163,6 +163,7 @@ func poll(now_ms: int = Time.get_ticks_msec()) -> void:
 ## A conexão caiu ou foi fechada pelo transporte; nada mais sai.
 func mark_closed() -> void:
 	_closed = true
+	user_data.release()
 
 
 ## Avisa o Studio que o runtime vai fechar (PP §4: [code]session.closing[/code]).

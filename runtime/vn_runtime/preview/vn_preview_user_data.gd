@@ -166,7 +166,7 @@ static func decode_user_files(value: Variant) -> Variant:
 
 
 func _replace(new_storage: VNStorage, new_mode: String, session: VNPreviewSession) -> void:
-	_disconnect()
+	release()
 	_storage = new_storage
 	_mode = new_mode
 	_session_ref = weakref(session) if session != null else null
@@ -177,6 +177,16 @@ func _replace(new_storage: VNStorage, new_mode: String, session: VNPreviewSessio
 		new_storage.file_deleted.connect(_on_deleted)
 	if session != null and session.modules != null:
 		session.modules.storage = new_storage
+
+
+## Solta o armazenamento e os sinais que o ligam a esta sessão (a sessão acabou ou o
+## [code]preview.load[/code] trocou o armazenamento). Sem isto, os objetos se seguram uns aos outros.
+func release() -> void:
+	_disconnect()
+	if _storage is VNFolderStorage:
+		(_storage as VNFolderStorage).release()
+	_storage = null
+	_session_ref = null
 
 
 func _disconnect() -> void:

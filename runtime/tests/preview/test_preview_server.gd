@@ -154,6 +154,7 @@ func test_painel_hello_e_estados() -> String:
 			return "%s: %s" % [step[0], out]
 		if s.state() != step[1]:
 			return "%s levou a %s, esperado %s" % [step[0], s.state(), step[1]]
+	bridge.session.mark_closed()
 	bridge.queue_free()
 	return ""
 
@@ -501,6 +502,7 @@ func test_painel_dados_em_memoria() -> String:
 	m.storage.delete("saves/slot_1.json")
 	if not page.take().is_empty():
 		return "na memória não sai storage.write/storage.delete"
+	bridge.session.mark_closed()
 	bridge.queue_free()
 	return ""
 
@@ -552,6 +554,7 @@ func test_painel_dados_no_projeto() -> String:
 		return "o armazenamento antigo continuou mandando storage.write"
 	if not m.storage is VNMemoryStorage:
 		return "o segundo load não trocou para a memória"
+	bridge.session.mark_closed()
 	bridge.queue_free()
 	return ""
 
@@ -581,6 +584,7 @@ func test_painel_dados_reabrir() -> String:
 					folder[n["params"]["path"]] = n["params"]["data"]
 				"storage.delete":
 					folder.erase(n["params"]["path"])
+		bridge.session.mark_closed()
 		bridge.queue_free()
 	if folder.keys() != ["saves/quick.json"]:
 		return "pasta do Studio: %s" % [folder.keys()]
@@ -613,6 +617,7 @@ func test_painel_user_files_invalidos() -> String:
 			return "aceitou %s: %s" % [extra, got]
 		if m.storage != null or bridge.session.state() != VNPreviewSession.READY:
 			return "um load recusado mudou o armazenamento ou o estado (%s)" % [extra]
+	bridge.session.mark_closed()
 	bridge.queue_free()
 	return ""
 
@@ -822,12 +827,14 @@ func _janela_dados(dir: String) -> String:
 	var before := DirAccess.get_files_at(user_root).size() + DirAccess.get_directories_at(user_root).size()
 	for round in 2:
 		var server := _server()
-		server.modules = VNModules.new()
+		var mods := VNModules.new()
+		server.modules = mods
 		server.user_dir = dir
 		var seen := {}
+		# O handler usa [code]mods[/code], não a sessão: capturar a sessão formaria um ciclo (sessão → handler → sessão).
 		server.session_created.connect(func(s: VNPreviewSession):
 			s.register("preview.load", func(_p):
-				var st := s.modules.storage
+				var st := mods.storage
 				seen["existia"] = st.exists("saves/slot_1.json")
 				st.write_text("saves/slot_1.json", "{\"round\":%d}" % round)
 				return _LOAD_RESULT))
