@@ -114,7 +114,8 @@ func module_id() -> StringName:
 ## (jogador saiu do modo livre ou voltou ao título).
 @abstract func cancel_activity(status: StringName) -> void
 
-## A atividade em curso: [code]{ activity, mode, params, skippable }[/code], ou vazio.
+## A atividade em curso: [code]{ activity, mode, params, skippable, min_fps }[/code]
+## ([code]min_fps[/code]: 0 se o manifesto não declara, Plugin SDK §6), ou vazio.
 @abstract func current_activity() -> Dictionary
 
 
