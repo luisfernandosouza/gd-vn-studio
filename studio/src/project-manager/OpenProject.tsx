@@ -1,3 +1,4 @@
+import { closeDocumentSession } from '../document/session';
 import { useT } from '../i18n';
 import { useProjectSession } from './session';
 
@@ -24,7 +25,12 @@ export function OpenProjectSummary() {
         <li>{t('studio/project/scenes', { count: entities.scenes.length })}</li>
         <li>{t('studio/project/characters', { count: entities.characters.length })}</li>
       </ul>
-      <button type="button" onClick={() => setCurrent(null)}>
+      <button
+        type="button"
+        onClick={() => {
+          void closeDocumentSession().then(() => setCurrent(null));
+        }}
+      >
         {t('studio/project/close')}
       </button>
     </section>

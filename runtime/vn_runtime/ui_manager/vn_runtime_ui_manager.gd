@@ -20,7 +20,7 @@ extends VNUIManager
 ## O que fica para outras tarefas: estilos do tema e animações [code]idle[/code]
 ## (M2-07), telas do preset
 ## (M2-09), perfil e migração de [code]settings.json[/code] (M2-11), licenças do
-## [code]licenses.json[/code] (M2-14, por [method set_licenses]) e acessibilidade (M2-15).
+## [code]licenses.json[/code] (M2-14, por [method set_licenses]). A acessibilidade (M2-15) está em [VNUIAccessibility] e [VNInputActions].
 
 ## Ação cosmética sobre o set da tela ([code]set:[/code]) ou o set em cena
 ## ([code]stage:[/code]): [param action] é [code]set_state[/code],
@@ -65,6 +65,7 @@ var _free_play_screen: String = ""
 
 
 func _init() -> void:
+	VNInputActions.ensure_registered()
 	platform = _detect_platform()
 	_text.reader = _read_variable
 	_settings.system_locale = OS.get_locale().replace("_", "-")
@@ -332,6 +333,7 @@ func _make_screen(screen_id: String, data: Dictionary) -> VNUIScreen:
 	var s := VNUIScreen.new()
 	var res: Array = _settings.project.get("settings", {}).get("resolution", [1920, 1080])
 	s.setup(self, screen_id, data, Vector2(float(res[0]), float(res[1])))
+	_apply_accessibility(s)
 	return s
 
 
@@ -428,10 +430,13 @@ func _on_phase_changed(phase: StringName, previous: StringName) -> void:
 		set_hud_visible(true)
 	refresh_sys_ui()
 	_apply_activity_capture()
+	if VNPhase.ACTIVITY in [phase, previous]:
+		apply_fps_limit()   # novel × atividade (UI Spec §8)
 	refresh()
 
 
 func _on_activity_ended(status: StringName, outcome: StringName, _payload: Dictionary) -> void:
+	apply_fps_limit()
 	if _free_play_screen.is_empty():
 		refresh_sys_ui()
 		return
@@ -1012,6 +1017,7 @@ func _confirm_text(value: String, on_answer: Callable) -> void:
 
 func _show_dialog(d: VNUIDialog, on_answer: Callable) -> void:
 	_dialogs.append(d)
+	_apply_accessibility(d)
 	d.answered.connect(func(ok: bool):
 		_dialogs.erase(d)
 		on_answer.call(ok)
@@ -1052,6 +1058,8 @@ func load_settings() -> void:
 		_settings.player = {}
 		if m != null and m.storage != null:
 			m.storage.rename("settings.json", "settings.json.bad")
+	elif _settings.migrated and m != null and m.storage != null:
+		m.storage.write_json("settings.json", _settings.player)
 	_settings.screen_size = DisplayServer.screen_get_size() if DisplayServer.get_name() != "headless" else Vector2i.ZERO
 	_text.locale = String(get_setting(&"locale"))
 	_use_locale_strings()
@@ -1107,14 +1115,13 @@ func _apply_setting(key: String, value: Variant) -> void:
 		elif m != null and m.audio != null and StringName(ch) in VNAudioManager.CHANNELS:
 			m.audio.set_channel_volume(StringName(ch), float(value))
 		return
+	if key == "text_scale" or key == "high_contrast":
+		_reapply_accessibility()
+		return
 	var windowed := DisplayServer.get_name() not in ["headless", ""] and platform != WEB
 	match key:
-		"fps_limit_vn":
-			if platform != WEB and (m == null or m.engine == null or m.engine.phase() != VNPhase.ACTIVITY):
-				Engine.max_fps = int(value)
-		"fps_limit_activity":
-			if platform != WEB and m != null and m.engine != null and m.engine.phase() == VNPhase.ACTIVITY:
-				Engine.max_fps = int(value)
+		"fps_limit_vn", "fps_limit_activity":
+			apply_fps_limit()
 		"vsync":
 			if windowed:
 				DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if value else DisplayServer.VSYNC_DISABLED)
@@ -1127,6 +1134,73 @@ func _apply_setting(key: String, value: Variant) -> void:
 		"resolution":
 			if windowed and DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_WINDOWED:
 				DisplayServer.window_set_size(Vector2i(int(value[0]), int(value[1])))
+
+
+## Limite de FPS em vigor (UI Spec §8): o da novel, ou o das atividades enquanto
+## uma atividade de plugin roda (com o [code]min_fps[/code] do manifesto, se o
+## limite vem do padrão do projeto). No Web o navegador controla a taxa.
+func fps_limit_now() -> int:
+	var m := modules()
+	var act: Dictionary = m.plugins.current_activity() if m != null and m.plugins != null else {}
+	if not act.is_empty() or (m != null and m.engine != null and m.engine.phase() == VNPhase.ACTIVITY):
+		return _settings.activity_fps_limit(int(act.get("min_fps", 0)))
+	return int(_settings.get_value("fps_limit_vn"))
+
+
+func apply_fps_limit() -> void:
+	if platform != WEB:
+		Engine.max_fps = fps_limit_now()
+
+
+# --- Acessibilidade (Req §12) --------------------------------------------------
+
+## O tema do bundle ([code]theme.json[/code]), ou vazio.
+func _theme() -> Dictionary:
+	var t: Variant = _bundle.get("theme", {})
+	return t if t is Dictionary else {}
+
+
+## Cor da moldura de foco ([code]theme.colors.focus[/code]).
+func focus_color() -> Color:
+	return VNUIAccessibility.focus_color(_theme())
+
+
+## Fator de escala do texto ([code]PlayerSettings.text_scale[/code], 0,8 a 2,0).
+func text_scale() -> float:
+	return VNUIAccessibility.clamp_scale(float(get_setting(&"text_scale")))
+
+
+## Painel e texto da caixa de diálogo já com [code]high_contrast[/code] aplicado
+## (fundo opaco, contraste do texto ≥ 4,5:1). O Stage e a caixa de diálogo usam estas cores.
+func dialog_colors() -> Dictionary:
+	return VNUIAccessibility.dialog_colors(_theme(), bool(get_setting(&"high_contrast")))
+
+
+## Escala o texto e dá foco visível a uma tela ou caixa recém-criada ou aberta.
+func _apply_accessibility(node: Control) -> void:
+	VNUIAccessibility.apply_focus_style(node, focus_color())
+	VNUIAccessibility.apply_text_scale(node, text_scale())
+	if node is VNUIDialog and node.panel != null:
+		var hc := bool(get_setting(&"high_contrast"))
+		var colors := dialog_colors()
+		if hc:
+			var sb := StyleBoxFlat.new()
+			sb.bg_color = colors.panel
+			sb.set_content_margin_all(24)
+			node.panel.add_theme_stylebox_override(&"panel", sb)
+			node.label.add_theme_color_override(&"default_color", colors.text)
+		else:
+			node.panel.remove_theme_stylebox_override(&"panel")
+			node.label.remove_theme_color_override(&"default_color")
+
+
+func _reapply_accessibility() -> void:
+	var nodes: Array = _stack.duplicate()
+	nodes.append_array(_dialogs)
+	if _hud != null:
+		nodes.append(_hud)
+	for n in nodes:
+		_apply_accessibility(n)
 
 
 ## Atualiza os controles ligados à configuração nas telas abertas, sem disparar sinal.

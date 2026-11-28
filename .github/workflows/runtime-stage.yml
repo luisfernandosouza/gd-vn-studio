@@ -1,6 +1,6 @@
-# Stage do runtime (tarefas M2-02 e M2-03; RT §1.1, §5.2, §8.5; DM §9.1, §10.2).
+# Stage do runtime (tarefas M2-02, M2-03 e M2-04; RT §1.1, §5.2, §8.5; DM §9.1, §10.2; UI Spec §6).
 # M2-03: caixa de diálogo, digitação, automático, pular e histórico (tests/stage/test_dialog.gd).
-# Roda os testes do Stage real contra os dublês dos outros módulos, com as cenas da demo
+# Roda os testes do Stage real e das escolhas e do interact contra os dublês dos outros módulos, com as cenas da demo
 # de docs/specs/examples/demo-project/ em 16:9, 21:9 e 4:3.
 name: Runtime stage
 
@@ -46,14 +46,18 @@ jobs:
         run: |
           set -euo pipefail
           godot --headless --path runtime --script res://tests/stage/test_stage.gd 2>&1 | tee "$RUNNER_TEMP/stage.log"
-      - name: Testes da caixa de diálogo e do histórico
+      - name: Testes da caixa de diálogo e do histórico (M2-03)
         run: |
           set -euo pipefail
           godot --headless --path runtime --script res://tests/stage/test_dialog.gd 2>&1 | tee "$RUNNER_TEMP/dialog.log"
+      - name: Testes das escolhas e do interact (M2-04)
+        run: |
+          set -euo pipefail
+          godot --headless --path runtime --script res://tests/stage/test_interaction.gd 2>&1 | tee "$RUNNER_TEMP/interaction.log"
       - name: Sem erros no log do Godot
         run: |
           # O Godot sai com 0 mesmo quando um script não compila; qualquer ERROR nos logs falha a CI.
-          if grep -hE '(^|[^A-Z_])(ERROR|SCRIPT ERROR):' "$RUNNER_TEMP"/{import,stage,dialog}.log; then
-            echo "::error title=Godot registrou erros::O Stage e os testes devem rodar sem erros (M2-02)."
+          if grep -hE '(^|[^A-Z_])(ERROR|SCRIPT ERROR):' "$RUNNER_TEMP"/{import,stage,dialog,interaction}.log; then
+            echo "::error title=Godot registrou erros::O Stage e os testes devem rodar sem erros (M2-02, M2-03, M2-04)."
             exit 1
           fi

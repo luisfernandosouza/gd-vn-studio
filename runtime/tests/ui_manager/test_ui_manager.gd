@@ -60,10 +60,13 @@ func _main() -> void:
 	for t in [
 		"contrato", "titulo_condicoes", "titulo_novo_jogo", "titulo_continuar", "titulo_foco_teclado",
 		"titulo_on_open_set", "titulo_set_composto", "titulo_sair_confirma", "pilha_e_voltar", "settings_controles",
-		"settings_arquivo_invalido", "settings_traducao", "credits_licencas", "extras_modo_livre",
+		"settings_arquivo_invalido", "settings_sobrevivem_reinicio", "settings_legado_fullscreen",
+		"fps_novel_e_atividade", "settings_traducao", "credits_licencas", "extras_modo_livre",
 		"extras_recusado_no_jogo", "acoes_if_else", "acoes_confirm_then_else", "acoes_effects_titulo",
 		"acoes_effects_e_emit_no_jogo", "acoes_elementos", "pausa_pausa_o_engine", "hud_durante_atividade",
 		"textos_interpolacao", "reset_profile",
+		"acess_acoes_input", "acess_contraste", "acess_text_scale", "acess_foco_visivel",
+		"acess_alto_contraste_dialogo", "acess_vn_menu_cancel",
 	]:
 		await _run(t)
 	print("%d/%d testes do UI Manager passaram." % [_passed, _passed + _failed])
@@ -504,6 +507,80 @@ func test_settings_arquivo_invalido() -> String:
 	return ""
 
 
+func test_settings_sobrevivem_reinicio() -> String:
+	var r := _setup()
+	var m: VNModules = r[0]
+	var ui: VNRuntimeUIManager = r[1]
+	ui.set_setting(&"volume.music", 0.25)
+	ui.set_setting(&"display_mode", "borderless")
+	ui.set_setting(&"fps_limit_vn", 30)
+	ui.set_setting(&"fps_limit_activity", 144)
+	ui.set_setting(&"locale", "en")
+	# Novo processo: outro UI Manager lendo o mesmo armazenamento.
+	var r2 := _setup()
+	var m2: VNModules = r2[0]
+	var ui2: VNRuntimeUIManager = r2[1]
+	m2.storage = m.storage
+	ui2.load_settings()
+	for pair in [["volume.music", 0.25], ["display_mode", "borderless"], ["fps_limit_vn", 30], ["fps_limit_activity", 144], ["locale", "en"]]:
+		if ui2.get_setting(StringName(pair[0])) != pair[1]:
+			return "%s não sobreviveu: %s" % [pair[0], ui2.get_setting(StringName(pair[0]))]
+	if ui2.get_setting(&"volume.sfx") != 0.8 or ui2.get_setting(&"vsync") != true:
+		return "o que o jogador não mudou continua com o padrão"
+	var saved: Dictionary = m.storage.read_json("settings.json")
+	return "" if saved.keys().size() == 4 + 1 and not saved.has("vsync") else "só o que mudou: %s" % saved
+
+
+func test_settings_legado_fullscreen() -> String:
+	var r := _setup()
+	var m: VNModules = r[0]
+	var ui: VNRuntimeUIManager = r[1]
+	m.storage.write_json("settings.json", {"fullscreen": true, "text_speed": 80})
+	ui.load_settings()
+	if m.storage.exists("settings.json.bad") or ui.get_setting(&"display_mode") != "fullscreen" or ui.get_setting(&"text_speed") != 80.0:
+		return "fullscreen:true deveria virar display_mode fullscreen"
+	var saved: Dictionary = m.storage.read_json("settings.json")
+	if saved.has("fullscreen") or saved.get("display_mode") != "fullscreen":
+		return "arquivo regravado no formato novo: %s" % saved
+	m.storage.write_json("settings.json", {"fullscreen": true, "display_mode": "borderless"})
+	ui.load_settings()
+	if ui.get_setting(&"display_mode") != "borderless":
+		return "display_mode gravado vence"
+	m.storage.write_json("settings.json", {"fullscreen": false})
+	ui.load_settings()
+	return "" if ui.get_setting(&"display_mode") == "windowed" and not m.storage.read_json("settings.json").has("fullscreen") else "fullscreen:false"
+
+
+func test_fps_novel_e_atividade() -> String:
+	var r := _setup()
+	var m: VNModules = r[0]
+	var ui: VNRuntimeUIManager = r[1]
+	var model := ui.settings_model()
+	# Padrões: 60 na novel, sem limite nas atividades.
+	if ui.fps_limit_now() != 60 or model.activity_fps_limit(30) != 0:
+		return "padrões 60 / 0"
+	# Limite do padrão do projeto sobe até o min_fps; o do jogador vale como está.
+	model.project = model.project.duplicate(true)
+	model.project.settings.display["fps_limit_activity"] = 30
+	if model.activity_fps_limit(60) != 60 or model.activity_fps_limit(0) != 30 or model.activity_fps_below_min(60):
+		return "limite do projeto sobe até min_fps"
+	ui.set_setting(&"fps_limit_activity", 30)
+	if model.activity_fps_limit(60) != 30 or not model.activity_fps_below_min(60) or model.activity_fps_below_min(24):
+		return "a escolha do jogador vence, com aviso"
+	# A troca acompanha a fase do jogo.
+	ui.set_setting(&"fps_limit_vn", 30)
+	ui.set_setting(&"fps_limit_activity", 120)
+	var e: FakeNarrativeEngine = m.engine
+	e.set_phase(VNPhase.SCENE_RUNNING)
+	if Engine.max_fps != 30:
+		return "novel: %d" % Engine.max_fps
+	e.set_phase(VNPhase.ACTIVITY)
+	if Engine.max_fps != 120:
+		return "atividade: %d" % Engine.max_fps
+	e.set_phase(VNPhase.SCENE_RUNNING)
+	return "" if Engine.max_fps == 30 else "volta à novel: %d" % Engine.max_fps
+
+
 func test_settings_traducao() -> String:
 	var r := _setup()
 	var m: VNModules = r[0]
@@ -909,4 +986,158 @@ func test_reset_profile() -> String:
 	_to_game(m)
 	if ui.run_actions([{"do": "reset_profile"}]).ok:
 		return "reset_profile no jogo é recusado"
+	return ""
+
+
+# --- Acessibilidade mínima (M2-15; Req §12, RT §10.1) -------------------------
+
+func test_acess_acoes_input() -> String:
+	for a in VNInputActions.ACTIONS:
+		if not InputMap.has_action(a):
+			return "ação %s fora do InputMap" % a
+		if InputMap.action_get_events(a).is_empty():
+			return "ação %s sem eventos" % a
+	# Registro só do que falta: tira uma, registra de novo e confere o padrão do RT §10.1.
+	InputMap.erase_action(&"vn_hide")
+	InputMap.erase_action(&"vn_quick_save")
+	var added := VNInputActions.ensure_registered()
+	if added != [&"vn_hide", &"vn_quick_save"]:
+		return "registrou %s" % [added]
+	var k := InputEventKey.new()
+	k.keycode = KEY_H
+	k.pressed = true
+	if not InputMap.event_is_action(k, &"vn_hide"):
+		return "vn_hide sem a tecla H"
+	var mid := InputEventMouseButton.new()
+	mid.button_index = MOUSE_BUTTON_MIDDLE
+	mid.pressed = true
+	if not InputMap.event_is_action(mid, &"vn_hide"):
+		return "vn_hide sem o botão do meio"
+	var f5 := InputEventKey.new()
+	f5.keycode = KEY_F5
+	if not InputMap.event_is_action(f5, &"vn_quick_save"):
+		return "vn_quick_save sem F5"
+	var pad := InputEventJoypadButton.new()
+	pad.button_index = JOY_BUTTON_START
+	if not InputMap.event_is_action(pad, &"vn_menu"):
+		return "vn_menu sem Start"
+	# Ação que o projeto já tem não é tocada.
+	var before := InputMap.action_get_events(&"vn_confirm").size()
+	VNInputActions.ensure_registered()
+	if InputMap.action_get_events(&"vn_confirm").size() != before:
+		return "ensure_registered mexeu em ação existente"
+	return ""
+
+
+func test_acess_contraste() -> String:
+	if not is_equal_approx(VNUIAccessibility.contrast_ratio(Color.BLACK, Color.WHITE), 21.0):
+		return "preto sobre branco deveria dar 21:1"
+	if not VNUIAccessibility.has_enough_contrast(Color.WHITE, Color("101826")):
+		return "branco sobre o painel do classic deveria passar"
+	if VNUIAccessibility.has_enough_contrast(Color("777777"), Color("888888")):
+		return "cinza sobre cinza não deveria passar"
+	# Texto com alfa é composto sobre o painel antes da conta.
+	if VNUIAccessibility.has_enough_contrast(Color(1, 1, 1, 0.1), Color.BLACK):
+		return "branco a 10% sobre preto não deveria passar"
+	return ""
+
+
+func test_acess_text_scale() -> String:
+	var r := _setup()
+	var m: VNModules = r[0]
+	var ui: VNRuntimeUIManager = r[1]
+	_to_title(m)
+	await process_frame
+	var btn := VNUIElements.focus_control(ui.top_screen().elements["btn_new_game"]) as Button
+	var base := btn.get_theme_font_size(&"font_size")
+	ui.set_setting(&"text_scale", 2.0)
+	if btn.get_theme_font_size(&"font_size") != base * 2:
+		return "200%%: %d, esperado %d" % [btn.get_theme_font_size(&"font_size"), base * 2]
+	ui.set_setting(&"text_scale", 0.8)
+	if btn.get_theme_font_size(&"font_size") != roundi(base * 0.8):
+		return "80%%: %d" % btn.get_theme_font_size(&"font_size")
+	ui.set_setting(&"text_scale", 1.0)
+	if btn.get_theme_font_size(&"font_size") != base:
+		return "100%% volta ao tamanho do tema: %d" % btn.get_theme_font_size(&"font_size")
+	# Fora da faixa o valor é rejeitado ou limitado; a escala nunca passa de 200%.
+	ui.set_setting(&"text_scale", 5.0)
+	if ui.text_scale() > 2.0:
+		return "escala acima de 200%%: %s" % ui.text_scale()
+	ui.set_setting(&"text_scale", 1.5)
+	ui.open_screen("settings")
+	await process_frame
+	var other := VNUIElements.focus_control(ui.top_screen().elements["sl_master"])
+	var lbl := ui.top_screen().find_children("*", "Label", true, false)
+	for l: Label in lbl:
+		if l.get_theme_font_size(&"font_size") != VNUIAccessibility.scaled_size(l.get_meta(&"vn_base_font_sizes")["font_size"], 1.5):
+			return "tela aberta depois do ajuste não nasce escalada"
+	return "" if other != null else "sem slider"
+
+
+func test_acess_foco_visivel() -> String:
+	var r := _setup()
+	var m: VNModules = r[0]
+	var ui: VNRuntimeUIManager = r[1]
+	_to_title(m)
+	await process_frame
+	var btn := VNUIElements.focus_control(ui.top_screen().elements["btn_new_game"]) as Button
+	var sb := btn.get_theme_stylebox(&"focus") as StyleBoxFlat
+	if sb == null or sb.border_width_left < 2 or sb.draw_center:
+		return "botão sem moldura de foco"
+	if sb.border_color != VNUIAccessibility.DEFAULT_FOCUS:
+		return "cor do foco: %s" % sb.border_color
+	# colors.focus do tema vale quando existe.
+	if VNUIAccessibility.focus_color({"colors": {"focus": "#ff0000"}}) != Color("ff0000"):
+		return "colors.focus do tema ignorado"
+	if VNUIAccessibility.focus_color({"colors": {"focus": "lixo"}}) != VNUIAccessibility.DEFAULT_FOCUS:
+		return "cor inválida deveria cair no padrão"
+	return ""
+
+
+func test_acess_alto_contraste_dialogo() -> String:
+	var dim := {"colors": {"text": "#777777", "panel": "#88888880"}}
+	var normal := VNUIAccessibility.dialog_colors(dim, false)
+	if normal.panel.a >= 1.0 or normal.text != Color("777777"):
+		return "sem alto contraste, o tema fica como está"
+	var hc := VNUIAccessibility.dialog_colors(dim, true)
+	if not is_equal_approx(hc.panel.a, 1.0):
+		return "painel deveria ficar opaco"
+	if not VNUIAccessibility.has_enough_contrast(hc.text, hc.panel):
+		return "texto com contraste %.2f" % VNUIAccessibility.contrast_ratio(hc.text, hc.panel)
+	# Texto do tema que já passa é mantido.
+	var ok := VNUIAccessibility.dialog_colors({"colors": {"text": "#ffffff", "panel": "#000000"}}, true)
+	if ok.text != Color.WHITE:
+		return "texto que já passa não deveria mudar"
+	# A caixa de confirmação acompanha a configuração.
+	var r := _setup()
+	var m: VNModules = r[0]
+	var ui: VNRuntimeUIManager = r[1]
+	_to_title(m)
+	ui.set_setting(&"high_contrast", true)
+	ui.show_message("runtime/message/ok")
+	await process_frame
+	var dlg: VNUIDialog = ui.layer_root(VNLayers.SYSTEM).find_children("*", "Control", true, false).filter(func(n): return n is VNUIDialog)[0]
+	var panel_sb := dlg.panel.get_theme_stylebox(&"panel") as StyleBoxFlat
+	if panel_sb == null or not is_equal_approx(panel_sb.bg_color.a, 1.0):
+		return "caixa não ficou opaca com alto contraste"
+	return ""
+
+
+func test_acess_vn_menu_cancel() -> String:
+	var r := _setup()
+	var m: VNModules = r[0]
+	var ui: VNRuntimeUIManager = r[1]
+	_to_game(m)
+	await process_frame
+	if not ui.screen_stack().is_empty():
+		return "pilha deveria estar vazia no jogo"
+	if not _press(ui, &"vn_menu") or ui.screen_stack() != PackedStringArray(["pause"]):
+		return "vn_menu na história deveria abrir a pausa: %s" % ui.screen_stack()
+	# Com uma tela aberta, vn_menu não empilha outra pausa; vn_cancel fecha a do topo.
+	_press(ui, &"vn_menu")
+	if ui.screen_stack() != PackedStringArray(["pause"]):
+		return "vn_menu com tela aberta: %s" % ui.screen_stack()
+	_press(ui, &"vn_cancel")
+	if not ui.screen_stack().is_empty():
+		return "vn_cancel deveria fechar a pausa: %s" % ui.screen_stack()
 	return ""

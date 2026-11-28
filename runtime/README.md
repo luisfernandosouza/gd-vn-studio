@@ -8,7 +8,7 @@ Runtime das visual novels: projeto Godot 4.7.2 + GDScript ([Runtime Spec](../doc
 | `vn_runtime/boot.tscn`, `boot.gd` | Cena de boot: despacha `--vn-test`, lê `--vn-bundle` e `--vn-fakes` e roda o boot do RT §3.0 (ver [Boot](#boot)) |
 | `vn_runtime/boot/` | Boot (M2-01): leitor do bundle em JSON e `.vnb`, JSON canônico (JCS), constantes do build, sequência do RT §3.0 e tela dos erros fatais G001/G002 |
 | `vn_runtime/sets/` | Sets compostos e hotspots cosméticos (M2-08): `VNSetView` (camadas, estados, animação, parallax, ações cosméticas) e `VNSetHotspot`; usados pelo UI Manager (fundo das telas) e pelo Stage (fundo das cenas). Testes: `godot --headless --path runtime --script res://tests/sets/test_sets.gd` |
-| `vn_runtime/` | Narrative Engine, Scheduler, State Manager, UI Manager… |
+| `vn_runtime/` | Narrative Engine (`narrative_engine/`, ver [Narrative Engine](#narrative-engine)), Scheduler, State Manager, UI Manager… |
 | `vn_runtime/presets/` | Cópia gerada de `docs/specs/presets/` + fontes embutidas em `fonts/` (os ids `preset/font_*`); fora do Git e nunca editada à mão |
 | `vn_runtime/licenses/` | Gerada: licenças do runtime (MIT), do Godot e das bibliotecas dele, e a OFL de cada fonte do preset, com o índice `index.json` ([Build System §4.5](../docs/specs/05-build-system-specification.md)); fora do Git |
 | `tests/` | Testes e runner headless dos vetores (`--vn-test`) |
@@ -61,7 +61,7 @@ O executor aceita a pasta `docs/specs/conformance/` (os `*.json` do primeiro ní
 
   | `kind` | Chama | Pulado até |
   |---|---|---|
-  | `expression`, `condition` | `VNConditionEvaluator` | M1-03, M1-04 |
+  | `expression`, `condition` | `VNConditionEvaluator` | (implementado: `VNConditionEvaluatorImpl`, M1-03; as condições completas são do M1-04) |
   | `effects` | `VNStateManager.apply_effects()` (com o Condition Evaluator); com erro, confere também que nada mudou | M1-06 |
   | `selection` | `VNSceneScheduler.select()` (com o Condition Evaluator) | M1-10; o caso `weighted` também espera o contrato do estado do RNG (M1-08) |
   | `flow` | Narrative Engine e o traço da spec 07 §4.2 | M1-12 (integração do núcleo) |
@@ -76,7 +76,24 @@ O autoteste do executor confere a leitura dos números, a comparação, a descob
 godot --headless --path runtime --script res://tests/conformance/test_runner.gd
 ```
 
-A workflow [`runtime.yml`](../.github/workflows/runtime.yml) roda esses três comandos e o autoteste do executor, com o Godot em cache, e a referência `tools/conformance.py` em todo pull request que toca `runtime/` ou `docs/specs/conformance/` (spec 08 §4). O runner Web entra com a tarefa M4-03.
+A workflow [`runtime.yml`](../.github/workflows/runtime.yml) roda esses três comandos e o autoteste do executor, com o Godot em cache, e a referência `tools/conformance.py` em todo pull request que toca `runtime/` ou `docs/specs/conformance/` (spec 08 §4). O job `web` da mesma workflow roda o runner Web (abaixo).
+
+### Export Web e runner Web dos vetores (M4-03)
+
+`export_presets.cfg` tem dois presets Web, os dois sem threads (`variant/thread_support=false`, BS §7.3, para rodar sem COOP/COEP):
+
+| Preset | Para quê |
+|---|---|
+| `Web` | O runtime do painel do Preview (spec 09 §1): `exclude_filter` do produto (`tests/*, */tests/*, docs/*, *.md`, spec 09 §1.2), sem o executor de testes |
+| `Web (vetores)` | O mesmo runtime **com** `tests/`, só para o runner Web dos vetores (spec 08 §4); nunca é distribuído |
+
+```bash
+python3 runtime/tests/web/fetch_web_templates.py 4.7.2-stable   # só os templates Web (~20 MB, em vez dos 1,3 GB do .tpz)
+godot --headless --path runtime --export-debug "Web (vetores)" ../build/runtime-web-vectors/index.html
+node runtime/tests/web/run_web_vectors.cjs build/runtime-web-vectors docs/specs/conformance   # precisa do pacote npm `playwright`
+```
+
+O runner sobe um servidor local, abre o export num Chromium headless do Playwright, passa os arquivos de casos para o sistema de arquivos em memória do motor e chama o mesmo `--vn-test` do nativo (áudio `Dummy`, porque o headless não tem `AudioWorklet`). Imprime o mesmo `FALHOU …`/`N/M` e sai com 0, 1 ou 2 como o nativo (3 se o runtime Web não chegou ao fim; `VN_WEB_TIMEOUT_MS` muda o limite de 300 s). A CI compara o resumo e os pulados dos dois runners e falha se diferirem.
 
 As ações `vn_*` em `project.godot` seguem a tabela do RT §10.1. Para mudar uma ação, edite pelo editor do Godot (Projeto → Configurações do Projeto → Mapa de Entrada) e mantenha `device = -1` (todos os dispositivos).
 
@@ -103,6 +120,16 @@ godot --headless --path runtime --quit -- --vn-fakes --vn-bundle res://tests/fix
 
 A workflow [`runtime-boot.yml`](../.github/workflows/runtime-boot.yml) roda esses comandos. O leitor de JSON do Godot pode errar o último bit de números com mais de 17 dígitos; por isso o `content_hash` é conferido sobre o texto do bundle (que o compilador grava já canônico) e só cai no JCS dos valores quando o texto não está na forma canônica.
 
+## Narrative Engine
+
+`vn_runtime/narrative_engine/vn_runtime_narrative_engine.gd` (`VNRuntimeNarrativeEngine`, M1-11) implementa o contrato `VNNarrativeEngine`: ciclo de vida (RT §3.1–§3.4), laço de nós (§5.2), atividades de plugin (§5.3) e fim de cena (§5.4). Escreve só pelo State Manager, escolhe cenas só pelo Scheduler e é dirigido pelos sinais do Stage (`advanced`, `option_selected`) e do Plugin Host (`activity_ended`); o `bind()` liga esses sinais. Nós: `line`, `choice`, `interact`, `effects`, `branch`, `jump`, `emit`, `plugin`, `wait`, `end` e os de palco (`background`, `show`, `hide`, `audio`), que só repassam ao Stage e ao Audio Manager.
+
+```bash
+godot --headless --path runtime --script res://tests/narrative_engine/test_narrative_engine.gd
+```
+
+Os testes usam o Engine real com os dublês dos outros módulos; os casos `flow.json` reais fecham no M1-12. O texto das cenas vem do próprio nó (idioma-fonte); `set_locale(locale, strings)` entrega as traduções por caminho de texto. A workflow [`runtime-narrative-engine.yml`](../.github/workflows/runtime-narrative-engine.yml) roda os testes.
+
 ## Contratos dos módulos
 
 Cada módulo da tabela do RT §1 tem uma classe base abstrata (`@abstract`) em `vn_runtime/<módulo>/`, só com assinaturas, sinais e documentação, e um dublê em `tests/fakes/<módulo>/` (tarefa M0-07). Uma tarefa implementa o seu módulo estendendo a classe base, na pasta dele, e testa contra os dublês dos outros; as tarefas de integração (M1-12, M2-16) trocam os dublês pelos módulos reais.
@@ -125,12 +152,11 @@ Cada módulo da tabela do RT §1 tem uma classe base abstrata (`@abstract`) em `
 
 O Audio Manager faz parte do Stage no RT §1 ("Stage (UI/Audio/Asset Manager)"), mas tem contrato e pasta próprios porque M2-02 e M2-05 andam na mesma onda.
 
-### Caixa de diálogo, digitação e histórico (M2-03)
+### Caixa de diálogo e digitação (M2-03)
 
 - `stage/vn_dialog_box.gd` (`VNDialogBox`): a caixa da camada 30, criada pelo `VNRuntimeStage`. Digita a fala a `text_speed`, trata `vn_advance` (completa, depois avança), `vn_skip` (segurar), `vn_auto`, `vn_hide` e `vn_backlog`, e não age com tela aberta, Engine pausado ou atividade que captura a entrada.
 - `stage/vn_text_script.gd` (`VNTextScript`): analisa a marcação do DM §9.1 (`[b]`, `[i]`, `[color]`, `[pause]`, `[speed]`) e calcula a linha do tempo da digitação, sem nós.
-- `narrative_engine/vn_backlog.gd` (`VNBacklog`): o histórico (caminho do texto, personagem e valores interpolados) com `record`/`snapshot`/`restore`. O Narrative Engine (M1-11) o usa; o elemento `backlog_list` do UI Manager já lê `engine.snapshot().backlog`.
-- A fala que o Engine passa a `show_line` ganhou `speaker` (id da personagem), `seen` (o texto já foi lido, para o modo pular) e `voice`; ver `VNStage.show_line`.
+- A fala que o Engine passa a `show_line` traz `speaker` (id da personagem; `null` é narração), `voice` e `text_path`; o Stage consulta `saves.is_text_seen(text_path)` para saber se o texto já foi lido (modo pular). O histórico é do Narrative Engine (`_backlog`).
 - Testes: `godot --headless --path runtime --script res://tests/stage/test_dialog.gd` (workflow `runtime-stage.yml`).
 
 Tipos compartilhados, em `vn_runtime/core/`:

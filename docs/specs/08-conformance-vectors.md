@@ -21,14 +21,14 @@ As palavras **DEVE**, **DEVERIA** e **PODE** seguem a RFC 2119.
 | RNG | `rng.json` | RT §12.2 (PCG32, `random_int`, sementes de atividade e de plugin) | 8 |
 | Seleção de cena | `selection.json` | RT §4.2–§4.4 (elegibilidade, prioridade, desempate, pedidos, fim de capítulo, fallback) | 26 |
 | Recordes | `records.json` | SDK §9.1 (`submit_record`: ordem, `keep`, empate fica com a mais antiga, posição devolvida; exibição) | 6 |
-| Fluxo de cena | `flow.json` | RT §5.1–§5.5, §7.2 (falas com interpolação, escolhas, `on_fail`, `branch`/`jump`, ordem dos eventos, atividade com resultado, pulada e sem opção visível, fim do grafo sem `end`, modo stream ligado, desligado e ligado no meio de uma fala, com o palco: item que volta à base, com expressão e posição, set como base, base apagada por `hide` e por `stop`) | 16 |
+| Fluxo de cena | `flow.json` | RT §5.1–§5.5, §7.2 (falas com interpolação, escolhas, `on_fail`, `branch`/`jump`, ordem dos eventos, atividade com resultado, pulada e sem opção visível, fim do grafo sem `end`, modo stream ligado, desligado e ligado no meio de uma fala, com o palco: item que volta à base, com expressão e posição, set como base, base apagada por `hide` e por `stop`; `interact`: hotspot escondido e desabilitado, `once`, saída, sem hotspot visível, efeito rejeitado) | 21 |
 | JSON canônico e assinatura | `canonical.json` | BS §5.1 (JCS: números, ordem de chaves por UTF-16, escapes; `content_hash`), BS §8.3 (HMAC de save e perfil, inclusive `examples/demo-save.json`), RT §12.1 | 7 |
 
-São 142 casos no total. Todos conferem com a implementação de referência:
+São 147 casos no total. Todos conferem com a implementação de referência:
 
 ```bash
 python3 tools/conformance.py
-# 142/142 vetores conferem com a referência.
+# 147/147 vetores conferem com a referência.
 ```
 
 Os casos de RNG só valem para projetos com `settings.reproducible_rng` ligado (RT §12.2). Uma implementação PODE pular `rng.json` e o caso `weighted` de `selection.json` enquanto não implementa o RNG reproduzível, mas DEVE passar em todos os outros.
@@ -42,7 +42,7 @@ python3 tools/test_compile.py
 
 O compilador do Studio DEVE passar nos mesmos casos. Como o projeto-base não acompanha o exemplo nem a demo, um caso muda de hash só junto com uma mudança no compilador justificada pela spec, ou quando o PR troca o projeto-base de propósito e diz por quê; `python3 tools/test_compile.py --print` mostra os hashes atuais.
 
-**Ainda fora do conjunto:** o nó `interact` e a interpolação com marcação de estilo. Entram em casos `flow` e `text` novos quando o runtime chegar a eles.
+**Ainda fora do conjunto:** a interpolação com marcação de estilo. Entra em casos `text` novos quando o runtime chegar a ela. O nó `interact` entrou em casos `flow` (M2-04): nas opções do traço os hotspots vêm na ordem do nó e a saída vem por último, com o id reservado `exit` (também usado no input `{ "choose": "exit" }`); sem entrada, o traço termina em `{ "waiting": "interact" }`.
 
 ## 2. Formato
 
@@ -128,7 +128,7 @@ Estas regras estavam implícitas ou ambíguas; os casos as fixam, e o RT foi aju
 
 A saída de cada runner é uma linha por caso com falha, no formato `FALHOU <arquivo>#<id>`, com o esperado e o obtido, e um resumo `N/M`.
 
-**Casos `flow`.** O runner monta só a cena do caso (sem capítulo nem Scheduler), aplica `variables` e alimenta os `inputs` em ordem a cada nó bloqueante; uma atividade usa o resultado do input em vez de um plugin real. O traço segue a ordem da spec 07 §4.2. São o primeiro alvo do runtime: passar neles é o passo antes de abrir a demo com `--vn-bundle` (RT §2.1). Casos com Scheduler entre cenas e com `interact` ficam para a próxima leva.
+**Casos `flow`.** O runner monta só a cena do caso (sem capítulo nem Scheduler), aplica `variables` e alimenta os `inputs` em ordem a cada nó bloqueante; uma atividade usa o resultado do input em vez de um plugin real. O traço segue a ordem da spec 07 §4.2. São o primeiro alvo do runtime: passar neles é o passo antes de abrir a demo com `--vn-bundle` (RT §2.1). Casos com Scheduler entre cenas ficam para a próxima leva.
 
 ## 5. Mudanças
 

@@ -43,11 +43,15 @@ extends VNStage
 ## [code]text_speed[/code] com [code][speed][/code]/[code][pause][/code]
 ## ([VNTextScript]), voz, e a entrada [code]vn_advance[/code]/[code]vn_skip[/code]/
 ## [code]vn_auto[/code]/[code]vn_hide[/code]/[code]vn_backlog[/code]. O histórico
-## em si é do Narrative Engine ([VNBacklog]).
+## em si é do Narrative Engine (RT §5.2: ele registra o backlog e o seen_text).
 ##
-## [b]Fora desta tarefa.[/b] Escolhas e hotspots de [code]interact[/code]
-## (M2-04), base por item do modo stream (M2-12) e miniatura do save (M2-10).
-## Os métodos dessas partes guardam os dados e ficam documentados como tal.
+## [b]Escolhas e [code]interact[/code] (M2-04).[/b] [VNStageInteraction] desenha
+## os botões das opções (camada 30), os hotspots (camada 15) e a saída, e
+## avisa a escolha por [signal VNStage.option_selected].
+##
+## [b]Fora desta tarefa.[/b] Base por item do modo stream (M2-12) e miniatura
+## do save (M2-10). Os métodos dessas partes guardam os dados e ficam
+## documentados como tal.
 
 ## Camadas criadas pelo Stage. HUD (40) e telas (50) são do UI Manager;
 ## atividade (60) é do Plugin Host; a camada do sistema (100) é compartilhada.
@@ -99,12 +103,12 @@ var _order: Array[String] = []
 ## Transições em andamento: alvo → Tween.
 var _tweens: Dictionary = {}
 
-# Dados guardados para as tarefas M2-03 e M2-04.
+## Escolhas e hotspots de interact (M2-04).
+var _interaction: VNStageInteraction = null
+var _theme: Dictionary = {}
+
+# Dados guardados para a tarefa M2-03.
 var _line: Dictionary = {}
-var _choices: Array[Dictionary] = []
-var _choices_prompt: String = ""
-var _hotspots: Array[Dictionary] = []
-var _exit_option: Dictionary = {}
 var _textbox_hidden := false
 var _theme_textbox: Dictionary = {}
 var _dialog: VNDialogBox = null
@@ -127,7 +131,10 @@ func load_bundle(bundle: Dictionary) -> void:
 	if res is Array and res.size() == 2 and float(res[0]) > 0 and float(res[1]) > 0:
 		base_size = Vector2(float(res[0]), float(res[1]))
 	_placeholder = String(project.get("content_filter", {}).get("placeholder", ""))
-	_theme_textbox = bundle.get("theme", {}).get("textbox", {}) if bundle.get("theme") is Dictionary else {}
+	_theme = bundle.get("theme", {})
+	_theme_textbox = _theme.get("textbox", {}) if _theme is Dictionary else {}
+	if _interaction != null:
+		_interaction.set_theme(_theme)
 	if _root != null:
 		_relayout()
 
@@ -154,6 +161,10 @@ func attach(parent: Node) -> void:
 	_dialog.advance_requested.connect(func(): advanced.emit())
 	_layers[VNLayers.TEXTBOX].add_child(_dialog)
 	_dialog.layout(base_size, _theme_textbox)
+	_interaction = VNStageInteraction.new(self)
+	_interaction.set_theme(_theme)
+	_interaction.selected.connect(_on_option_selected)
+	_interaction.attach(_layers[VNLayers.TEXTBOX], _layers[VNLayers.HOTSPOTS])
 	_root.tree_entered.connect(_on_tree_entered)
 	_root.tree_exiting.connect(_on_tree_exiting)
 	parent.add_child(_root)
@@ -164,6 +175,9 @@ func attach(parent: Node) -> void:
 func detach() -> void:
 	_disconnect_ui()
 	_kill_tweens()
+	if _interaction != null:
+		_interaction.detach()
+		_interaction = null
 	if _root != null:
 		if _root.is_inside_tree():
 			_on_tree_exiting()
@@ -772,23 +786,30 @@ func _redraw_all() -> void:
 		layer.add_child(entry.node)
 		_place_character(id)
 	_restack()
+	if _interaction != null:
+		_interaction.refit()
 
 
 # --- Texto, escolhas e hotspots (tarefas M2-03 e M2-04) ----------------------
 
 ## Mostra a fala na caixa de diálogo e começa a digitar (RT §5.2). A fala traz
 ## [code]text[/code] (já interpolado) e, opcionais, [code]speaker[/code] (id da
-## personagem; sem ele é narração), [code]voice[/code] (asset da voz), [code]seen[/code]
-## (o texto já foi lido, para o modo pular; ausente vale [code]false[/code]) e
-## [code]text_path[/code]. O nome vem de [code]character/<id>/name[/code] traduzido
-## ([method VNUIManager.text] não existe no contrato, então o UI Manager real é
-## consultado se tiver [code]text()[/code]) e, sem tradução, do [code]name[/code]
-## da personagem.
+## personagem; vazio ou [code]null[/code] é narração), [code]voice[/code] (asset
+## da voz), [code]text_path[/code] e [code]seen[/code] (o texto já foi lido, para
+## o modo pular). Sem [code]seen[/code], o Stage pergunta ao perfil
+## ([method VNSaveManager.is_text_seen] com o [code]text_path[/code]); o Engine
+## marca o texto como lido [i]depois[/i] de chamar este método, então a consulta
+## vê o estado de antes da fala. Sem perfil ou sem [code]text_path[/code], vale
+## [code]false[/code] (pular para, por segurança).
+##
+## O nome vem de [code]character/<id>/name[/code] traduzido (pelo UI Manager real,
+## que tem [code]text()[/code]) e, sem tradução, do [code]name[/code] da personagem.
 func show_line(line: Dictionary) -> void:
 	_line = line
 	if _dialog == null:
 		return
-	var id := String(line.get("speaker", ""))
+	var speaker: Variant = line.get("speaker")
+	var id: String = speaker if speaker is String else ""
 	var display := ""
 	var color: Variant = null
 	if not id.is_empty():
@@ -799,7 +820,18 @@ func show_line(line: Dictionary) -> void:
 			display = String(m.ui.call(&"text", "character/%s/name" % id, display))
 		if def.get("color") is String and Color.html_is_valid(String(def.color)):
 			color = Color.html(String(def.color))
-	_dialog.show_line(line, display, color)
+	var shown := line
+	if not line.has("seen"):
+		shown = line.duplicate()
+		shown["seen"] = _text_seen(line.get("text_path"))
+	_dialog.show_line(shown, display, color)
+
+
+func _text_seen(text_path: Variant) -> bool:
+	var m := modules()
+	if not (text_path is String) or String(text_path).is_empty() or m == null or m.saves == null:
+		return false
+	return m.saves.is_text_seen(String(text_path))
 
 
 ## A fala atual está sendo digitada (ainda não apareceu inteira).
@@ -822,26 +854,44 @@ func is_textbox_hidden() -> bool:
 	return _textbox_hidden
 
 
-## Guarda as opções; os botões de escolha são da tarefa M2-04.
+func _on_option_selected(option_id: String) -> void:
+	option_selected.emit(option_id)
+
+
+## Botões das opções na camada 30 (M2-04); a escolha sai por [signal VNStage.option_selected].
 func show_choices(prompt: String, options: Array[Dictionary]) -> void:
-	_choices_prompt = prompt
-	_choices = options
+	if _interaction == null:
+		_interaction = VNStageInteraction.new(self)
+		_interaction.set_theme(_theme)
+		_interaction.selected.connect(_on_option_selected)
+	_interaction.show_choices(prompt, options)
 
 
-## Guarda os hotspots; as áreas clicáveis na camada 15 são da tarefa M2-04.
-func show_hotspots(hotspots: Array[Dictionary], exit_option: Dictionary = {}) -> void:
-	_hotspots = hotspots
-	_exit_option = exit_option
+## Hotspots na camada 15 e a saída (M2-04); a escolha sai por [signal VNStage.option_selected].
+func show_hotspots(hotspots: Array[Dictionary], exit_option: Dictionary = {}, prompt: String = "") -> void:
+	if _interaction == null:
+		_interaction = VNStageInteraction.new(self)
+		_interaction.set_theme(_theme)
+		_interaction.selected.connect(_on_option_selected)
+	_interaction.show_hotspots(hotspots, exit_option, prompt)
 
 
 func clear_interaction() -> void:
 	if _dialog != null:
 		_dialog.clear_line()
 	_line = {}
-	_choices = []
-	_choices_prompt = ""
-	_hotspots = []
-	_exit_option = {}
+	if _interaction != null:
+		_interaction.clear()
+
+
+## A escolha e o [code]interact[/code] em tela (ver [VNStageInteraction]).
+func interaction() -> VNStageInteraction:
+	return _interaction
+
+
+## A textura de um asset (cursor de hotspot); [code]null[/code] se não carrega.
+func asset_texture(asset_id: String) -> Texture2D:
+	return _texture(asset_id)
 
 
 func set_textbox_hidden(hidden: bool) -> void:

@@ -12,7 +12,7 @@ Marco da seção 16 do ADD: definir e congelar as três especificações que ser
 | 5 | [Build System](05-build-system-specification.md) | Pipeline de build, Build Staging, bundle `.vnb`, assets, presets por plataforma, PCK, proteção do conteúdo, manifesto, CLI `vnstudio build` |
 | 6 | [Menus, botões e interação](06-ui-menus-and-interaction-specification.md) | Telas montadas pelo autor (título, pausa, configurações…), ações de botões, estilos, cenários com objetos clicáveis, nó `interact`, configurações do jogador (FPS da VN × minijogos), ideias de personalização |
 | 7 | [Protocolo do Preview](07-preview-protocol.md) | Conversa Studio ↔ Runtime no Preview: sessão e token, métodos, notificações, `GameState`, `SchedulerEvaluation`, erros |
-| 8 | [Vetores de conformidade](08-conformance-vectors.md) | Formato dos casos que o Runtime e o Preview do Studio DEVEM reproduzir, conjunto de 142 casos (inclusive recordes, fluxo de cenas inteiras e modo stream), vetores de compilação e implementações de referência |
+| 8 | [Vetores de conformidade](08-conformance-vectors.md) | Formato dos casos que o Runtime e o Preview do Studio DEVEM reproduzir, conjunto de 147 casos (inclusive recordes, fluxo de cenas inteiras e modo stream), vetores de compilação e implementações de referência |
 | 9 | [Repositórios e organização do código](09-repositories-and-code-layout.md) | Onde cada coisa mora no Git: monorepo do produto, repositório de plugin avulso e repositório de um jogo (plugins do catálogo, guardados e embutidos), `.gitignore`, onde os dados dos minijogos ficam no computador do jogador |
 
 Artefatos:
@@ -41,7 +41,7 @@ python3 tools/test_validate.py
 python3 tools/test_schemas.py
 # padrões dos schemas contra os exemplos das specs
 python3 tools/conformance.py
-# 142/142 vetores conferem com a referência.
+# 147/147 vetores conferem com a referência.
 python3 tools/test_compile.py
 # 8/8 vetores de compilação conferem.
 python3 tools/compile_bundle.py examples/demo-project /tmp/demo-bundle examples/fishing-plugin
@@ -400,7 +400,7 @@ Aplicam os achados X-01 a X-13 da [segunda revisão de 2026-11-22](../reviews/re
 | **Modo livre pelo Preview:** `preview.input` com `play_activity` em `LOADED`; `skip_activity` e `cancel_activity` definidos; `activity.*` com `mode` | PP §3, §4 |
 | **Mídia no repositório do produto:** lista fechada de pastas e a workflow `repo-hygiene.yml`; `docs/` não entra nos artefatos, salvo schemas e presets copiados | spec 09 §1.1, §1.2 |
 | **Cópia da demo:** o script e a CI usam a mesma lista de arquivos, a comparação é byte a byte, o script confere o commit (`--update-source` para trocar), e a demo ganha uma workflow diária contra a `main` do produto (`PRODUCT_REPO_TOKEN`) | spec 09 §1.1, `tools/sync_demo_example.py`, `.github/workflows/specs.yml` |
-| 144 casos em `test_validate.py`, 48 em `test_schemas.py`, 142 vetores, 8 vetores de compilação (com o hash de `licenses.json`; hashes regerados pelo texto novo do preset) | spec 08, este README |
+| 144 casos em `test_validate.py`, 48 em `test_schemas.py`, 147 vetores, 8 vetores de compilação (com o hash de `licenses.json`; hashes regerados pelo texto novo do preset) | spec 08, este README |
 
 ## Decisões de 2026-11-22: nome, domínio e `$id` dos schemas (D13)
 

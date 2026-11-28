@@ -170,7 +170,8 @@ func panel_rect() -> Rect2:
 ## Mostra a fala e começa a digitar. [param speaker_name] vazio: narração (sem plaquinha).
 func show_line(line: Dictionary, speaker_name: String, speaker_color: Variant) -> void:
 	_stop_voice()
-	_script = VNTextScript.parse(String(line.get("text", "")))
+	var raw_text: Variant = line.get("text")
+	_script = VNTextScript.parse(raw_text if raw_text is String else "")
 	_apply_text_scale()
 	_text.text = ""
 	_text.parse_bbcode(_script.bbcode)
@@ -181,7 +182,7 @@ func show_line(line: Dictionary, speaker_name: String, speaker_color: Variant) -
 		_name.add_theme_color_override(&"font_color", speaker_color)
 	else:
 		_name.remove_theme_color_override(&"font_color")
-	_seen = bool(line.get("seen", false))
+	_seen = line.get("seen") == true
 	_elapsed = 0.0
 	_auto_elapsed = 0.0
 	_skip_elapsed = 0.0
@@ -194,7 +195,8 @@ func show_line(line: Dictionary, speaker_name: String, speaker_color: Variant) -
 	_complete = cps <= 0.0 or _script.length() == 0
 	_text.visible_characters = _script.length() if _complete else 0
 	_indicator.visible = _complete
-	_play_voice(String(line.get("voice", "")))
+	var voice: Variant = line.get("voice")
+	_play_voice(voice if voice is String else "")
 	visible = true
 
 

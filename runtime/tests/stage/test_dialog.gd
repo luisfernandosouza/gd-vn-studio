@@ -1,12 +1,12 @@
 extends SceneTree
-## Testes da caixa de diálogo, da digitação, dos modos automático e pular e do
-## histórico (tarefa M2-03; RT §5.2, §8.5, §10.1; DM §9.1).
+## Testes da caixa de diálogo, da digitação, dos modos automático e pular (tarefa M2-03; RT §5.2, §8.5, §10.1; DM §9.1).
 ##
 ##   godot --headless --path runtime --script res://tests/stage/test_dialog.gd
 ##
 ## O Stage real roda contra os dublês dos outros módulos. O tempo é simulado
 ## chamando [code]_process(delta)[/code] da caixa; a entrada, com eventos de
-## teclado entregues a [code]_unhandled_input[/code]. Sai com 1 se algo falhar.
+## teclado entregues a [code]_unhandled_input[/code]. O histórico é do Narrative
+## Engine (tests/narrative_engine). Sai com 1 se algo falhar.
 
 const DEMO := "../docs/specs/examples/demo-project"
 const ALICE := "019a7a00-0bb8-7dc0-b468-e39508f1443d"
@@ -25,7 +25,7 @@ func _run_all() -> void:
 	for t in [
 		"marcacao_separa_visivel", "marcacao_colchetes_e_invalidas", "linha_do_tempo_pausa_e_speed",
 		"reduce_motion_ignora_speed", "velocidade_zero_mostra_tudo", "demo_todas_as_falas_analisam",
-		"backlog_registra_e_limita", "backlog_nao_duplica_ao_reexibir", "backlog_restaura_do_save",
+		"campos_nulos_do_engine", "seen_vem_do_perfil",
 		"digita_na_velocidade", "advance_completa_depois_avanca", "pause_atrasa_o_texto",
 		"plaquinha_e_cor_da_personagem", "narracao_sem_plaquinha", "automatico_conta_do_fim_da_digitacao",
 		"automatico_espera_a_voz", "pular_so_lido", "pular_para_em_nao_lido", "pular_nao_lido_ligado",
@@ -180,47 +180,6 @@ func test_demo_todas_as_falas_analisam() -> String:
 					if s.length() == 0 and not String(n.text).is_empty():
 						return "fala sem texto visível: %s" % n.text
 	return "" if count > 0 else "nenhuma fala da demo encontrada"
-
-
-# --- Histórico ----------------------------------------------------------------
-
-func test_backlog_registra_e_limita() -> String:
-	var b := VNBacklog.new()
-	b.limit = 3
-	for i in range(5):
-		b.record("s/n%d" % i, ALICE if i % 2 == 0 else "", {"global.x": i} if i == 4 else {})
-	var snap := b.snapshot()
-	if snap.size() != 3 or snap[0].path != "s/n2" or snap[2].path != "s/n4":
-		return "limite: %s" % [snap]
-	if snap[0].get("speaker") != ALICE or snap[1].has("speaker") or snap[2].vars != {"global.x": 4}:
-		return "campos: %s" % [snap]
-	if b.last(2).size() != 2 or b.last(2)[0].path != "s/n3":
-		return "last(2): %s" % [b.last(2)]
-	snap[0]["path"] = "alterado"
-	if b.snapshot()[0].path != "s/n2":
-		return "snapshot deveria ser cópia"
-	return ""
-
-
-func test_backlog_nao_duplica_ao_reexibir() -> String:
-	var b := VNBacklog.new()
-	b.record("s/a")
-	b.record("s/b")
-	b.record("s/b", "", {}, true)   # fala mostrada de novo (stream ou carga)
-	b.record("s/a", "", {}, true)   # outra fala: entra
-	if b.size() != 3:
-		return "esperava 3 entradas, há %d" % b.size()
-	return ""
-
-
-func test_backlog_restaura_do_save() -> String:
-	var b := VNBacklog.new()
-	b.restore([{"path": "s/a", "speaker": ALICE, "vars": {"global.x": 1}}, {"sem": "path"}, "lixo", {"path": ""}, {"path": "s/b", "speaker": null}])
-	var snap := b.snapshot()
-	if snap.size() != 2 or snap[1].has("speaker") or snap[0].vars != {"global.x": 1}:
-		return "restore: %s" % [snap]
-	b.restore(null)
-	return "" if b.size() == 0 else "restore(null) deveria esvaziar"
 
 
 # --- Caixa de diálogo ---------------------------------------------------------
@@ -459,3 +418,36 @@ func test_clear_esconde_a_caixa() -> String:
 	if box.visible or box.is_waiting():
 		return "clear_interaction esconde a caixa e esquece a fala"
 	return ""
+
+
+func test_campos_nulos_do_engine() -> String:
+	var m := _make()
+	var box := _box(m)
+	# O Engine manda speaker e voice como null nas falas de narração e sem voz.
+	m.stage.show_line({"text": "Ventava.", "speaker": null, "voice": null, "text_path": "s1/a"})
+	if box.plate_visible() or not box.is_typing():
+		return "speaker nulo é narração e a fala é digitada"
+	if (m.audio as FakeAudioManager).count_calls(&"play") != 0:
+		return "voice nulo não toca nada"
+	return ""
+
+
+func test_seen_vem_do_perfil() -> String:
+	var m := _make()
+	var box := _box(m)
+	var ui := m.ui as FakeUIManager
+	ui.skip_mode = true
+	# Primeira vez: o Engine chama show_line antes de marcar o texto como lido.
+	m.stage.show_line({"text": "novo", "text_path": "s1/a"})
+	_tick(box, 0.5)
+	if _advanced != 0 or ui.skip_mode:
+		return "texto ainda não lido: pular para e desliga"
+	m.saves.mark_text_seen("s1/a")
+	ui.skip_mode = true
+	m.stage.show_line({"text": "novo", "text_path": "s1/a"})
+	_tick(box, 0.1)
+	if _advanced != 1:
+		return "texto já lido no perfil: pular avança (%d)" % _advanced
+	m.stage.show_line({"text": "sem caminho"})
+	_tick(box, 0.5)
+	return "" if _advanced == 1 else "sem text_path vale não lido"

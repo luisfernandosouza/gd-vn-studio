@@ -52,6 +52,9 @@ var project: Dictionary = {}
 var system_locale: String = ""
 ## Tamanho do monitor, para filtrar resoluções; [code]Vector2i.ZERO[/code] = sem filtro.
 var screen_size: Vector2i = Vector2i.ZERO
+## O último [method load_player] converteu campos de uma versão antiga do arquivo
+## (o chamador regrava o [code]settings.json[/code]).
+var migrated: bool = false
 
 
 func is_censored_edition() -> bool:
@@ -186,10 +189,12 @@ func set_player_value(setting: String, value: Variant) -> void:
 ## inválido (o chamador o renomeia para [code]settings.json.bad[/code]).
 func load_player(data: Variant) -> bool:
 	player = {}
+	migrated = false
 	if data == null:
 		return true
 	if not data is Dictionary:
 		return false
+	data = _migrate_legacy(data)
 	var parsed := {}
 	for key in data:
 		if key == "volume":
@@ -212,6 +217,39 @@ func load_player(data: Variant) -> bool:
 			parsed[key] = r[1]
 	player = parsed
 	return true
+
+
+## Campos de versões antigas do [code]settings.json[/code]: o booleano
+## [code]fullscreen[/code] (removido, UI Spec §8) vira [code]display_mode[/code]
+## [code]fullscreen[/code]; um [code]display_mode[/code] já gravado vence.
+func _migrate_legacy(data: Dictionary) -> Dictionary:
+	if not data.has("fullscreen"):
+		return data
+	var out := data.duplicate()
+	var old: Variant = out.get("fullscreen")
+	out.erase("fullscreen")
+	if old is bool and old and not out.has("display_mode"):
+		out["display_mode"] = "fullscreen"
+	migrated = true
+	return out
+
+
+## Limite de FPS durante uma atividade (UI Spec §8). [param min_fps] é o
+## [code]min_fps[/code] do manifesto (0 = não declarou). O limite que vem do
+## padrão do projeto sobe até [code]min_fps[/code]; o que o jogador gravou vale
+## como está. 0 = sem limite.
+func activity_fps_limit(min_fps: int = 0) -> int:
+	var limit := int(get_value("fps_limit_activity"))
+	if limit > 0 and min_fps > limit and not is_player_set("fps_limit_activity"):
+		return min_fps
+	return limit
+
+
+## O limite que o jogador gravou deixa a atividade abaixo do [code]min_fps[/code]
+## (a tela de configurações mostra um aviso ao lado do controle).
+func activity_fps_below_min(min_fps: int) -> bool:
+	var limit := int(get_value("fps_limit_activity"))
+	return is_player_set("fps_limit_activity") and limit > 0 and min_fps > limit
 
 
 func _player_value(setting: String) -> Variant:

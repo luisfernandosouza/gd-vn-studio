@@ -27,6 +27,10 @@ signal option_selected(option_id: String)
 ## Terminou a transição visual do alvo ([code]&"background"[/code] ou o id da personagem).
 signal transition_finished(target: StringName)
 
+## Id da saída de [code]interact[/code] em [signal option_selected] (e em
+## [method VNNarrativeEngine.choose]): o cenário não dá id próprio à saída.
+const EXIT_ID := "exit"
+
 
 func module_id() -> StringName:
 	return &"stage"
@@ -72,9 +76,12 @@ func module_id() -> StringName:
 ## só as visíveis. A escolha sai por [signal option_selected].
 @abstract func show_choices(prompt: String, options: Array[Dictionary]) -> void
 
-## Mostra os hotspots de [code]interact[/code] (UI Spec §6):
-## [code][{ id, label, rect | polygon, enabled }][/code] e a saída, se houver.
-@abstract func show_hotspots(hotspots: Array[Dictionary], exit_option: Dictionary = {}) -> void
+## Mostra os hotspots de [code]interact[/code] (UI Spec §6), só os visíveis e
+## ainda não usados: [code][{ id, label, area, cursor?, highlight?, enabled }][/code]
+## ([code]area[/code] como em [code]set.schema.json → Area[/code]), a saída, se
+## houver ([code]{ label, id? }[/code], com [constant EXIT_ID] por padrão) e o
+## [code]prompt[/code] do nó. Hotspots [code]enabled: false[/code] aparecem sem resposta.
+@abstract func show_hotspots(hotspots: Array[Dictionary], exit_option: Dictionary = {}, prompt: String = "") -> void
 
 ## Esconde caixa de texto, escolhas e hotspots.
 @abstract func clear_interaction() -> void

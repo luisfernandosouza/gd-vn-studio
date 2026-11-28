@@ -32,3 +32,6 @@ runtime/vn_runtime/presets/
 runtime/vn_runtime/licenses/
 studio/src-tauri/resources/specs/
 cli/schemas/
+
+# Export Web do runtime e saída dos exports (M4-03)
+/build/
