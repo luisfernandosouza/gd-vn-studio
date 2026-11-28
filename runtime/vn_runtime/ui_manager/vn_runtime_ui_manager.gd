@@ -101,15 +101,71 @@ func set_licenses(licenses: Dictionary) -> void:
 	_licenses = licenses.get("entries", [])
 
 
-## Entradas mostradas por [code]licenses_list[/code]: o aviso do motor e do
-## runtime (sempre) e as do [code]licenses.json[/code].
+## Pasta com os textos de licença que a release do runtime traz (spec 09 §1.2).
+const LICENSES_DIR := "res://vn_runtime/licenses/"
+
+## Entradas mostradas por [code]licenses_list[/code]: o aviso do motor (sempre:
+## Godot, bibliotecas dele, runtime e fontes do preset) e as do
+## [code]licenses.json[/code] (BS §4.5). O aviso do motor não vem do bundle: é
+## montado aqui, de [method Engine.get_license_text],
+## [method Engine.get_copyright_info] e dos textos de [constant LICENSES_DIR].
 func license_entries() -> Array:
-	var out: Array = [
-		{"kind": "engine", "title": "Godot Engine", "license": "MIT", "text": Engine.get_license_text()},
-		{"kind": "engine", "title": "Visual Novel Studio runtime", "license": "MIT"},
-	]
+	var out: Array = engine_notice_entries()
 	out.append_array(_licenses)
 	return out
+
+
+## O aviso do motor e do runtime, no formato das entradas de
+## [code]licenses.json[/code] com [code]kind[/code] [code]engine[/code].
+static func engine_notice_entries(dir: String = LICENSES_DIR) -> Array:
+	var out: Array = [
+		{"kind": "engine", "title": "Godot Engine", "license": "MIT", "text": Engine.get_license_text()},
+	]
+	var third := _copyright_text(Engine.get_copyright_info())
+	if not third.is_empty():
+		out.append({"kind": "engine", "title": "Godot Engine: third-party components", "text": third})
+	var index: Variant = null
+	if FileAccess.file_exists(dir + "index.json"):
+		index = JSON.parse_string(FileAccess.get_file_as_string(dir + "index.json"))
+	var runtime_text := ""
+	var fonts: Dictionary = {}  # arquivo da licença → famílias
+	if index is Dictionary:
+		for e in index.get("licenses", []):
+			var kind := String(e.get("kind", ""))
+			var file := String(e.get("file", ""))
+			if kind == "runtime":
+				runtime_text = _read_text(dir + file)
+			elif kind == "font":
+				if not fonts.has(file):
+					fonts[file] = []
+				fonts[file].append(String(e.get("name", "")))
+	var rt := {"kind": "engine", "title": "Visual Novel Studio runtime", "license": "MIT"}
+	if not runtime_text.is_empty():
+		rt["text"] = runtime_text
+	out.append(rt)
+	for file in fonts:
+		var fe := {"kind": "engine", "title": ", ".join(PackedStringArray(fonts[file])), "license": "OFL-1.1"}
+		var t := _read_text(dir + String(file))
+		if not t.is_empty():
+			fe["text"] = t
+		out.append(fe)
+	return out
+
+
+static func _read_text(path: String) -> String:
+	return FileAccess.get_file_as_string(path) if FileAccess.file_exists(path) else ""
+
+
+## Formata [method Engine.get_copyright_info] (componentes, arquivos, copyright e licença).
+static func _copyright_text(info: Array) -> String:
+	var lines := PackedStringArray()
+	for comp in info:
+		lines.append(String(comp.get("name", "")))
+		for part in comp.get("parts", []):
+			for c in part.get("copyright", []):
+				lines.append("  © " + String(c))
+			lines.append("  License: " + String(part.get("license", "")))
+	return "\n".join(lines)
 
 
 func settings_model() -> VNUISettings:

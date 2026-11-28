@@ -530,8 +530,9 @@ func test_credits_licencas() -> String:
 	ui.open_screen("credits")
 	var s := ui.top_screen()
 	var list: Control = s.elements["licenses"]
-	if int(list.get_meta(&"vn_count", 0)) != 3:
-		return "Godot, runtime e o plugin de pesca: %d" % list.get_meta(&"vn_count", 0)
+	var base := VNRuntimeUIManager.engine_notice_entries().size()
+	if int(list.get_meta(&"vn_count", 0)) != base + 1:
+		return "aviso do motor (%d) e o plugin de pesca: %d" % [base, list.get_meta(&"vn_count", 0)]
 	var text := ""
 	for l in list.get_child(0).get_children():
 		text += l.text
@@ -542,9 +543,62 @@ func test_credits_licencas() -> String:
 		return "label: %s" % lbl.text
 	# Só engine: o aviso do motor aparece mesmo assim, o plugin não.
 	var only := VNUIElements.build(s, {"id": "x", "type": "licenses_list", "include": ["fonts"]})
-	if int(only.get_meta(&"vn_count")) != 2:
+	if int(only.get_meta(&"vn_count")) != base:
 		return "include sem plugins: %d" % only.get_meta(&"vn_count")
 	only.free()
+	return ""
+
+
+func test_licencas_aviso_do_motor_e_creditos() -> String:
+	# Pasta de licenças no formato gerado por sync_generated_copies.py.
+	var dir := "user://vn_test_licenses/"
+	DirAccess.make_dir_recursive_absolute(dir)
+	var files := {
+		"vn_runtime-LICENSE.txt": "MIT runtime text",
+		"OFL-NotoSans.txt": "OFL text",
+		"index.json": JSON.stringify({"licenses": [
+			{"kind": "runtime", "name": "VN Studio runtime", "license": "MIT", "file": "vn_runtime-LICENSE.txt"},
+			{"kind": "font", "name": "Noto Sans", "license": "OFL-1.1", "file": "OFL-NotoSans.txt"},
+			{"kind": "font", "name": "Noto Sans JP", "license": "OFL-1.1", "file": "OFL-NotoSans.txt"},
+		]}),
+	}
+	for f in files:
+		var fa := FileAccess.open(dir + f, FileAccess.WRITE)
+		fa.store_string(files[f])
+		fa.close()
+	var notice := VNRuntimeUIManager.engine_notice_entries(dir)
+	for e in notice:
+		if e.kind != "engine":
+			return "aviso do motor tem kind engine"
+	var titles: Array = notice.map(func(e): return e.title)
+	if not titles.has("Godot Engine") or not titles.has("Visual Novel Studio runtime"):
+		return "Godot e runtime: %s" % [titles]
+	if not titles.has("Noto Sans, Noto Sans JP"):
+		return "fontes do preset agrupadas por licença: %s" % [titles]
+	for e in notice:
+		if e.title == "Visual Novel Studio runtime" and e.get("text", "") != "MIT runtime text":
+			return "texto do runtime"
+		if e.title == "Noto Sans, Noto Sans JP" and e.get("text", "") != "OFL text":
+			return "texto da OFL"
+	for f in files:
+		DirAccess.remove_absolute(dir + f)
+	DirAccess.remove_absolute(dir)
+	# Créditos de assets (Noraneko e sutemo) aparecem na lista, e o aviso do motor com include vazio.
+	var r := _setup()
+	var ui: VNRuntimeUIManager = r[1]
+	_to_title(r[0])
+	ui.open_screen("credits")
+	ui.set_licenses({"entries": [
+		{"kind": "asset", "title": "Noraneko Games", "author": "Noraneko Games", "license": "Noraneko terms"},
+		{"kind": "asset", "title": "sutemo", "author": "sutemo", "license": "sutemo terms"},
+	]})
+	var list := VNUIElements.build(ui.top_screen(), {"id": "x", "type": "licenses_list", "include": ["assets"]})
+	var text := ""
+	for l in list.get_child(0).get_children():
+		text += l.text
+	list.free()
+	if not text.contains("Noraneko Games") or not text.contains("sutemo") or not text.contains("Godot Engine"):
+		return "créditos e aviso do motor: %s" % text
 	return ""
 
 
