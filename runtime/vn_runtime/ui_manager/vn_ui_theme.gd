@@ -5,6 +5,11 @@ extends RefCounted
 ## fontes por idioma, [code]auto_shrink[/code], contraste ([code]high_contrast[/code])
 ## e a ligação dos efeitos de hover, press, foco, [code]idle[/code] e sons.
 ##
+## Convive com [VNUIAccessibility] (M2-15): ela escala o texto ([code]text_scale[/code])
+## e cuida das contas de contraste; o tema grava só o tamanho [i]base[/i] de cada
+## controle e leva a escala em conta apenas para saber se o texto cabe
+## ([code]auto_shrink[/code]).
+##
 ## O tema do bundle já vem fundido com o do preset (RT §2). Este módulo não
 ## conhece o UI Manager: recebe só funções para carregar assets e tocar sons, e
 ## as configurações do jogador por propriedades ([member locale],
@@ -131,20 +136,14 @@ static func opaque(c: Color) -> Color:
 	return Color(c.r, c.g, c.b, 1.0)
 
 
-static func _linear(v: float) -> float:
-	return v / 12.92 if v <= 0.03928 else pow((v + 0.055) / 1.055, 2.4)
-
-
-## Luminância relativa (WCAG 2.x).
+## Luminância relativa (WCAG 2.x); a conta é a de [VNUIAccessibility].
 static func luminance(c: Color) -> float:
-	return 0.2126 * _linear(c.r) + 0.7152 * _linear(c.g) + 0.0722 * _linear(c.b)
+	return VNUIAccessibility.luminance(c)
 
 
-## Razão de contraste (WCAG 2.x) entre duas cores opacas, de 1 a 21.
+## Razão de contraste (WCAG 2.x), de 1 a 21; a conta é a de [VNUIAccessibility].
 static func contrast_ratio(a: Color, b: Color) -> float:
-	var la := luminance(a)
-	var lb := luminance(b)
-	return (maxf(la, lb) + 0.05) / (minf(la, lb) + 0.05)
+	return VNUIAccessibility.contrast_ratio(a, b)
 
 
 ## [param fg] se já tem [param minimum] de contraste sobre [param bg]; senão a
@@ -160,16 +159,18 @@ static func ensure_contrast(fg: Color, bg: Color, minimum: float = CONTRAST_TEXT
 	return target
 
 
-## Fundo da caixa de diálogo (opaco com [member high_contrast], Req §12).
+## Painel e texto da caixa de diálogo, com [member high_contrast] aplicado
+## (fundo opaco, texto com contraste >= 4,5:1; Req §12).
+func dialogue_colors() -> Dictionary:
+	return VNUIAccessibility.dialog_colors(data, high_contrast)
+
+
 func dialogue_panel_color() -> Color:
-	var p: Color = colors().panel
-	return opaque(p) if high_contrast else p
+	return dialogue_colors().panel
 
 
-## Cor do texto da caixa de diálogo: com [member high_contrast], contraste ≥ 4,5:1.
 func dialogue_text_color() -> Color:
-	var t: Color = colors().text
-	return ensure_contrast(t, dialogue_panel_color()) if high_contrast else t
+	return dialogue_colors().text
 
 
 # --- Fontes ------------------------------------------------------------------
@@ -219,20 +220,25 @@ func _load_font(id: String) -> Font:
 	return font_loader.call(id) as Font
 
 
-## Tamanho de fonte do estilo vezes [member text_scale].
+## Tamanho base da fonte do estilo. A escala do jogador ([member text_scale]) é
+## aplicada depois por [VNUIAccessibility.apply_text_scale], a partir deste valor.
 func font_size_of(st: Dictionary, kind: String = "ui") -> int:
 	var fonts: Dictionary = data.get("fonts", {})
-	var base := int(st.get("font_size", fonts.get(kind + "_size", DEFAULT_FONT_SIZE)))
-	return maxi(MIN_FONT_SIZE, int(round(base * text_scale)))
+	return maxi(MIN_FONT_SIZE, int(st.get("font_size", fonts.get(kind + "_size", DEFAULT_FONT_SIZE))))
 
 
-## Maior tamanho de [param size] para baixo em que o texto cabe em
-## [param budget] pixels (até [constant MIN_SHRINK_RATIO] do tamanho pedido).
-## Texto de várias linhas conta pela mais larga.
+## Tamanho que o texto de base [param size] terá na tela, com [member text_scale].
+func scaled(size: int) -> int:
+	return VNUIAccessibility.scaled_size(size, text_scale)
+
+
+## Maior tamanho [i]base[/i] de [param size] para baixo cujo texto, já com a
+## escala do jogador, cabe em [param budget] pixels (até [constant MIN_SHRINK_RATIO]
+## do tamanho pedido). Texto de várias linhas conta pela mais larga.
 func shrink_to_fit(text: String, font: Font, size: int, budget: float) -> int:
 	var floor_size := maxi(MIN_FONT_SIZE, int(round(size * MIN_SHRINK_RATIO)))
 	var s := size
-	while s > floor_size and _text_width(text, font, s) > budget:
+	while s > floor_size and _text_width(text, font, scaled(s)) > budget:
 		s -= 1
 	return s
 
@@ -308,17 +314,17 @@ static func _margins(sb: StyleBox, pad: Array) -> void:
 	sb.content_margin_bottom = pad[3]
 
 
-## Anel de foco visível (Req §12): só a borda, na cor de foco do tema.
+## Anel de foco visível (Req §12): só a borda, em [code]colors.focus[/code] e
+## com a espessura da M2-15, na forma do estilo. A caixa do estado
+## [code]focus[/code] (preenchimento, borda, imagem) vai por baixo dele.
 func focus_ring(st: Dictionary) -> StyleBoxFlat:
-	var cols := colors()
 	var sb := StyleBoxFlat.new()
 	sb.draw_center = false
-	var border: Variant = st.get("border")
-	var c: Color = color_of(border.get("focus") if border is Dictionary else null, cols.focus)
+	var c: Color = colors().focus
 	sb.border_color = opaque(c) if high_contrast else c
-	sb.set_border_width_all(maxi(2, int(st.get("border_width", 0))))
-	var radius := 4096 if String(st.get("shape", "rounded")) in ["pill", "circle"] else (0 if String(st.get("shape", "rounded")) == "rect" else int(st.get("radius", 8)))
-	sb.set_corner_radius_all(radius)
+	sb.set_border_width_all(VNUIAccessibility.FOCUS_BORDER)
+	var shape := String(st.get("shape", "rounded"))
+	sb.set_corner_radius_all(4096 if shape in ["pill", "circle"] else (0 if shape == "rect" else int(st.get("radius", 8))))
 	sb.expand_margin_left = 2
 	sb.expand_margin_top = 2
 	sb.expand_margin_right = 2
@@ -397,7 +403,10 @@ static func _descendants(node: Node) -> Array[Node]:
 ## Estilo de [Button], [CheckButton] e [OptionButton]: caixas por estado, anel
 ## de foco, fonte, cores, ícone, [code]auto_shrink[/code] e efeitos.
 func apply_button(b: BaseButton, st: Dictionary) -> void:
-	b.add_theme_stylebox_override(&"normal", stylebox(st, "normal"))
+	var normal_box := stylebox(st, "normal")
+	b.set_meta(&"vn_box_normal", normal_box)
+	b.set_meta(&"vn_box_focus", stylebox(st, "focus"))
+	b.add_theme_stylebox_override(&"normal", normal_box)
 	b.add_theme_stylebox_override(&"hover", stylebox(st, "hover"))
 	b.add_theme_stylebox_override(&"pressed", stylebox(st, "pressed"))
 	b.add_theme_stylebox_override(&"hover_pressed", stylebox(st, "pressed"))
@@ -417,6 +426,7 @@ func apply_button(b: BaseButton, st: Dictionary) -> void:
 		size = _fit_button(b, st, font, size)
 		_icon_position(b, st)
 	b.add_theme_font_size_override(&"font_size", size)
+	VNUIAccessibility.forget_base(b)
 	VNUIButtonFx.attach(b, st, self)
 
 
@@ -435,7 +445,7 @@ func _fit_button(b: Button, st: Dictionary, font: Font, size: int) -> int:
 	if b.icon != null and String(st.get("icon_position", "left")) in ["left", "right"]:
 		budget -= b.icon.get_width()
 	var fitted := shrink_to_fit(b.text, font, size, budget)
-	if _text_width(b.text, font, fitted) > budget:
+	if _text_width(b.text, font, scaled(fitted)) > budget:
 		# Nem no menor tamanho cabe: corta com reticências na largura do botão.
 		b.clip_text = true
 		b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -480,6 +490,7 @@ func apply_label(l: RichTextLabel, st: Dictionary, def: Dictionary) -> void:
 	for f in [&"normal_font_size", &"bold_font_size", &"italics_font_size", &"bold_italics_font_size", &"mono_font_size"]:
 		l.add_theme_font_size_override(f, size)
 	l.add_theme_color_override(&"default_color", color)
+	VNUIAccessibility.forget_base(l)
 	var outline: Variant = st.get("outline")
 	if outline is Dictionary:
 		l.add_theme_color_override(&"font_outline_color", color_of(outline.get("color"), Color.BLACK))
@@ -502,6 +513,7 @@ func apply_label(l: RichTextLabel, st: Dictionary, def: Dictionary) -> void:
 func apply_plain_label(l: Label, st: Dictionary) -> void:
 	l.add_theme_font_override(&"font", font_for(st))
 	l.add_theme_font_size_override(&"font_size", font_size_of(st))
+	VNUIAccessibility.forget_base(l)
 	var table: Variant = st.get("text_color")
 	l.add_theme_color_override(&"font_color", color_of(table.get("normal") if table is Dictionary else null, colors().text))
 

@@ -88,10 +88,19 @@ func _is_image_style() -> bool:
 	return style.get("image") is Dictionary and not style.image.is_empty()
 
 
+## Com foco, a caixa do estado [code]focus[/code] do estilo (preenchimento, borda
+## ou imagem de foco) toma o lugar da [code]normal[/code]; o anel de foco fica por cima.
+func _update_focus_box() -> void:
+	var key := &"vn_box_focus" if _focus and not _disabled() else &"vn_box_normal"
+	if _node.has_meta(key):
+		_node.add_theme_stylebox_override(&"normal", _node.get_meta(key))
+
+
 ## Leva o nó ao estado do efeito atual (ou de repouso).
 func _update() -> void:
 	if _node == null or not is_instance_valid(_node):
 		return
+	_update_focus_box()
 	var eff := _effect()
 	var tint := Color.WHITE
 	if eff.has("tint"):

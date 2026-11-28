@@ -91,7 +91,7 @@ func _style(label: Label) -> void:
 	if _theme != null:
 		var st := {"font_size": FONT_SIZE}
 		label.add_theme_font_override(&"font", _theme.font_for(st))
-		size = _theme.font_size_of(st)
+		size = _theme.scaled(_theme.font_size_of(st))
 		color = _theme.colors().text
 		if _theme.high_contrast:
 			fill = Color(0, 0, 0, 1.0)

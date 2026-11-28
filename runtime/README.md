@@ -8,7 +8,7 @@ Runtime das visual novels: projeto Godot 4.7.2 + GDScript ([Runtime Spec](../doc
 | `vn_runtime/boot.tscn`, `boot.gd` | Cena de boot: despacha `--vn-test`, lê `--vn-bundle` e `--vn-fakes` e roda o boot do RT §3.0 (ver [Boot](#boot)) |
 | `vn_runtime/boot/` | Boot (M2-01): leitor do bundle em JSON e `.vnb`, JSON canônico (JCS), constantes do build, sequência do RT §3.0 e tela dos erros fatais G001/G002 |
 | `vn_runtime/sets/` | Sets compostos e hotspots cosméticos (M2-08): `VNSetView` (camadas, estados, animação, parallax, ações cosméticas) e `VNSetHotspot`; usados pelo UI Manager (fundo das telas) e pelo Stage (fundo das cenas). Testes: `godot --headless --path runtime --script res://tests/sets/test_sets.gd` |
-| `vn_runtime/` | Narrative Engine, Scheduler, State Manager, UI Manager… |
+| `vn_runtime/` | Narrative Engine (`narrative_engine/`, ver [Narrative Engine](#narrative-engine)), Scheduler, State Manager, UI Manager… |
 | `vn_runtime/presets/` | Cópia gerada de `docs/specs/presets/` + fontes embutidas em `fonts/` (os ids `preset/font_*`); fora do Git e nunca editada à mão |
 | `vn_runtime/licenses/` | Gerada: licenças do runtime (MIT), do Godot e das bibliotecas dele, e a OFL de cada fonte do preset, com o índice `index.json` ([Build System §4.5](../docs/specs/05-build-system-specification.md)); fora do Git |
 | `tests/` | Testes e runner headless dos vetores (`--vn-test`) |
@@ -102,6 +102,16 @@ godot --headless --path runtime --quit -- --vn-fakes --vn-bundle res://tests/fix
 ```
 
 A workflow [`runtime-boot.yml`](../.github/workflows/runtime-boot.yml) roda esses comandos. O leitor de JSON do Godot pode errar o último bit de números com mais de 17 dígitos; por isso o `content_hash` é conferido sobre o texto do bundle (que o compilador grava já canônico) e só cai no JCS dos valores quando o texto não está na forma canônica.
+
+## Narrative Engine
+
+`vn_runtime/narrative_engine/vn_runtime_narrative_engine.gd` (`VNRuntimeNarrativeEngine`, M1-11) implementa o contrato `VNNarrativeEngine`: ciclo de vida (RT §3.1–§3.4), laço de nós (§5.2), atividades de plugin (§5.3) e fim de cena (§5.4). Escreve só pelo State Manager, escolhe cenas só pelo Scheduler e é dirigido pelos sinais do Stage (`advanced`, `option_selected`) e do Plugin Host (`activity_ended`); o `bind()` liga esses sinais. Nós: `line`, `choice`, `interact`, `effects`, `branch`, `jump`, `emit`, `plugin`, `wait`, `end` e os de palco (`background`, `show`, `hide`, `audio`), que só repassam ao Stage e ao Audio Manager.
+
+```bash
+godot --headless --path runtime --script res://tests/narrative_engine/test_narrative_engine.gd
+```
+
+Os testes usam o Engine real com os dublês dos outros módulos; os casos `flow.json` reais fecham no M1-12. O texto das cenas vem do próprio nó (idioma-fonte); `set_locale(locale, strings)` entrega as traduções por caminho de texto. A workflow [`runtime-narrative-engine.yml`](../.github/workflows/runtime-narrative-engine.yml) roda os testes.
 
 ## Contratos dos módulos
 

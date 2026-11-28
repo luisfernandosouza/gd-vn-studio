@@ -19,17 +19,17 @@ describe('Project Manager na janela', () => {
   it('cria um projeto pela tela e o abre', async () => {
     const fs = new MemoryFs();
     render(<App io={{ fs, pickFolder: async () => '/jogos' }} />);
-    fireEvent.change(screen.getByLabelText('Nome do jogo'), { target: { value: 'Verão na Praia' } });
-    fireEvent.change(screen.getByLabelText('Idioma em que você escreve'), { target: { value: 'pt-BR' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Escolher pasta…' }));
+    fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Verão na Praia' } });
+    fireEvent.change(screen.getByLabelText('Language you write in'), { target: { value: 'pt-BR' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Choose folder…' }));
     expect(await screen.findByText('/jogos/verao_na_praia')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Criar projeto' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create project' }));
     expect(await screen.findByRole('heading', { name: 'Verão na Praia' })).toBeInTheDocument();
-    expect(screen.getByText('1 capítulo(s)')).toBeInTheDocument();
+    expect(screen.getByText('Chapters: 1')).toBeInTheDocument();
     expect(await fs.exists('/jogos/verao_na_praia/project.json')).toBe(true);
 
     // fechar volta ao Project Manager, com o projeto nos recentes
-    fireEvent.click(screen.getByRole('button', { name: 'Fechar projeto' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Close project' }));
     expect(await screen.findByRole('button', { name: /Verão na Praia/ })).toBeInTheDocument();
   });
 
@@ -37,7 +37,7 @@ describe('Project Manager na janela', () => {
     const fs = new MemoryFs();
     await createProject(fs, { root: '/jogos/outro', title: 'Outro Jogo', defaultLocale: 'en' });
     render(<App io={{ fs, pickFolder: async () => '/jogos/outro' }} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Abrir projeto…' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open project…' }));
     expect(await screen.findByRole('heading', { name: 'Outro Jogo' })).toBeInTheDocument();
   });
 
@@ -45,8 +45,8 @@ describe('Project Manager na janela', () => {
     const fs = new MemoryFs();
     await fs.createDir('/vazia');
     render(<App io={{ fs, pickFolder: async () => '/vazia' }} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Abrir projeto…' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('não tem um project.json');
+    fireEvent.click(screen.getByRole('button', { name: 'Open project…' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('has no project.json');
   });
 
   it('recusa formato de um Studio mais novo', async () => {
@@ -55,7 +55,7 @@ describe('Project Manager na janela', () => {
     const project = JSON.parse(await fs.readText('/jogos/novo/project.json'));
     await fs.writeText('/jogos/novo/project.json', JSON.stringify({ ...project, format_version: '2.0.0' }));
     render(<App io={{ fs, pickFolder: async () => '/jogos/novo' }} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Abrir projeto…' }));
-    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('versão mais nova do Studio'));
+    fireEvent.click(screen.getByRole('button', { name: 'Open project…' }));
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('newer version of the Studio'));
   });
 });

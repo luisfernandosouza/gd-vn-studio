@@ -93,3 +93,24 @@ func test_rng_com_semente_e_reproduzivel() -> void:
 	eq(r1.randf(), r2.randf(), "randf")
 	var v := r1.randi_range(5, 5)
 	eq(v, 5, "intervalo inclusivo")
+
+
+## Fonte do runtime (M1-08): qualquer objeto com random_int e unit, como o PCG32 do VNGameRng.
+class _FakeSource:
+	extends RefCounted
+	var calls := []
+
+	func random_int(a: int, b: int) -> int:
+		calls.append([a, b])
+		return b
+
+	func unit() -> float:
+		return 0.25
+
+
+func test_rng_com_fonte_do_runtime() -> void:
+	var src := _FakeSource.new()
+	var r := VNRandom.new(src)
+	eq(r.randi_range(1, 6), 6, "randi_range vai para a fonte")
+	eq(src.calls, [[1, 6]], "a fonte recebe os limites")
+	eq(r.randf(), 0.25, "randf vai para a fonte")

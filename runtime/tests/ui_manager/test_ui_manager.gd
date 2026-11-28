@@ -6,8 +6,7 @@ extends SceneTree
 ##
 ## Usa as telas title, settings, credits e extras da demo (critério de aceite
 ## da M2-06) e o theme.json da demo (critério de aceite da M2-07: estilos,
-## fontes por idioma, auto_shrink, alto contraste, animações e sons), mais
-## telas pequenas montadas aqui para as ações do UI Spec §4. Os
+## fontes por idioma, auto_shrink, alto contraste, animações e sons), mais telas pequenas montadas aqui para as ações do UI Spec §4. Os
 ## outros módulos são os dublês de tests/fakes/, com um avaliador de condições
 ## que entende as condições simples do Data Model §5. Sai com 1 se algo falhar.
 
@@ -66,8 +65,11 @@ func _main() -> void:
 		"extras_recusado_no_jogo", "acoes_if_else", "acoes_confirm_then_else", "acoes_effects_titulo",
 		"acoes_effects_e_emit_no_jogo", "acoes_elementos", "pausa_pausa_o_engine", "hud_durante_atividade",
 		"textos_interpolacao", "reset_profile",
+		"acess_acoes_input", "acess_contraste", "acess_text_scale", "acess_foco_visivel",
+		"acess_alto_contraste_dialogo", "acess_vn_menu_cancel",
 		"tema_extends", "tema_botoes_da_demo", "tema_demais_elementos", "tema_auto_shrink",
 		"tema_fonte_por_idioma", "tema_alto_contraste", "tema_animacoes_e_sons", "tema_dialogo", "tema_legendas",
+		"tema_foco_e_escala_com_acessibilidade",
 	]:
 		await _run(t)
 	print("%d/%d testes do UI Manager passaram." % [_passed, _passed + _failed])
@@ -534,8 +536,9 @@ func test_credits_licencas() -> String:
 	ui.open_screen("credits")
 	var s := ui.top_screen()
 	var list: Control = s.elements["licenses"]
-	if int(list.get_meta(&"vn_count", 0)) != 3:
-		return "Godot, runtime e o plugin de pesca: %d" % list.get_meta(&"vn_count", 0)
+	var base := VNRuntimeUIManager.engine_notice_entries().size()
+	if int(list.get_meta(&"vn_count", 0)) != base + 1:
+		return "aviso do motor (%d) e o plugin de pesca: %d" % [base, list.get_meta(&"vn_count", 0)]
 	var text := ""
 	for l in list.get_child(0).get_children():
 		text += l.text
@@ -546,9 +549,62 @@ func test_credits_licencas() -> String:
 		return "label: %s" % lbl.text
 	# Só engine: o aviso do motor aparece mesmo assim, o plugin não.
 	var only := VNUIElements.build(s, {"id": "x", "type": "licenses_list", "include": ["fonts"]})
-	if int(only.get_meta(&"vn_count")) != 2:
+	if int(only.get_meta(&"vn_count")) != base:
 		return "include sem plugins: %d" % only.get_meta(&"vn_count")
 	only.free()
+	return ""
+
+
+func test_licencas_aviso_do_motor_e_creditos() -> String:
+	# Pasta de licenças no formato gerado por sync_generated_copies.py.
+	var dir := "user://vn_test_licenses/"
+	DirAccess.make_dir_recursive_absolute(dir)
+	var files := {
+		"vn_runtime-LICENSE.txt": "MIT runtime text",
+		"OFL-NotoSans.txt": "OFL text",
+		"index.json": JSON.stringify({"licenses": [
+			{"kind": "runtime", "name": "VN Studio runtime", "license": "MIT", "file": "vn_runtime-LICENSE.txt"},
+			{"kind": "font", "name": "Noto Sans", "license": "OFL-1.1", "file": "OFL-NotoSans.txt"},
+			{"kind": "font", "name": "Noto Sans JP", "license": "OFL-1.1", "file": "OFL-NotoSans.txt"},
+		]}),
+	}
+	for f in files:
+		var fa := FileAccess.open(dir + f, FileAccess.WRITE)
+		fa.store_string(files[f])
+		fa.close()
+	var notice := VNRuntimeUIManager.engine_notice_entries(dir)
+	for e in notice:
+		if e.kind != "engine":
+			return "aviso do motor tem kind engine"
+	var titles: Array = notice.map(func(e): return e.title)
+	if not titles.has("Godot Engine") or not titles.has("Visual Novel Studio runtime"):
+		return "Godot e runtime: %s" % [titles]
+	if not titles.has("Noto Sans, Noto Sans JP"):
+		return "fontes do preset agrupadas por licença: %s" % [titles]
+	for e in notice:
+		if e.title == "Visual Novel Studio runtime" and e.get("text", "") != "MIT runtime text":
+			return "texto do runtime"
+		if e.title == "Noto Sans, Noto Sans JP" and e.get("text", "") != "OFL text":
+			return "texto da OFL"
+	for f in files:
+		DirAccess.remove_absolute(dir + f)
+	DirAccess.remove_absolute(dir)
+	# Créditos de assets (Noraneko e sutemo) aparecem na lista, e o aviso do motor com include vazio.
+	var r := _setup()
+	var ui: VNRuntimeUIManager = r[1]
+	_to_title(r[0])
+	ui.open_screen("credits")
+	ui.set_licenses({"entries": [
+		{"kind": "asset", "title": "Noraneko Games", "author": "Noraneko Games", "license": "Noraneko terms"},
+		{"kind": "asset", "title": "sutemo", "author": "sutemo", "license": "sutemo terms"},
+	]})
+	var list := VNUIElements.build(ui.top_screen(), {"id": "x", "type": "licenses_list", "include": ["assets"]})
+	var text := ""
+	for l in list.get_child(0).get_children():
+		text += l.text
+	list.free()
+	if not text.contains("Noraneko Games") or not text.contains("sutemo") or not text.contains("Godot Engine"):
+		return "créditos e aviso do motor: %s" % text
 	return ""
 
 
@@ -862,6 +918,160 @@ func test_reset_profile() -> String:
 	return ""
 
 
+# --- Acessibilidade mínima (M2-15; Req §12, RT §10.1) -------------------------
+
+func test_acess_acoes_input() -> String:
+	for a in VNInputActions.ACTIONS:
+		if not InputMap.has_action(a):
+			return "ação %s fora do InputMap" % a
+		if InputMap.action_get_events(a).is_empty():
+			return "ação %s sem eventos" % a
+	# Registro só do que falta: tira uma, registra de novo e confere o padrão do RT §10.1.
+	InputMap.erase_action(&"vn_hide")
+	InputMap.erase_action(&"vn_quick_save")
+	var added := VNInputActions.ensure_registered()
+	if added != [&"vn_hide", &"vn_quick_save"]:
+		return "registrou %s" % [added]
+	var k := InputEventKey.new()
+	k.keycode = KEY_H
+	k.pressed = true
+	if not InputMap.event_is_action(k, &"vn_hide"):
+		return "vn_hide sem a tecla H"
+	var mid := InputEventMouseButton.new()
+	mid.button_index = MOUSE_BUTTON_MIDDLE
+	mid.pressed = true
+	if not InputMap.event_is_action(mid, &"vn_hide"):
+		return "vn_hide sem o botão do meio"
+	var f5 := InputEventKey.new()
+	f5.keycode = KEY_F5
+	if not InputMap.event_is_action(f5, &"vn_quick_save"):
+		return "vn_quick_save sem F5"
+	var pad := InputEventJoypadButton.new()
+	pad.button_index = JOY_BUTTON_START
+	if not InputMap.event_is_action(pad, &"vn_menu"):
+		return "vn_menu sem Start"
+	# Ação que o projeto já tem não é tocada.
+	var before := InputMap.action_get_events(&"vn_confirm").size()
+	VNInputActions.ensure_registered()
+	if InputMap.action_get_events(&"vn_confirm").size() != before:
+		return "ensure_registered mexeu em ação existente"
+	return ""
+
+
+func test_acess_contraste() -> String:
+	if not is_equal_approx(VNUIAccessibility.contrast_ratio(Color.BLACK, Color.WHITE), 21.0):
+		return "preto sobre branco deveria dar 21:1"
+	if not VNUIAccessibility.has_enough_contrast(Color.WHITE, Color("101826")):
+		return "branco sobre o painel do classic deveria passar"
+	if VNUIAccessibility.has_enough_contrast(Color("777777"), Color("888888")):
+		return "cinza sobre cinza não deveria passar"
+	# Texto com alfa é composto sobre o painel antes da conta.
+	if VNUIAccessibility.has_enough_contrast(Color(1, 1, 1, 0.1), Color.BLACK):
+		return "branco a 10% sobre preto não deveria passar"
+	return ""
+
+
+func test_acess_text_scale() -> String:
+	var r := _setup()
+	var m: VNModules = r[0]
+	var ui: VNRuntimeUIManager = r[1]
+	_to_title(m)
+	await process_frame
+	var btn := VNUIElements.focus_control(ui.top_screen().elements["btn_new_game"]) as Button
+	var base := btn.get_theme_font_size(&"font_size")
+	ui.set_setting(&"text_scale", 2.0)
+	if btn.get_theme_font_size(&"font_size") != base * 2:
+		return "200%%: %d, esperado %d" % [btn.get_theme_font_size(&"font_size"), base * 2]
+	ui.set_setting(&"text_scale", 0.8)
+	if btn.get_theme_font_size(&"font_size") != roundi(base * 0.8):
+		return "80%%: %d" % btn.get_theme_font_size(&"font_size")
+	ui.set_setting(&"text_scale", 1.0)
+	if btn.get_theme_font_size(&"font_size") != base:
+		return "100%% volta ao tamanho do tema: %d" % btn.get_theme_font_size(&"font_size")
+	# Fora da faixa o valor é rejeitado ou limitado; a escala nunca passa de 200%.
+	ui.set_setting(&"text_scale", 5.0)
+	if ui.text_scale() > 2.0:
+		return "escala acima de 200%%: %s" % ui.text_scale()
+	ui.set_setting(&"text_scale", 1.5)
+	ui.open_screen("settings")
+	await process_frame
+	var other := VNUIElements.focus_control(ui.top_screen().elements["sl_master"])
+	var lbl := ui.top_screen().find_children("*", "Label", true, false)
+	for l: Label in lbl:
+		if l.get_theme_font_size(&"font_size") != VNUIAccessibility.scaled_size(l.get_meta(&"vn_base_font_sizes")["font_size"], 1.5):
+			return "tela aberta depois do ajuste não nasce escalada"
+	return "" if other != null else "sem slider"
+
+
+func test_acess_foco_visivel() -> String:
+	var r := _setup()
+	var m: VNModules = r[0]
+	var ui: VNRuntimeUIManager = r[1]
+	_to_title(m)
+	await process_frame
+	var btn := VNUIElements.focus_control(ui.top_screen().elements["btn_new_game"]) as Button
+	var sb := btn.get_theme_stylebox(&"focus") as StyleBoxFlat
+	if sb == null or sb.border_width_left < 2 or sb.draw_center:
+		return "botão sem moldura de foco"
+	if sb.border_color != VNUIAccessibility.DEFAULT_FOCUS:
+		return "cor do foco: %s" % sb.border_color
+	# colors.focus do tema vale quando existe.
+	if VNUIAccessibility.focus_color({"colors": {"focus": "#ff0000"}}) != Color("ff0000"):
+		return "colors.focus do tema ignorado"
+	if VNUIAccessibility.focus_color({"colors": {"focus": "lixo"}}) != VNUIAccessibility.DEFAULT_FOCUS:
+		return "cor inválida deveria cair no padrão"
+	return ""
+
+
+func test_acess_alto_contraste_dialogo() -> String:
+	var dim := {"colors": {"text": "#777777", "panel": "#88888880"}}
+	var normal := VNUIAccessibility.dialog_colors(dim, false)
+	if normal.panel.a >= 1.0 or normal.text != Color("777777"):
+		return "sem alto contraste, o tema fica como está"
+	var hc := VNUIAccessibility.dialog_colors(dim, true)
+	if not is_equal_approx(hc.panel.a, 1.0):
+		return "painel deveria ficar opaco"
+	if not VNUIAccessibility.has_enough_contrast(hc.text, hc.panel):
+		return "texto com contraste %.2f" % VNUIAccessibility.contrast_ratio(hc.text, hc.panel)
+	# Texto do tema que já passa é mantido.
+	var ok := VNUIAccessibility.dialog_colors({"colors": {"text": "#ffffff", "panel": "#000000"}}, true)
+	if ok.text != Color.WHITE:
+		return "texto que já passa não deveria mudar"
+	# A caixa de confirmação acompanha a configuração.
+	var r := _setup()
+	var m: VNModules = r[0]
+	var ui: VNRuntimeUIManager = r[1]
+	_to_title(m)
+	ui.set_setting(&"high_contrast", true)
+	ui.show_message("runtime/message/ok")
+	await process_frame
+	var dlg: VNUIDialog = ui.layer_root(VNLayers.SYSTEM).find_children("*", "Control", true, false).filter(func(n): return n is VNUIDialog)[0]
+	var panel_sb := dlg.panel.get_theme_stylebox(&"panel") as StyleBoxFlat
+	if panel_sb == null or not is_equal_approx(panel_sb.bg_color.a, 1.0):
+		return "caixa não ficou opaca com alto contraste"
+	return ""
+
+
+func test_acess_vn_menu_cancel() -> String:
+	var r := _setup()
+	var m: VNModules = r[0]
+	var ui: VNRuntimeUIManager = r[1]
+	_to_game(m)
+	await process_frame
+	if not ui.screen_stack().is_empty():
+		return "pilha deveria estar vazia no jogo"
+	if not _press(ui, &"vn_menu") or ui.screen_stack() != PackedStringArray(["pause"]):
+		return "vn_menu na história deveria abrir a pausa: %s" % ui.screen_stack()
+	# Com uma tela aberta, vn_menu não empilha outra pausa; vn_cancel fecha a do topo.
+	_press(ui, &"vn_menu")
+	if ui.screen_stack() != PackedStringArray(["pause"]):
+		return "vn_menu com tela aberta: %s" % ui.screen_stack()
+	_press(ui, &"vn_cancel")
+	if not ui.screen_stack().is_empty():
+		return "vn_cancel deveria fechar a pausa: %s" % ui.screen_stack()
+	return ""
+
+
 # --- Tema (M2-07; UI Spec §7) -------------------------------------------------
 
 func _img() -> ImageTexture:
@@ -923,7 +1133,8 @@ func test_tema_botoes_da_demo() -> String:
 	_to_title(m)
 	await process_frame
 	var b: Button = ui.top_screen().elements["btn_new_game"]
-	var normal := b.get_theme_stylebox("normal")
+	# btn_new_game tem o foco inicial (focus_start): a caixa 'normal' dele é a do estado focus; a de repouso fica no metadado.
+	var normal := b.get_meta(&"vn_box_normal") as StyleBox
 	if not normal is StyleBoxTexture or normal.texture_margin_left != 20.0 or normal.texture != (m.assets as FakeAssets).resources["ui/btn_gold"]:
 		return "normal do gold: imagem ui/btn_gold com nine_slice 20"
 	if b.get_theme_stylebox("hover").texture != (m.assets as FakeAssets).resources["ui/btn_gold_hover"]:
@@ -937,8 +1148,10 @@ func test_tema_botoes_da_demo() -> String:
 	if not b.get_theme_font("font") is FontVariation:
 		return "a fonte do estilo entra como FontVariation (com reservas por idioma)"
 	var ring := b.get_theme_stylebox("focus") as StyleBoxFlat
-	if ring == null or ring.draw_center or ring.border_color != Color("e05a7a"):
-		return "anel de foco visível na cor border.focus do estilo"
+	if ring == null or ring.draw_center or ring.border_color != Color("6aa9ff") or ring.border_width_left != VNUIAccessibility.FOCUS_BORDER:
+		return "anel de foco visível: colors.focus e a espessura da M2-15"
+	if ring.corner_radius_top_left != 12:
+		return "o anel segue a forma do estilo (radius 12), não o genérico da M2-15: %d" % ring.corner_radius_top_left
 	# Botão sem style: estilo padrão "button" (forma lisa).
 	ui.open_screen("settings")
 	var plain: Button = null
@@ -1026,8 +1239,10 @@ func test_tema_auto_shrink() -> String:
 	b.text = "Configurações do jogo"
 	t.apply_button(b, st)
 	var big := b.get_theme_font_size("font_size")
-	if big >= 60 or big < 30:
-		return "text_scale 2,0 pede 60 e o auto_shrink reduz: %d" % big
+	if big >= 30 or big < 15:
+		return "com text_scale 2,0 o tamanho base encolhe para o texto (já escalado) caber: %d" % big
+	if font.get_string_size(b.text, HORIZONTAL_ALIGNMENT_LEFT, -1, t.scaled(big)).x > 400.0 - 48.0:
+		return "o texto escalado cabe no botão"
 	t.text_scale = 1.0
 	t.apply_button(b, st)
 	if b.get_theme_font_size("font_size") != 30 or b.custom_minimum_size.x != 400.0:
@@ -1249,4 +1464,55 @@ func test_tema_legendas() -> String:
 	if second.get_theme_stylebox("normal").bg_color.a != 1.0:
 		return "legenda nova nasce com o tema"
 	view.queue_free()
+	return ""
+
+
+func test_tema_foco_e_escala_com_acessibilidade() -> String:
+	var r := _setup()
+	var m: VNModules = r[0]
+	var ui: VNRuntimeUIManager = r[1]
+	_gold_assets(m)
+	_to_title(m)
+	await process_frame
+	var btn: Button = ui.top_screen().elements["btn_new_game"]
+	# Estado focus do estilo (borda e5 do button, imagem de foco do gold): a caixa 'normal' é trocada ao focar.
+	var fx: VNUIButtonFx = btn.get_meta(&"vn_fx")
+	btn.focus_exited.emit()   # começa sem foco (o botão nasce focado por focus_start)
+	var before := btn.get_theme_stylebox("normal")
+	if before.texture != (m.assets as FakeAssets).resources["ui/btn_gold"]:
+		return "sem foco, a caixa normal é a ui/btn_gold"
+	btn.focus_entered.emit()
+	var focused := btn.get_theme_stylebox("normal")
+	if focused == before or focused.texture != (m.assets as FakeAssets).resources["ui/btn_gold_hover"]:
+		return "com foco a caixa normal vira a do estado focus (ui/btn_gold_hover)"
+	btn.focus_exited.emit()
+	if btn.get_theme_stylebox("normal") != before:
+		return "sem foco a caixa normal volta"
+	# A passada de acessibilidade não troca o anel que o tema já pôs.
+	var ring := btn.get_theme_stylebox("focus")
+	VNUIAccessibility.apply_focus_style(ui.top_screen(), ui.focus_color())
+	if btn.get_theme_stylebox("focus") != ring:
+		return "apply_focus_style respeita o anel do tema"
+	# A escala é uma só: 34 (gold) x 1,5 = 51, e nunca 51 x 1,5.
+	ui.set_setting(&"text_scale", 1.5)
+	if btn.get_theme_font_size("font_size") != 51:
+		return "text_scale 1,5 sobre 34: %d" % btn.get_theme_font_size("font_size")
+	ui.set_setting(&"text_scale", 1.5)
+	ui.set_setting(&"high_contrast", true)
+	ui.set_setting(&"high_contrast", false)
+	if btn.get_theme_font_size("font_size") != 51:
+		return "reaplicar não escala duas vezes: %d" % btn.get_theme_font_size("font_size")
+	ui.set_setting(&"text_scale", 1.0)
+	if btn.get_theme_font_size("font_size") != 34:
+		return "voltar a 100%% volta ao tamanho do tema: %d" % btn.get_theme_font_size("font_size")
+	# A caixa de confirmação mantém o estilo do tema com o alto contraste ligado e desligado.
+	_click(ui, "btn_quit")
+	var d := ui.open_dialogs()[0]
+	if not d.panel.get_theme_stylebox("panel") is StyleBoxFlat or d.panel.get_theme_stylebox("panel").bg_color != Color("1b2a3acc"):
+		return "caixa com o painel do tema"
+	ui.set_setting(&"high_contrast", true)
+	ui.set_setting(&"high_contrast", false)
+	if absf(d.panel.get_theme_stylebox("panel").bg_color.a - 0.8) > 0.01:
+		return "desligar o alto contraste devolve o painel do tema (e não o tira)"
+	ui.answer_dialog(false)
 	return ""

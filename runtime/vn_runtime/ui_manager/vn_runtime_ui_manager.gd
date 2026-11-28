@@ -22,7 +22,7 @@ extends VNUIManager
 ##
 ## O que fica para outras tarefas: telas do preset
 ## (M2-09), perfil e migração de [code]settings.json[/code] (M2-11), licenças do
-## [code]licenses.json[/code] (M2-14, por [method set_licenses]) e acessibilidade (M2-15).
+## [code]licenses.json[/code] (M2-14, por [method set_licenses]). A acessibilidade (M2-15) está em [VNUIAccessibility] e [VNInputActions].
 
 ## Ação cosmética sobre o set da tela ([code]set:[/code]) ou o set em cena
 ## ([code]stage:[/code]): [param action] é [code]set_state[/code],
@@ -54,7 +54,7 @@ var skip_mode: bool = false
 var _bundle: Dictionary = {}
 var _settings := VNUISettings.new()
 var _text := VNUIText.new()
-var _theme := VNUITheme.new()
+var _ui_theme := VNUITheme.new()
 var _licenses: Array = []
 var _root: Control = null
 var _layers: Dictionary = {}       # camada → CanvasLayer
@@ -68,6 +68,7 @@ var _free_play_screen: String = ""
 
 
 func _init() -> void:
+	VNInputActions.ensure_registered()
 	platform = _detect_platform()
 	_text.reader = _read_variable
 	_settings.system_locale = OS.get_locale().replace("_", "-")
@@ -79,10 +80,10 @@ func load_bundle(bundle: Dictionary) -> void:
 	_bundle = bundle
 	_settings.project = bundle.get("project", {})
 	_text.number_formats = _settings.project.get("settings", {}).get("number_formats", {})
-	_theme.configure(bundle.get("theme", {}), bundle.get("assets", {}))
-	_theme.texture_loader = load_texture
-	_theme.font_loader = load_font
-	_theme.sound_player = play_ui_sound
+	_ui_theme.configure(bundle.get("theme", {}), bundle.get("assets", {}))
+	_ui_theme.texture_loader = load_texture
+	_ui_theme.font_loader = load_font
+	_ui_theme.sound_player = play_ui_sound
 	_apply_global_cursor()
 	_connect_modules()
 	var locales: Variant = bundle.get("locales")
@@ -109,13 +110,16 @@ func set_licenses(licenses: Dictionary) -> void:
 	_licenses = licenses.get("entries", [])
 
 
-## Entradas mostradas por [code]licenses_list[/code]: o aviso do motor e do
-## runtime (sempre) e as do [code]licenses.json[/code].
+## Pasta com os textos de licença que a release do runtime traz (spec 09 §1.2).
+const LICENSES_DIR := "res://vn_runtime/licenses/"
+
+## Entradas mostradas por [code]licenses_list[/code]: o aviso do motor (sempre:
+## Godot, bibliotecas dele, runtime e fontes do preset) e as do
+## [code]licenses.json[/code] (BS §4.5). O aviso do motor não vem do bundle: é
+## montado aqui, de [method Engine.get_license_text],
+## [method Engine.get_copyright_info] e dos textos de [constant LICENSES_DIR].
 func license_entries() -> Array:
-	var out: Array = [
-		{"kind": "engine", "title": "Godot Engine", "license": "MIT", "text": Engine.get_license_text()},
-		{"kind": "engine", "title": "Visual Novel Studio runtime", "license": "MIT"},
-	]
+	var out: Array = engine_notice_entries()
 	out.append_array(_licenses)
 	return out
 
@@ -123,17 +127,70 @@ func license_entries() -> Array:
 ## O tema do bundle (estilos, fontes, contraste).
 func theme_model() -> VNUITheme:
 	_sync_theme()
-	return _theme
+	return _ui_theme
 
 
 ## Copia para o tema as configurações que mudam o visual.
 func _sync_theme() -> void:
-	_theme.locale = _text.locale
-	_theme.text_scale = float(get_setting(&"text_scale"))
-	_theme.high_contrast = bool(get_setting(&"high_contrast"))
-	_theme.reduce_motion = bool(get_setting(&"reduce_motion"))
+	_ui_theme.locale = _text.locale
+	_ui_theme.text_scale = float(get_setting(&"text_scale"))
+	_ui_theme.high_contrast = bool(get_setting(&"high_contrast"))
+	_ui_theme.reduce_motion = bool(get_setting(&"reduce_motion"))
 	var res: Array = _settings.project.get("settings", {}).get("resolution", [1920, 1080])
-	_theme.base_size = Vector2(float(res[0]), float(res[1]))
+	_ui_theme.base_size = Vector2(float(res[0]), float(res[1]))
+
+
+## O aviso do motor e do runtime, no formato das entradas de
+## [code]licenses.json[/code] com [code]kind[/code] [code]engine[/code].
+static func engine_notice_entries(dir: String = LICENSES_DIR) -> Array:
+	var out: Array = [
+		{"kind": "engine", "title": "Godot Engine", "license": "MIT", "text": Engine.get_license_text()},
+	]
+	var third := _copyright_text(Engine.get_copyright_info())
+	if not third.is_empty():
+		out.append({"kind": "engine", "title": "Godot Engine: third-party components", "text": third})
+	var index: Variant = null
+	if FileAccess.file_exists(dir + "index.json"):
+		index = JSON.parse_string(FileAccess.get_file_as_string(dir + "index.json"))
+	var runtime_text := ""
+	var fonts: Dictionary = {}  # arquivo da licença → famílias
+	if index is Dictionary:
+		for e in index.get("licenses", []):
+			var kind := String(e.get("kind", ""))
+			var file := String(e.get("file", ""))
+			if kind == "runtime":
+				runtime_text = _read_text(dir + file)
+			elif kind == "font":
+				if not fonts.has(file):
+					fonts[file] = []
+				fonts[file].append(String(e.get("name", "")))
+	var rt := {"kind": "engine", "title": "Visual Novel Studio runtime", "license": "MIT"}
+	if not runtime_text.is_empty():
+		rt["text"] = runtime_text
+	out.append(rt)
+	for file in fonts:
+		var fe := {"kind": "engine", "title": ", ".join(PackedStringArray(fonts[file])), "license": "OFL-1.1"}
+		var t := _read_text(dir + String(file))
+		if not t.is_empty():
+			fe["text"] = t
+		out.append(fe)
+	return out
+
+
+static func _read_text(path: String) -> String:
+	return FileAccess.get_file_as_string(path) if FileAccess.file_exists(path) else ""
+
+
+## Formata [method Engine.get_copyright_info] (componentes, arquivos, copyright e licença).
+static func _copyright_text(info: Array) -> String:
+	var lines := PackedStringArray()
+	for comp in info:
+		lines.append(String(comp.get("name", "")))
+		for part in comp.get("parts", []):
+			for c in part.get("copyright", []):
+				lines.append("  © " + String(c))
+			lines.append("  License: " + String(part.get("license", "")))
+	return "\n".join(lines)
 
 
 func settings_model() -> VNUISettings:
@@ -303,6 +360,7 @@ func _make_screen(screen_id: String, data: Dictionary) -> VNUIScreen:
 	var s := VNUIScreen.new()
 	var res: Array = _settings.project.get("settings", {}).get("resolution", [1920, 1080])
 	s.setup(self, screen_id, data, Vector2(float(res[0]), float(res[1])))
+	_apply_accessibility(s)
 	return s
 
 
@@ -461,7 +519,7 @@ func refresh() -> void:
 
 
 func _rebuild_open_screens() -> void:
-	_theme.clear_font_cache()
+	_ui_theme.clear_font_cache()
 	var ids := screen_stack()
 	if ids.is_empty() and _hud == null:
 		return
@@ -991,19 +1049,18 @@ func confirm(text_path: String, on_answer: Callable) -> void:
 func show_message(text_path: String) -> void:
 	var d := VNUIDialog.new()
 	d.setup(text(text_path, text_path), text("runtime/message/ok", "OK"), "")
-	theme_model().style_dialog(d)
 	_show_dialog(d, func(_ok): pass)
 
 
 func _confirm_text(value: String, on_answer: Callable) -> void:
 	var d := VNUIDialog.new()
 	d.setup(value, text("runtime/confirm/yes", "Yes"), text("runtime/confirm/no", "No"))
-	theme_model().style_dialog(d)
 	_show_dialog(d, on_answer)
 
 
 func _show_dialog(d: VNUIDialog, on_answer: Callable) -> void:
 	_dialogs.append(d)
+	_apply_accessibility(d)
 	d.answered.connect(func(ok: bool):
 		_dialogs.erase(d)
 		on_answer.call(ok)
@@ -1087,7 +1144,7 @@ func _style_captions() -> void:
 	if m != null and m.audio != null and m.audio.has_method(&"caption_view"):
 		var view: VNCaptionView = m.audio.caption_view()
 		if view != null:
-			view.apply_theme(_theme)
+			view.apply_theme(_ui_theme)
 
 
 func _restyle_open_screens() -> void:
@@ -1097,8 +1154,8 @@ func _restyle_open_screens() -> void:
 		s.restyle()
 	if _hud != null:
 		_hud.restyle()
-	for d in _dialogs:
-		_theme.style_dialog(d)
+	# Foco, escala do texto e caixas abertas de novo, a partir dos tamanhos base que o tema acabou de pôr.
+	_reapply_accessibility()
 
 
 func _use_locale_strings() -> void:
@@ -1121,6 +1178,9 @@ func _apply_setting(key: String, value: Variant) -> void:
 		elif m != null and m.audio != null and StringName(ch) in VNAudioManager.CHANNELS:
 			m.audio.set_channel_volume(StringName(ch), float(value))
 		return
+	if key == "text_scale" or key == "high_contrast":
+		_reapply_accessibility()
+		return
 	var windowed := DisplayServer.get_name() not in ["headless", ""] and platform != WEB
 	match key:
 		"fps_limit_vn":
@@ -1141,6 +1201,51 @@ func _apply_setting(key: String, value: Variant) -> void:
 		"resolution":
 			if windowed and DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_WINDOWED:
 				DisplayServer.window_set_size(Vector2i(int(value[0]), int(value[1])))
+
+
+# --- Acessibilidade (Req §12) --------------------------------------------------
+
+## O tema do bundle ([code]theme.json[/code]), ou vazio.
+func _theme() -> Dictionary:
+	var t: Variant = _bundle.get("theme", {})
+	return t if t is Dictionary else {}
+
+
+## Cor da moldura de foco ([code]theme.colors.focus[/code]).
+func focus_color() -> Color:
+	return VNUIAccessibility.focus_color(_theme())
+
+
+## Fator de escala do texto ([code]PlayerSettings.text_scale[/code], 0,8 a 2,0).
+func text_scale() -> float:
+	return VNUIAccessibility.clamp_scale(float(get_setting(&"text_scale")))
+
+
+## Painel e texto da caixa de diálogo já com [code]high_contrast[/code] aplicado
+## (fundo opaco, contraste do texto ≥ 4,5:1). O Stage e a caixa de diálogo usam estas cores.
+func dialog_colors() -> Dictionary:
+	return VNUIAccessibility.dialog_colors(_theme(), bool(get_setting(&"high_contrast")))
+
+
+## Escala o texto e dá foco visível a uma tela ou caixa recém-criada ou aberta.
+func _apply_accessibility(node: Control) -> void:
+	# A caixa de confirmação é estilizada pelo tema (painel, botões, alto contraste)
+	# antes da escala do texto, que parte dos tamanhos base que o tema deixou.
+	if node is VNUIDialog:
+		theme_model().style_dialog(node)
+	VNUIAccessibility.apply_focus_style(node, focus_color())
+	VNUIAccessibility.apply_text_scale(node, text_scale())
+
+
+func _reapply_accessibility() -> void:
+	# Array sem tipo: _stack.duplicate() é Array[VNUIScreen] e não aceita as caixas de diálogo.
+	var nodes: Array = []
+	nodes.append_array(_stack)
+	nodes.append_array(_dialogs)
+	if _hud != null:
+		nodes.append(_hud)
+	for n in nodes:
+		_apply_accessibility(n)
 
 
 ## Atualiza os controles ligados à configuração nas telas abertas, sem disparar sinal.
