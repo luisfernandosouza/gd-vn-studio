@@ -4,15 +4,17 @@
 #    Cada caso cujo módulo ainda não tem implementação real em runtime/vn_runtime/ sai como pulado (M1-01);
 #    o autoteste do executor (tests/conformance/test_runner.gd) confere a leitura, a comparação e a saída.
 # 3. A referência Python (tools/conformance.py) roda junto: spec 08 §4 pede o runner nativo e a referência
-#    em toda mudança no runtime ou nos casos. O runner Web entra com a tarefa M4-03.
+#    em toda mudança no runtime ou nos casos.
+# 4. O job `web` (tarefa M4-03) exporta o runtime para Web sem threads (preset "Web (vetores)", BS §7.3), roda o mesmo
+#    executor num Chromium headless do Playwright e exige o mesmo `N/M` e os mesmos pulados do runner nativo.
 name: Runtime
 
 on:
   pull_request:
-    paths: [runtime/**, docs/specs/conformance/**, .github/workflows/runtime.yml]
+    paths: [runtime/**, docs/specs/conformance/**, docs/specs/tools/sync_generated_copies.py, .github/workflows/runtime.yml]
   push:
     branches: [main]
-    paths: [runtime/**, docs/specs/conformance/**, .github/workflows/runtime.yml]
+    paths: [runtime/**, docs/specs/conformance/**, docs/specs/tools/sync_generated_copies.py, .github/workflows/runtime.yml]
   workflow_dispatch:
 
 env:
@@ -71,3 +73,81 @@ jobs:
       - name: Referência Python dos vetores (tools/conformance.py)
         working-directory: docs/specs
         run: python tools/conformance.py
+
+  web:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: Cache do Godot ${{ env.GODOT_VERSION }} e dos templates Web
+        id: cache-godot
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cache/godot-bin
+            ~/.local/share/godot/export_templates
+          key: godot-web-${{ env.GODOT_VERSION }}-linux-x86_64
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Baixa o Godot ${{ env.GODOT_VERSION }} e os templates Web sem threads
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          url="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/godot.zip" "$url"
+          mkdir -p ~/.cache/godot-bin
+          unzip -q "$RUNNER_TEMP/godot.zip" -d ~/.cache/godot-bin
+          # O pacote de templates tem ~1,3 GB; o script baixa só os dois templates Web (Range HTTP).
+          python3 runtime/tests/web/fetch_web_templates.py "$GODOT_VERSION"
+      - name: Instala o Godot
+        run: |
+          set -euo pipefail
+          install -m 755 ~/.cache/godot-bin/"Godot_v${GODOT_VERSION}_linux.x86_64" /usr/local/bin/godot
+          godot --headless --version
+      - name: fontTools na versão fixada
+        run: python -m pip install -q "fonttools==$(python -c 'import json;print(json.load(open("docs/specs/tools/generated_sources.json"))["fonttools"])')"
+      - name: Cópias geradas (presets e licenças entram no export)
+        run: python docs/specs/tools/sync_generated_copies.py runtime
+      - name: Importa e exporta o runtime para Web (sem threads)
+        run: |
+          set -euo pipefail
+          godot --headless --path runtime --import 2>&1 | tee "$RUNNER_TEMP/web-import.log"
+          mkdir -p build/runtime-web-vectors
+          godot --headless --path runtime --export-debug "Web (vetores)" ../build/runtime-web-vectors/index.html 2>&1 | tee "$RUNNER_TEMP/web-export.log"
+          test -s build/runtime-web-vectors/index.wasm
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Playwright e Chromium
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/pw" && cd "$RUNNER_TEMP/pw"
+          npm init -y >/dev/null && npm i -s playwright@1
+          # O `apt-get update` do --with-deps falha com 403 no repositório da Microsoft da imagem do runner
+          # (packages.microsoft.com), que o Chromium não usa: tira esse repositório antes.
+          sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/microsoft-prod.sources /etc/apt/sources.list.d/*microsoft*.list /etc/apt/sources.list.d/*microsoft*.sources
+          npx playwright install --with-deps chromium
+          echo "NODE_PATH=$RUNNER_TEMP/pw/node_modules" >> "$GITHUB_ENV"
+      - name: Vetores no runtime nativo
+        run: godot --headless --path runtime -- --vn-test docs/specs/conformance 2>&1 | tee "$RUNNER_TEMP/native.log"
+      - name: Vetores no runtime Web (Chromium)
+        run: node runtime/tests/web/run_web_vectors.cjs build/runtime-web-vectors docs/specs/conformance 2>&1 | tee "$RUNNER_TEMP/web.log"
+      - name: Mesmo N/M do nativo
+        run: |
+          set -euo pipefail
+          # Resumo e pulados são iguais nos dois (spec 08 §4); o cabeçalho e o navegador diferem.
+          pick() { grep -E '^(FALHOU|  esperado|  obtido|  erro|[0-9]+/[0-9]+ \(|  pulados)' "$1"; }
+          pick "$RUNNER_TEMP/native.log" > "$RUNNER_TEMP/native.sum"
+          pick "$RUNNER_TEMP/web.log" > "$RUNNER_TEMP/web.sum"
+          grep -E '^[0-9]+/[0-9]+ \(' "$RUNNER_TEMP/web.sum" || { echo "::error::o runner Web não imprimiu o resumo N/M"; exit 1; }
+          if ! diff -u "$RUNNER_TEMP/native.sum" "$RUNNER_TEMP/web.sum"; then
+            echo "::error title=Web difere do nativo::O runner Web deve dar o mesmo N/M e os mesmos casos pulados do nativo (spec 08 §4, M4-03)."
+            exit 1
+          fi
+      - name: Sem erros no log do Godot
+        run: |
+          if grep -hE '(^|[^A-Z_])(ERROR|SCRIPT ERROR):' "$RUNNER_TEMP"/{web-import,web-export,native,web}.log; then
+            echo "::error title=Godot registrou erros::O export Web e o runner Web devem rodar sem erros."
+            exit 1
+          fi

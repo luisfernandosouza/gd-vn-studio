@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Vetores de conformidade no runtime Web</title>
+<style>body { margin: 0; background: #000; } canvas { display: block; width: 64px; height: 64px; }</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<script src="/export/index.js"></script>
+<script>
+// Página do runner Web dos vetores (spec 08 §4, tarefa M4-03). O servidor de run_web_vectors.cjs serve
+// o export "Web (vetores)" em /export/ e os arquivos de casos em /cases/; a lista vem em /cases.json.
+// Os arquivos vão para o sistema de arquivos em memória do motor (preloadFile) e o runtime recebe os
+// mesmos argumentos do nativo (`-- --vn-test <caminho>[#id]`). O que o Godot imprime e o código de
+// saída ficam em window.vnWeb, que o runner lê.
+(async () => {
+  const out = window.vnWeb = { lines: [], errors: [], exit: null, fatal: null };
+  try {
+    const index = await (await fetch('/cases.json', { cache: 'no-store' })).json();
+    const engine = new Engine({
+      executable: '/export/index',
+      mainPack: '/export/index.pck',
+      canvas: document.getElementById('canvas'),
+      canvasResizePolicy: 0,
+      focusCanvas: false,
+      args: ['--audio-driver', 'Dummy', '--', '--vn-test', index.target],
+      onPrint: (...a) => { const s = a.join(' '); out.lines.push(s); console.log(s); },
+      onPrintError: (...a) => { const s = a.join(' '); out.errors.push(s); console.error(s); },
+      onExit: (code) => { out.exit = code; },
+    });
+    await Promise.all(index.files.map((f) => engine.preloadFile('/cases/' + encodeURIComponent(f), index.dir + '/' + f)));
+    await engine.startGame();
+  } catch (e) {
+    out.fatal = String((e && e.stack) || e);
+  }
+})();
+</script>
+</body>
+</html>

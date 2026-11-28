@@ -1,0 +1,9 @@
+.preview-panel { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
+.preview-bar { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.preview-bar button[aria-pressed='true'] { outline: 2px solid currentColor; }
+.preview-status { margin: 0; font-size: 0.9em; }
+.preview-frame-host:empty { display: none; }
+.preview-frame { width: 100%; aspect-ratio: 16 / 9; border: 0; background: #000; }
+.preview-log { margin: 0; padding-left: 1.2rem; font-size: 0.85em; }
+.preview-log [data-level='error'] { color: #c0392b; }
+.preview-log [data-level='warning'] { color: #b9770e; }

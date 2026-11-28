@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { PreviewPanel } from '../../preview/PreviewPanel';
 import { closeDocumentSession } from '../document/session';
 import { useT } from '../i18n';
 import { ProjectSettings } from '../settings/ProjectSettings';
@@ -6,14 +7,14 @@ import type { ProjectFs } from './fs';
 import { useProjectSession } from './session';
 
 /** Resumo do projeto aberto. Os editores (M6-02 em diante) ocupam este lugar. */
-export function OpenProjectSummary({ fs }: { fs: ProjectFs }) {
+export function OpenProjectSummary({ fs }: { fs?: ProjectFs } = {}) {
   const t = useT();
   const [view, setView] = useState<'summary' | 'settings'>('summary');
   const current = useProjectSession((s) => s.current);
   const setCurrent = useProjectSession((s) => s.setCurrent);
   if (!current) return null;
   const { project, entities, newerMinor } = current;
-  if (view === 'settings') {
+  if (view === 'settings' && fs) {
     return (
       <>
         <button type="button" onClick={() => setView('summary')}>
@@ -39,9 +40,12 @@ export function OpenProjectSummary({ fs }: { fs: ProjectFs }) {
         <li>{t('studio/project/scenes', { count: entities.scenes.length })}</li>
         <li>{t('studio/project/characters', { count: entities.characters.length })}</li>
       </ul>
-      <button type="button" onClick={() => setView('settings')}>
-        Configurações do projeto
-      </button>
+      {fs && (
+        <button type="button" onClick={() => setView('settings')}>
+          Configurações do projeto
+        </button>
+      )}
+      {fs && <PreviewPanel fs={fs} root={current.root} />}
       <button
         type="button"
         onClick={() => {

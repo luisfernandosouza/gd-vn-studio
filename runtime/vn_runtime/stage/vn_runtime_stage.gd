@@ -39,13 +39,23 @@ extends VNStage
 ## pelo sinal [signal VNRuntimeUIManager.set_target_action].
 ##
 ## [b]Fora desta tarefa.[/b] Caixa de texto e digitação (M2-03), escolhas e
-## hotspots de [code]interact[/code] (M2-04), base por item do modo stream
-## (M2-12) e miniatura do save (M2-10). Os métodos dessas partes guardam os
-## dados e ficam documentados como tal.
+## hotspots de [code]interact[/code] (M2-04) e miniatura do save (M2-10). Os
+## métodos dessas partes guardam os dados e ficam documentados como tal.
 ##
 ## [b]Escolhas e [code]interact[/code] (M2-04).[/b] [VNStageInteraction] desenha
 ## os botões das opções (camada 30), os hotspots (camada 15) e a saída, e
 ## avisa a escolha por [signal VNStage.option_selected].
+##
+## [b]Modo stream (M2-12).[/b] O Stage guarda sempre os ids [b]originais[/b] e,
+## por item, a marca [code]censor[/code] do passo que o pôs e o estado a que ele
+## volta quando o passo não vale (RT §5.5, decisões D19 e D24): [code]_bg_base[/code]
+## para o cenário (o último posto por um passo sem [code]censor[/code]) e
+## [code]base[/code] para cada personagem (expressão e posição de imediatamente
+## antes do passo censurado). [method set_content_filter] e [method restore]
+## desenham cada item pelo que vale no modo atual, sem transição, e o item
+## continua no estado para reaparecer se o modo voltar. [method displayed]
+## devolve o que está na tela, com os ids originais (o [code]stage[/code] dos
+## vetores da spec 08).
 
 ## Camadas criadas pelo Stage. HUD (40) e telas (50) são do UI Manager;
 ## atividade (60) é do Plugin Host; a camada do sistema (100) é compartilhada.
@@ -90,7 +100,13 @@ var _ui_connected: Object = null
 
 ## Cenário atual: { asset: String | null, set: String | null, set_states: {} }.
 var _bg: Dictionary = {"asset": null, "set": null, "set_states": {}}
-## Personagens no palco: id → { expression, position, node: Node2D }.
+## Modo stream: [code]censor[/code] do passo que pôs o cenário ("" = sem) e o
+## último cenário posto por um passo sem [code]censor[/code]
+## ([code]null[/code] ou um estado como [member _bg]).
+var _bg_censor := ""
+var _bg_base: Variant = null
+## Personagens no palco: id → { expression, position, node: Node2D,
+## censor: String?, base: { expression, position }? }.
 var _chars: Dictionary = {}
 ## Ordem de desenho (de trás para a frente).
 var _order: Array[String] = []
@@ -216,6 +232,7 @@ func view_rect() -> Rect2:
 func set_background(node: Dictionary) -> void:
 	_finish(BACKGROUND_TARGET)
 	var state := {"asset": null, "set": null, "set_states": {}}
+	var censor := String(node.get("censor", ""))
 	if node.has("set"):
 		var set_id := String(node.get("set", ""))
 		if not _sets.has(set_id):
@@ -227,11 +244,14 @@ func set_background(node: Dictionary) -> void:
 			push_warning("Stage: asset de cenário desconhecido: %s" % asset)
 		state.asset = asset
 	_bg = state
+	_bg_censor = censor
+	if censor.is_empty():
+		_bg_base = state.duplicate(true)   # a base é o último passo sem censor (D19)
 	if _bg_holder == null:
 		transition_finished.emit(BACKGROUND_TARGET)
 		return
 	var old := _bg_view
-	_bg_view = _make_background_view(state)
+	_bg_view = _make_background_view(_bg_shown())
 	_bg_holder.add_child(_bg_view)
 	_play_background_transition(old, _bg_view, node.get("transition"))
 
@@ -275,7 +295,13 @@ func _play_background_transition(old: Node2D, new_view: Node2D, transition: Vari
 func _make_background_view(state: Dictionary) -> Node2D:
 	var view := Node2D.new()
 	view.name = "Background"
-	if state.set != null:
+	if state.set == null and state.asset == null:
+		# Sem cenário no modo atual (passo censurado sem base): placeholder, senão a cor do fundo.
+		if not _placeholder.is_empty():
+			var ptex := _texture(_placeholder)
+			if ptex != null:
+				view.add_child(_cover_sprite(ptex, "Image"))
+	elif state.set != null:
 		view.free()
 		return _make_set_view(String(state.set), state.set_states)
 	elif state.asset != null:
@@ -320,8 +346,17 @@ func _make_set_view(set_id: String, states: Dictionary) -> VNSetView:
 	def["id"] = set_id
 	view.build(def, states)
 	view.state_changed.connect(func(_layer: String, _state: String):
-		if _bg.set == set_id and view == _bg_view:
-			_bg.set_states = view.states())
+		if view != _bg_view:
+			return
+		# O estado novo vai para o cenário do passo ou, com o passo censurado
+		# fora de vigor, para a base que está na tela (RT §5.5).
+		if _censor_applies(_bg_censor):
+			if _bg.set == set_id:
+				_bg.set_states = view.states()
+				if _bg_censor.is_empty() and _bg_base is Dictionary and _bg_base.set == set_id:
+					_bg_base.set_states = view.states()
+		elif _bg_base is Dictionary and _bg_base.set == set_id:
+			_bg_base.set_states = view.states())
 	return view
 
 
@@ -433,6 +468,15 @@ func show_character(node: Dictionary) -> void:
 		expression = current.get("expression") if not is_new else def.get("default_expression")
 	var position: Variant = node.get("position", current.get("position", "center") if not is_new else "center")
 	var entry := {"expression": expression, "position": position, "node": current.get("node")}
+	var censor := String(node.get("censor", ""))
+	if not censor.is_empty():
+		entry["censor"] = censor
+		if not is_new:
+			if current.has("censor"):
+				if current.has("base"):
+					entry["base"] = (current.base as Dictionary).duplicate()   # dois passos seguidos: a base passa adiante
+			else:
+				entry["base"] = {"expression": current.expression, "position": current.position}
 	_chars[id] = entry
 	if is_new:
 		_order.append(id)
@@ -535,7 +579,7 @@ func _make_character_node(id: String) -> Node2D:
 ## a escala do asset que vale (a substituta usa as dela, RT §5.5).
 ## [code]null[/code] sem expressão ou com [code]censored.hide[/code].
 func _make_sprite(id: String) -> Sprite2D:
-	var entry: Dictionary = _chars.get(id, {})
+	var entry: Dictionary = _char_shown(id)
 	var expression: Variant = entry.get("expression")
 	if expression == null:
 		return null
@@ -570,7 +614,7 @@ func _character_point(position: Variant) -> Vector2:
 func _place_character(id: String) -> void:
 	var entry: Dictionary = _chars[id]
 	if entry.node != null:
-		(entry.node as Node2D).position = _character_point(entry.position)
+		(entry.node as Node2D).position = _character_point(_char_shown(id).get("position", entry.position))
 
 
 ## x da âncora com o sprite inteiro fora da área visível, à direita ou à esquerda.
@@ -630,6 +674,8 @@ func skip_transitions() -> void:
 func clear() -> void:
 	_kill_tweens()
 	_bg = {"asset": null, "set": null, "set_states": {}}
+	_bg_censor = ""
+	_bg_base = null
 	_chars.clear()
 	_order.clear()
 	if _bg_holder != null:
@@ -757,15 +803,17 @@ func _redraw_all() -> void:
 			_bg_holder.remove_child(c)
 			c.queue_free()
 		_bg_view = null
-		if _bg.asset != null or _bg.set != null:
-			_bg_view = _make_background_view(_bg)
-			_bg_holder.add_child(_bg_view)
+		_bg_view = _make_background_view(_bg_shown())
+		_bg_holder.add_child(_bg_view)
 	var layer: CanvasLayer = _layers.get(VNLayers.CHARACTERS)
 	for id in _order:
 		var entry: Dictionary = _chars[id]
 		if entry.node != null and is_instance_valid(entry.node):
 			(entry.node as Node).get_parent().remove_child(entry.node)
 			(entry.node as Node).queue_free()
+		entry.node = null
+		if _char_shown(id).is_empty():
+			continue   # passo censurado sem base: fora de cena neste modo
 		entry.node = _make_character_node(id)
 		layer.add_child(entry.node)
 		_place_character(id)
@@ -828,12 +876,64 @@ func set_textbox_hidden(hidden: bool) -> void:
 
 # --- Modo stream, save e miniatura -------------------------------------------
 
-## Redesenha o palco na hora com a resolução de assets do novo modo. Quem
-## chama liga o modo no [VNAssets] antes. A volta à base por item
-## ([code]censor[/code]/[code]base[/code], RT §5.5) é da tarefa M2-12.
+## Redesenha o palco na hora, sem transição, com a resolução de assets e a
+## base por item do novo modo (RT §5.5). Quem chama liga o modo no [VNAssets]
+## antes.
 func set_content_filter(enabled: bool) -> void:
 	_content_filter = enabled
 	_redraw_all()
+
+
+## O passo [param censor] vale no modo atual (RT §5.5).
+func _censor_applies(censor: String) -> bool:
+	match censor:
+		"skip": return not _content_filter
+		"only": return _content_filter
+	return true
+
+
+## O cenário que vale no modo atual: o do passo, a base (passo [code]censor[/code]
+## que não vale) ou, sem base, um estado vazio (placeholder ou cor do fundo).
+func _bg_shown() -> Dictionary:
+	if _censor_applies(_bg_censor):
+		return _bg
+	if _bg_base is Dictionary:
+		return _bg_base
+	return {"asset": null, "set": null, "set_states": {}}
+
+
+## A expressão e a posição que valem no modo atual: as do passo, a [code]base[/code]
+## ou [code]{}[/code] (a personagem sai de cena enquanto o passo não vale).
+func _char_shown(id: String) -> Dictionary:
+	var e: Dictionary = _chars.get(id, {})
+	if e.is_empty() or _censor_applies(String(e.get("censor", ""))):
+		return e
+	return e.get("base", {})
+
+
+## O que está na tela agora, com os ids originais, no formato do
+## [code]stage[/code] dos vetores da spec 08: [code]background[/code] (asset,
+## [code]{ "set": … }[/code] ou [code]null[/code]) e [code]characters[/code]
+## (id, expressão e posição). Sem o áudio, que é do [VNAudioManager].
+func displayed() -> Dictionary:
+	var b := _bg_shown()
+	var bg: Variant = null
+	if b.set != null:
+		bg = {"set": b.set}
+	elif b.asset != null:
+		bg = b.asset
+	var chars: Array = []
+	for id in _order:
+		var e := _char_shown(id)
+		if e.is_empty():
+			continue
+		var c := {"id": id}
+		if e.get("expression") != null:
+			c["expression"] = e.expression
+		if e.get("position") != null:
+			c["position"] = e.position
+		chars.append(c)
+	return {"background": bg, "characters": chars}
 
 
 func snapshot() -> Dictionary:
@@ -842,6 +942,9 @@ func snapshot() -> Dictionary:
 		out.background = null
 		out["set"] = _bg.set
 		out["set_states"] = (_bg.set_states as Dictionary).duplicate()
+	if not _bg_censor.is_empty():
+		out["background_censor"] = _bg_censor
+		out["background_base"] = _bg_base_to_save()
 	var chars: Array = []
 	for id in _order:
 		var c := {"id": id}
@@ -849,12 +952,25 @@ func snapshot() -> Dictionary:
 			c["expression"] = _chars[id].expression
 		if _chars[id].position != null:
 			c["position"] = _chars[id].position
+		if _chars[id].has("censor"):
+			c["censor"] = _chars[id].censor
+			if _chars[id].has("base"):
+				c["base"] = (_chars[id].base as Dictionary).duplicate()
 		chars.append(c)
 	out["characters"] = chars
 	return out
 
 
-## Restaura sem transição, na ordem gravada (RT §8.3 passo 7).
+## [code]background_base[/code] no formato do save: o asset, [code]{ set, set_states }[/code] ou [code]null[/code].
+func _bg_base_to_save() -> Variant:
+	if not (_bg_base is Dictionary):
+		return null
+	if _bg_base.set != null:
+		return {"set": _bg_base.set, "set_states": (_bg_base.set_states as Dictionary).duplicate()}
+	return _bg_base.asset
+
+
+## Restaura sem transição, na ordem gravada, já no modo atual (RT §8.3 passo 7).
 func restore(stage: Dictionary) -> void:
 	clear()
 	var set_id: Variant = stage.get("set")
@@ -862,11 +978,28 @@ func restore(stage: Dictionary) -> void:
 		_bg = {"asset": null, "set": String(set_id), "set_states": (stage.get("set_states", {}) as Dictionary).duplicate()}
 	elif stage.get("background") != null:
 		_bg = {"asset": String(stage.background), "set": null, "set_states": {}}
+	var censor := String(stage.get("background_censor", ""))
+	if censor == "skip" or censor == "only":
+		_bg_censor = censor
+		var base: Variant = stage.get("background_base")
+		if base is Dictionary and base.has("set"):
+			_bg_base = {"asset": null, "set": String(base.set), "set_states": (base.get("set_states", {}) as Dictionary).duplicate()}
+		elif base != null and base is String and not String(base).is_empty():
+			_bg_base = {"asset": String(base), "set": null, "set_states": {}}
+	else:
+		_bg_base = _bg.duplicate(true) if (_bg.asset != null or _bg.set != null) else null
 	for c in stage.get("characters", []):
 		var id := String(c.get("id", ""))
 		if not _character_defs.has(id) or _chars.has(id):
 			continue
-		_chars[id] = {"expression": c.get("expression"), "position": c.get("position", "center"), "node": null}
+		var entry := {"expression": c.get("expression"), "position": c.get("position", "center"), "node": null}
+		var cc := String(c.get("censor", ""))
+		if cc == "skip" or cc == "only":
+			entry["censor"] = cc
+			if c.get("base") is Dictionary:
+				var b: Dictionary = c.base
+				entry["base"] = {"expression": b.get("expression"), "position": b.get("position", "center")}
+		_chars[id] = entry
 		_order.append(id)
 	_redraw_all()
 
@@ -881,14 +1014,15 @@ func is_showing_sensitive() -> bool:
 	if _content_filter:
 		return false
 	var ids: Array[String] = []
-	if _bg.asset != null:
-		ids.append(String(_bg.asset))
-	if _bg.set != null:
-		for layer in _sets.get(String(_bg.set), {}).get("layers", []):
-			var sname := String(_bg.set_states.get(String(layer.get("id", "")), "default"))
+	var b := _bg_shown()
+	if b.asset != null:
+		ids.append(String(b.asset))
+	if b.set != null:
+		for layer in _sets.get(String(b.set), {}).get("layers", []):
+			var sname := String(b.set_states.get(String(layer.get("id", "")), "default"))
 			ids.append(String(layer.get("states", {}).get(sname, {}).get("asset", layer.get("asset", ""))))
 	for id in _order:
-		var e: Variant = _chars[id].expression
+		var e: Variant = _char_shown(id).get("expression")
 		if e != null:
 			ids.append(String(_character_defs.get(id, {}).get("expressions", {}).get(String(e), "")))
 	for a in ids:
