@@ -31,11 +31,20 @@ extends VNStage
 ## O próximo comando no mesmo alvo termina a transição anterior na hora
 ## (o Narrative Engine espera [method is_busy] antes, RT §5.2).
 ##
+## [b]Sets.[/b] Um [code]background[/code] com [code]set[/code] vira um
+## [VNSetView] (M2-08): camadas com estado, animação e parallax, e os hotspots
+## cosméticos, que respondem a mouse e toque enquanto não há transição de
+## cenário nem minijogo (UI Spec §5.1). O estado das camadas vai no
+## [method snapshot]. As ações [code]stage:<camada>[/code] das telas chegam
+## pelo sinal [signal VNRuntimeUIManager.set_target_action].
+##
 ## [b]Fora desta tarefa.[/b] Caixa de texto e digitação (M2-03), escolhas e
-## hotspots de [code]interact[/code] (M2-04), animação, parallax e hotspots
-## cosméticos de sets (M2-08; aqui o set é desenhado parado, com o estado das
-## camadas) e miniatura do save (M2-10). Os métodos dessas partes guardam os
-## dados e ficam documentados como tal.
+## hotspots de [code]interact[/code] (M2-04) e miniatura do save (M2-10). Os
+## métodos dessas partes guardam os dados e ficam documentados como tal.
+##
+## [b]Escolhas e [code]interact[/code] (M2-04).[/b] [VNStageInteraction] desenha
+## os botões das opções (camada 30), os hotspots (camada 15) e a saída, e
+## avisa a escolha por [signal VNStage.option_selected].
 ##
 ## [b]Modo stream (M2-12).[/b] O Stage guarda sempre os ids [b]originais[/b] e,
 ## por item, a marca [code]censor[/code] do passo que o pôs e o estado a que ele
@@ -87,6 +96,7 @@ var _viewport: Viewport = null
 var _backdrop: ColorRect = null
 var _bg_holder: Node2D = null
 var _bg_view: Node2D = null
+var _ui_connected: Object = null
 
 ## Cenário atual: { asset: String | null, set: String | null, set_states: {} }.
 var _bg: Dictionary = {"asset": null, "set": null, "set_states": {}}
@@ -103,12 +113,12 @@ var _order: Array[String] = []
 ## Transições em andamento: alvo → Tween.
 var _tweens: Dictionary = {}
 
-# Dados guardados para as tarefas M2-03 e M2-04.
+## Escolhas e hotspots de interact (M2-04).
+var _interaction: VNStageInteraction = null
+var _theme: Dictionary = {}
+
+# Dados guardados para a tarefa M2-03.
 var _line: Dictionary = {}
-var _choices: Array[Dictionary] = []
-var _choices_prompt: String = ""
-var _hotspots: Array[Dictionary] = []
-var _exit_option: Dictionary = {}
 var _textbox_hidden := false
 
 
@@ -129,6 +139,9 @@ func load_bundle(bundle: Dictionary) -> void:
 	if res is Array and res.size() == 2 and float(res[0]) > 0 and float(res[1]) > 0:
 		base_size = Vector2(float(res[0]), float(res[1]))
 	_placeholder = String(project.get("content_filter", {}).get("placeholder", ""))
+	_theme = bundle.get("theme", {})
+	if _interaction != null:
+		_interaction.set_theme(_theme)
 	if _root != null:
 		_relayout()
 
@@ -151,14 +164,23 @@ func attach(parent: Node) -> void:
 	_bg_holder = Node2D.new()
 	_bg_holder.name = "Scenery"
 	_layers[VNLayers.BACKGROUND].add_child(_bg_holder)
+	_interaction = VNStageInteraction.new(self)
+	_interaction.set_theme(_theme)
+	_interaction.selected.connect(_on_option_selected)
+	_interaction.attach(_layers[VNLayers.TEXTBOX], _layers[VNLayers.HOTSPOTS])
 	_root.tree_entered.connect(_on_tree_entered)
 	_root.tree_exiting.connect(_on_tree_exiting)
 	parent.add_child(_root)
+	_connect_ui()
 	_redraw_all()
 
 
 func detach() -> void:
+	_disconnect_ui()
 	_kill_tweens()
+	if _interaction != null:
+		_interaction.detach()
+		_interaction = null
 	if _root != null:
 		if _root.is_inside_tree():
 			_on_tree_exiting()
@@ -268,7 +290,7 @@ func _play_background_transition(old: Node2D, new_view: Node2D, transition: Vari
 				tw.chain().tween_callback(old.queue_free)
 
 
-## Monta o nó do cenário: o asset cobrindo a área visível, o set parado com o
+## Monta o nó do cenário: o asset cobrindo a área visível, o [VNSetView] com o
 ## estado das camadas ou, sem nada para desenhar, um nó vazio sobre o fundo.
 func _make_background_view(state: Dictionary) -> Node2D:
 	var view := Node2D.new()
@@ -280,8 +302,8 @@ func _make_background_view(state: Dictionary) -> Node2D:
 			if ptex != null:
 				view.add_child(_cover_sprite(ptex, "Image"))
 	elif state.set != null:
-		view.name = "Set_" + String(state.set)
-		_build_set(view, String(state.set), state.set_states)
+		view.free()
+		return _make_set_view(String(state.set), state.set_states)
 	elif state.asset != null:
 		var tex := _texture(String(state.asset))
 		if tex == null and _resolve(String(state.asset)).is_empty() and not _placeholder.is_empty():
@@ -306,50 +328,127 @@ func _fit_cover(sp: Sprite2D) -> void:
 	sp.position = (c.rect as Rect2).position
 
 
-## Set parado (UI Spec §5): camadas na ordem de [code]z[/code] e depois da
-## lista, com o estado de [param states] ([code]asset[/code],
-## [code]visible[/code], [code]opacity[/code], [code]tint[/code]). Animação,
-## parallax e hotspots cosméticos são da tarefa M2-08.
-func _build_set(view: Node2D, set_id: String, states: Dictionary) -> void:
-	var set_def: Dictionary = _sets.get(set_id, {})
-	var layers: Array = set_def.get("layers", []).duplicate()
-	var indexed: Array = []
-	for i in layers.size():
-		indexed.append([int(layers[i].get("z", 0)), i, layers[i]])
-	indexed.sort_custom(func(a, b): return a[0] < b[0] or (a[0] == b[0] and a[1] < b[1]))
-	for item in indexed:
-		var layer: Dictionary = item[2]
-		var lid := String(layer.get("id", ""))
-		var st: Dictionary = {}
-		var sname := String(states.get(lid, "default"))
-		if sname != "default":
-			st = layer.get("states", {}).get(sname, {})
-		var asset := String(st.get("asset", layer.get("asset", "")))
-		var tex := _texture(asset)
-		if tex == null:
-			continue
-		var sp: Sprite2D
-		if layer.has("position"):
-			sp = Sprite2D.new()
-			sp.name = lid
-			sp.texture = tex
-			sp.centered = false
-			var p: Array = layer.position
-			var pv: Array = layer.get("pivot", [0.5, 0.5])
-			var s := float(layer.get("scale", 1.0))
-			var size := tex.get_size() * s
-			sp.scale = Vector2.ONE * s
-			sp.position = Vector2(float(p[0]) * base_size.x, float(p[1]) * base_size.y) - Vector2(float(pv[0]), float(pv[1])) * size
-		else:
-			sp = _cover_sprite(tex, lid)
-		sp.set_meta(&"vn_set_layer", true)
-		sp.visible = bool(st.get("visible", true))
-		var color := Color.WHITE
-		if st.has("tint"):
-			color = Color.from_string(String(st.tint), Color.WHITE)
-		color.a *= float(st.get("opacity", layer.get("opacity", 1.0)))
-		sp.modulate = color
-		view.add_child(sp)
+## Monta o [VNSetView] do set com o estado das camadas e liga os hotspots ao
+## palco: o estado novo vai para [code]_bg.set_states[/code] (e para o save).
+func _make_set_view(set_id: String, states: Dictionary) -> VNSetView:
+	var view := VNSetView.new()
+	view.set_id = set_id
+	view.base_size = base_size
+	view.view_size = view_size()
+	view.reduce_motion = reduce_motion()
+	view.show_hotspots = _show_hotspots()
+	view.asset_loader = _texture_or_video
+	view.text_fn = _ui_text
+	view.check_fn = _ui_check
+	view.sfx_fn = _play_sfx
+	view.gate = _set_gate
+	var def: Dictionary = (_sets.get(set_id, {}) as Dictionary).duplicate()
+	def["id"] = set_id
+	view.build(def, states)
+	view.state_changed.connect(func(_layer: String, _state: String):
+		if view != _bg_view:
+			return
+		# O estado novo vai para o cenário do passo ou, com o passo censurado
+		# fora de vigor, para a base que está na tela (RT §5.5).
+		if _censor_applies(_bg_censor):
+			if _bg.set == set_id:
+				_bg.set_states = view.states()
+				if _bg_censor.is_empty() and _bg_base is Dictionary and _bg_base.set == set_id:
+					_bg_base.set_states = view.states()
+		elif _bg_base is Dictionary and _bg_base.set == set_id:
+			_bg_base.set_states = view.states())
+	return view
+
+
+func _texture_or_video(asset_id: String) -> Resource:
+	if asset_id.is_empty():
+		return null
+	var m := modules()
+	if m == null or m.assets == null:
+		return null
+	return m.assets.load_asset(asset_id)
+
+
+func _ui_text(path: String, fallback: String) -> String:
+	var m := modules()
+	if m != null and m.ui != null and m.ui.has_method("text"):
+		return m.ui.text(path, fallback)
+	return fallback
+
+
+func _ui_check(conditions: Array) -> bool:
+	var m := modules()
+	if m != null and m.ui != null and m.ui.has_method("check"):
+		return m.ui.check(conditions)
+	return true
+
+
+func _play_sfx(asset_id: String) -> void:
+	var m := modules()
+	if m != null and m.audio != null and not asset_id.is_empty():
+		m.audio.play(asset_id, VNAudioManager.SFX)
+
+
+func _show_hotspots() -> bool:
+	var m := modules()
+	if m != null and m.ui != null:
+		var v: Variant = m.ui.get_setting(&"show_hotspots")
+		return v is bool and v
+	return false
+
+
+## Os hotspots do set respondem em falas e escolhas, não durante a transição
+## do cenário nem com um minijogo na tela (UI Spec §5.1).
+func _set_gate() -> bool:
+	if is_busy(BACKGROUND_TARGET):
+		return false
+	var m := modules()
+	if m != null and m.plugins != null and not m.plugins.current_activity().is_empty():
+		return false
+	return true
+
+
+## O [VNSetView] do cenário atual, ou [code]null[/code] (cenário de imagem, ou sem árvore).
+func set_view() -> VNSetView:
+	return _bg_view as VNSetView
+
+
+func _connect_ui() -> void:
+	var m := modules()
+	if m == null or m.ui == null or _ui_connected == m.ui:
+		return
+	_disconnect_ui()
+	_ui_connected = m.ui
+	if m.ui.has_signal("set_target_action"):
+		m.ui.connect("set_target_action", _on_set_target_action)
+	m.ui.connect("setting_changed", _on_setting_changed)
+
+
+func _disconnect_ui() -> void:
+	if _ui_connected != null and is_instance_valid(_ui_connected):
+		if _ui_connected.has_signal("set_target_action") and _ui_connected.is_connected("set_target_action", _on_set_target_action):
+			_ui_connected.disconnect("set_target_action", _on_set_target_action)
+		if _ui_connected.is_connected("setting_changed", _on_setting_changed):
+			_ui_connected.disconnect("setting_changed", _on_setting_changed)
+	_ui_connected = null
+
+
+func _on_set_target_action(scope: StringName, target: String, action: StringName, args: Dictionary) -> void:
+	var view := set_view()
+	if scope == &"stage" and view != null:
+		view.apply_action(String(action), target, args)
+
+
+func _on_setting_changed(setting: StringName, value: Variant) -> void:
+	var view := set_view()
+	if view == null:
+		return
+	if setting == &"show_hotspots":
+		view.set_show_hotspots(bool(value))
+	elif setting == &"reduce_motion" and reduce_motion_override == null:
+		view.reduce_motion = bool(value)
+		view.relayout()
+		view.set_process(view._needs_process())
 
 
 # --- Personagens -------------------------------------------------------------
@@ -719,6 +818,8 @@ func _redraw_all() -> void:
 		layer.add_child(entry.node)
 		_place_character(id)
 	_restack()
+	if _interaction != null:
+		_interaction.refit()
 
 
 # --- Texto, escolhas e hotspots (tarefas M2-03 e M2-04) ----------------------
@@ -728,24 +829,42 @@ func show_line(line: Dictionary) -> void:
 	_line = line
 
 
-## Guarda as opções; os botões de escolha são da tarefa M2-04.
+func _on_option_selected(option_id: String) -> void:
+	option_selected.emit(option_id)
+
+
+## Botões das opções na camada 30 (M2-04); a escolha sai por [signal VNStage.option_selected].
 func show_choices(prompt: String, options: Array[Dictionary]) -> void:
-	_choices_prompt = prompt
-	_choices = options
+	if _interaction == null:
+		_interaction = VNStageInteraction.new(self)
+		_interaction.set_theme(_theme)
+		_interaction.selected.connect(_on_option_selected)
+	_interaction.show_choices(prompt, options)
 
 
-## Guarda os hotspots; as áreas clicáveis na camada 15 são da tarefa M2-04.
-func show_hotspots(hotspots: Array[Dictionary], exit_option: Dictionary = {}) -> void:
-	_hotspots = hotspots
-	_exit_option = exit_option
+## Hotspots na camada 15 e a saída (M2-04); a escolha sai por [signal VNStage.option_selected].
+func show_hotspots(hotspots: Array[Dictionary], exit_option: Dictionary = {}, prompt: String = "") -> void:
+	if _interaction == null:
+		_interaction = VNStageInteraction.new(self)
+		_interaction.set_theme(_theme)
+		_interaction.selected.connect(_on_option_selected)
+	_interaction.show_hotspots(hotspots, exit_option, prompt)
 
 
 func clear_interaction() -> void:
 	_line = {}
-	_choices = []
-	_choices_prompt = ""
-	_hotspots = []
-	_exit_option = {}
+	if _interaction != null:
+		_interaction.clear()
+
+
+## A escolha e o [code]interact[/code] em tela (ver [VNStageInteraction]).
+func interaction() -> VNStageInteraction:
+	return _interaction
+
+
+## A textura de um asset (cursor de hotspot); [code]null[/code] se não carrega.
+func asset_texture(asset_id: String) -> Texture2D:
+	return _texture(asset_id)
 
 
 func set_textbox_hidden(hidden: bool) -> void:

@@ -485,7 +485,7 @@ func test_set_parado_com_estado() -> String:
 	st.reduce_motion_override = true
 	_run_nodes(st, _demo_stage_nodes("scenes/ch01/scene_quiet_day.json"))
 	var view := _bg_view(st)
-	var names := view.get_children().map(func(c): return String(c.name))
+	var names := view.get_children().filter(func(c): return c.has_meta(&"vn_set_layer")).map(func(c): return String(c.name))
 	if names != ["sky", "sea", "lamp", "shell"]:
 		return "camadas %s" % [names]
 	var lamp := view.get_node("lamp") as Sprite2D

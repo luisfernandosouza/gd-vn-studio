@@ -685,7 +685,10 @@ export type Case =
       inputs: (
         | 'advance'
         | {
-            choose: EntityId;
+            /**
+             * Id da opção de uma choice, do hotspot de um interact ou, só num interact, "exit" (a saída, que não tem id próprio no cenário; UI Spec §6).
+             */
+            choose: EntityId | 'exit';
           }
         | {
             activity: {
@@ -712,7 +715,7 @@ export type Case =
           options?: unknown[];
           changes?: unknown[];
           end?: unknown;
-          waiting?: 'line' | 'choice' | 'plugin';
+          waiting?: 'line' | 'choice' | 'interact' | 'plugin';
           error?: string;
           /**
            * Palco visível depois de mudar o modo: background (id do asset, {set: id} para um cenário composto, ou null = placeholder), characters (na ordem de entrada, cada uma com id, position e, se houver, expression) e audio (canal → asset).

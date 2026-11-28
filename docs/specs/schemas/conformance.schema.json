@@ -794,7 +794,15 @@
                     "additionalProperties": false,
                     "properties": {
                       "choose": {
-                        "$ref": "common.schema.json#/$defs/EntityId"
+                        "description": "Id da opção de uma choice, do hotspot de um interact ou, só num interact, \"exit\" (a saída, que não tem id próprio no cenário; UI Spec §6).",
+                        "anyOf": [
+                          {
+                            "$ref": "common.schema.json#/$defs/EntityId"
+                          },
+                          {
+                            "const": "exit"
+                          }
+                        ]
                       }
                     }
                   },
@@ -875,6 +883,7 @@
                         "enum": [
                           "line",
                           "choice",
+                          "interact",
                           "plugin"
                         ]
                       },

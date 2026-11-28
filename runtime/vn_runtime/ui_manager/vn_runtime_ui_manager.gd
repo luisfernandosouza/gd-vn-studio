@@ -12,18 +12,23 @@ extends VNUIManager
 ## uma tela durante o jogo pausa o Narrative Engine; a [code]hud[/code] não.
 ## Teclado e gamepad navegam pelas ações [code]vn_*[/code] do RT §10.1.
 ##
+## O set composto atrás da tela ([VNSetView], M2-08) é montado por
+## [method make_set_view]; as ações de alvo [code]set:[/code] vão para o set da
+## tela que as executa, e as de alvo [code]stage:[/code] saem por
+## [signal set_target_action] para o Stage.
+##
 ## O que fica para outras tarefas: estilos do tema e animações [code]idle[/code]
-## (M2-07), o set composto atrás da tela e os alvos [code]set:[/code] e
-## [code]stage:[/code] (M2-08, por [signal set_target_action]), telas do preset
+## (M2-07), telas do preset
 ## (M2-09), perfil e migração de [code]settings.json[/code] (M2-11), licenças do
-## [code]licenses.json[/code] (M2-14, por [method set_licenses]) e acessibilidade (M2-15).
+## [code]licenses.json[/code] (M2-14, por [method set_licenses]). A acessibilidade (M2-15) está em [VNUIAccessibility] e [VNInputActions].
 
 ## Ação cosmética sobre o set da tela ([code]set:[/code]) ou o set em cena
 ## ([code]stage:[/code]): [param action] é [code]set_state[/code],
 ## [code]toggle_state[/code], [code]play_animation[/code], [code]show[/code],
 ## [code]hide[/code] ou [code]toggle_visible[/code]; [param args] traz
-## [code]state[/code], [code]states[/code] ou [code]animation[/code]. Quem desenha
-## o set (M2-08) escuta este sinal.
+## [code]state[/code], [code]states[/code] ou [code]animation[/code]. Sai para
+## os dois escopos (o set da tela já foi atualizado quando o escopo é
+## [code]set[/code]); o Stage escuta o escopo [code]stage[/code] (M2-08).
 signal set_target_action(scope: StringName, target: String, action: StringName, args: Dictionary)
 ## Modo automático ou pular mudou (ações [code]toggle_auto[/code]/[code]toggle_skip[/code]).
 signal play_mode_changed(auto: bool, skip: bool)
@@ -60,6 +65,7 @@ var _free_play_screen: String = ""
 
 
 func _init() -> void:
+	VNInputActions.ensure_registered()
 	platform = _detect_platform()
 	_text.reader = _read_variable
 	_settings.system_locale = OS.get_locale().replace("_", "-")
@@ -96,15 +102,71 @@ func set_licenses(licenses: Dictionary) -> void:
 	_licenses = licenses.get("entries", [])
 
 
-## Entradas mostradas por [code]licenses_list[/code]: o aviso do motor e do
-## runtime (sempre) e as do [code]licenses.json[/code].
+## Pasta com os textos de licença que a release do runtime traz (spec 09 §1.2).
+const LICENSES_DIR := "res://vn_runtime/licenses/"
+
+## Entradas mostradas por [code]licenses_list[/code]: o aviso do motor (sempre:
+## Godot, bibliotecas dele, runtime e fontes do preset) e as do
+## [code]licenses.json[/code] (BS §4.5). O aviso do motor não vem do bundle: é
+## montado aqui, de [method Engine.get_license_text],
+## [method Engine.get_copyright_info] e dos textos de [constant LICENSES_DIR].
 func license_entries() -> Array:
-	var out: Array = [
-		{"kind": "engine", "title": "Godot Engine", "license": "MIT", "text": Engine.get_license_text()},
-		{"kind": "engine", "title": "Visual Novel Studio runtime", "license": "MIT"},
-	]
+	var out: Array = engine_notice_entries()
 	out.append_array(_licenses)
 	return out
+
+
+## O aviso do motor e do runtime, no formato das entradas de
+## [code]licenses.json[/code] com [code]kind[/code] [code]engine[/code].
+static func engine_notice_entries(dir: String = LICENSES_DIR) -> Array:
+	var out: Array = [
+		{"kind": "engine", "title": "Godot Engine", "license": "MIT", "text": Engine.get_license_text()},
+	]
+	var third := _copyright_text(Engine.get_copyright_info())
+	if not third.is_empty():
+		out.append({"kind": "engine", "title": "Godot Engine: third-party components", "text": third})
+	var index: Variant = null
+	if FileAccess.file_exists(dir + "index.json"):
+		index = JSON.parse_string(FileAccess.get_file_as_string(dir + "index.json"))
+	var runtime_text := ""
+	var fonts: Dictionary = {}  # arquivo da licença → famílias
+	if index is Dictionary:
+		for e in index.get("licenses", []):
+			var kind := String(e.get("kind", ""))
+			var file := String(e.get("file", ""))
+			if kind == "runtime":
+				runtime_text = _read_text(dir + file)
+			elif kind == "font":
+				if not fonts.has(file):
+					fonts[file] = []
+				fonts[file].append(String(e.get("name", "")))
+	var rt := {"kind": "engine", "title": "Visual Novel Studio runtime", "license": "MIT"}
+	if not runtime_text.is_empty():
+		rt["text"] = runtime_text
+	out.append(rt)
+	for file in fonts:
+		var fe := {"kind": "engine", "title": ", ".join(PackedStringArray(fonts[file])), "license": "OFL-1.1"}
+		var t := _read_text(dir + String(file))
+		if not t.is_empty():
+			fe["text"] = t
+		out.append(fe)
+	return out
+
+
+static func _read_text(path: String) -> String:
+	return FileAccess.get_file_as_string(path) if FileAccess.file_exists(path) else ""
+
+
+## Formata [method Engine.get_copyright_info] (componentes, arquivos, copyright e licença).
+static func _copyright_text(info: Array) -> String:
+	var lines := PackedStringArray()
+	for comp in info:
+		lines.append(String(comp.get("name", "")))
+		for part in comp.get("parts", []):
+			for c in part.get("copyright", []):
+				lines.append("  © " + String(c))
+			lines.append("  License: " + String(part.get("license", "")))
+	return "\n".join(lines)
 
 
 func settings_model() -> VNUISettings:
@@ -271,6 +333,7 @@ func _make_screen(screen_id: String, data: Dictionary) -> VNUIScreen:
 	var s := VNUIScreen.new()
 	var res: Array = _settings.project.get("settings", {}).get("resolution", [1920, 1080])
 	s.setup(self, screen_id, data, Vector2(float(res[0]), float(res[1])))
+	_apply_accessibility(s)
 	return s
 
 
@@ -792,7 +855,12 @@ func _target_action(a: Dictionary, run: Dictionary) -> VNResult:
 		if a.has(k):
 			args[k] = a[k]
 	if target.contains(":"):
-		set_target_action.emit(StringName(target.get_slice(":", 0)), target.get_slice(":", 1), action, args)
+		var scope := target.get_slice(":", 0)
+		if scope == "set":
+			var view := _set_view_of(run)
+			if view == null or not view.apply_action(String(action), target, args):
+				push_warning("UI: %s: a tela %s não tem set com a camada %s" % [action, run.ctx.get("screen", ""), target.get_slice(":", 1)])
+		set_target_action.emit(StringName(scope), target.get_slice(":", 1), action, args)
 		return VNResult.success()
 	var screen := get_screen(String(run.ctx.get("screen", "")))
 	if screen == null or not screen.elements.has(target):
@@ -804,6 +872,49 @@ func _target_action(a: Dictionary, run: Dictionary) -> VNResult:
 		&"play_animation": VNUIAnimator.play(screen.elements[target], a.animation, bool(get_setting(&"reduce_motion")))
 		_: pass   # elementos não têm estados; set_state/toggle_state valem para sets (U001)
 	return VNResult.success()
+
+
+## O set da tela que executa a ação, ou o da tela do topo.
+func _set_view_of(run: Dictionary) -> VNSetView:
+	var screen := get_screen(String(run.ctx.get("screen", "")))
+	if screen != null and screen.set_view != null:
+		return screen.set_view
+	var top := top_screen()
+	return top.set_view if top != null else null
+
+
+## Monta o [VNSetView] do set [param set_id] para o fundo de uma tela
+## (M2-08): imagens pelo [VNAssets], textos de [code]sets/<set>/<hotspot>[/code],
+## condições e sons pelos módulos, hotspots alcançáveis por teclado. Devolve
+## [code]null[/code] se o bundle não tem o set (U001).
+func make_set_view(set_id: String, base: Vector2, view: Vector2) -> VNSetView:
+	var def: Variant = _bundle.get("sets", {}).get(set_id)
+	if not def is Dictionary:
+		push_warning("UI: set desconhecido: %s" % set_id)
+		return null
+	var v := VNSetView.new()
+	v.set_id = set_id
+	v.base_size = base
+	v.view_size = view
+	v.reduce_motion = bool(get_setting(&"reduce_motion"))
+	v.show_hotspots = bool(get_setting(&"show_hotspots"))
+	v.keyboard_focus = true
+	v.asset_loader = func(asset_id: String) -> Resource:
+		var m := modules()
+		if asset_id.is_empty() or m == null or m.assets == null or not m.assets.has_asset(asset_id):
+			return null
+		return m.assets.load_asset(asset_id)
+	v.text_fn = func(path: String, fallback: String) -> String: return text(path, fallback)
+	v.check_fn = func(conditions: Array) -> bool: return check(conditions)
+	v.sfx_fn = func(asset_id: String):
+		var m := modules()
+		if m != null and m.audio != null:
+			m.audio.play(asset_id, VNAudioManager.SFX)
+	v.gate = func() -> bool: return _dialogs.is_empty()
+	var d := (def as Dictionary).duplicate()
+	d["id"] = set_id
+	v.build(d)
+	return v
 
 
 ## Clique, toque ou confirmação num elemento.
@@ -893,6 +1004,7 @@ func _confirm_text(value: String, on_answer: Callable) -> void:
 
 func _show_dialog(d: VNUIDialog, on_answer: Callable) -> void:
 	_dialogs.append(d)
+	_apply_accessibility(d)
 	d.answered.connect(func(ok: bool):
 		_dialogs.erase(d)
 		on_answer.call(ok)
@@ -988,6 +1100,9 @@ func _apply_setting(key: String, value: Variant) -> void:
 		elif m != null and m.audio != null and StringName(ch) in VNAudioManager.CHANNELS:
 			m.audio.set_channel_volume(StringName(ch), float(value))
 		return
+	if key == "text_scale" or key == "high_contrast":
+		_reapply_accessibility()
+		return
 	var windowed := DisplayServer.get_name() not in ["headless", ""] and platform != WEB
 	match key:
 		"fps_limit_vn":
@@ -1008,6 +1123,57 @@ func _apply_setting(key: String, value: Variant) -> void:
 		"resolution":
 			if windowed and DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_WINDOWED:
 				DisplayServer.window_set_size(Vector2i(int(value[0]), int(value[1])))
+
+
+# --- Acessibilidade (Req §12) --------------------------------------------------
+
+## O tema do bundle ([code]theme.json[/code]), ou vazio.
+func _theme() -> Dictionary:
+	var t: Variant = _bundle.get("theme", {})
+	return t if t is Dictionary else {}
+
+
+## Cor da moldura de foco ([code]theme.colors.focus[/code]).
+func focus_color() -> Color:
+	return VNUIAccessibility.focus_color(_theme())
+
+
+## Fator de escala do texto ([code]PlayerSettings.text_scale[/code], 0,8 a 2,0).
+func text_scale() -> float:
+	return VNUIAccessibility.clamp_scale(float(get_setting(&"text_scale")))
+
+
+## Painel e texto da caixa de diálogo já com [code]high_contrast[/code] aplicado
+## (fundo opaco, contraste do texto ≥ 4,5:1). O Stage e a caixa de diálogo usam estas cores.
+func dialog_colors() -> Dictionary:
+	return VNUIAccessibility.dialog_colors(_theme(), bool(get_setting(&"high_contrast")))
+
+
+## Escala o texto e dá foco visível a uma tela ou caixa recém-criada ou aberta.
+func _apply_accessibility(node: Control) -> void:
+	VNUIAccessibility.apply_focus_style(node, focus_color())
+	VNUIAccessibility.apply_text_scale(node, text_scale())
+	if node is VNUIDialog and node.panel != null:
+		var hc := bool(get_setting(&"high_contrast"))
+		var colors := dialog_colors()
+		if hc:
+			var sb := StyleBoxFlat.new()
+			sb.bg_color = colors.panel
+			sb.set_content_margin_all(24)
+			node.panel.add_theme_stylebox_override(&"panel", sb)
+			node.label.add_theme_color_override(&"default_color", colors.text)
+		else:
+			node.panel.remove_theme_stylebox_override(&"panel")
+			node.label.remove_theme_color_override(&"default_color")
+
+
+func _reapply_accessibility() -> void:
+	var nodes: Array = _stack.duplicate()
+	nodes.append_array(_dialogs)
+	if _hud != null:
+		nodes.append(_hud)
+	for n in nodes:
+		_apply_accessibility(n)
 
 
 ## Atualiza os controles ligados à configuração nas telas abertas, sem disparar sinal.
@@ -1031,7 +1197,12 @@ func _sync_bound_controls(key: String) -> void:
 				for i in opts.size():
 					if VNUIElements._same_value(opts[i].value, value):
 						fc.select(i)
+		if key == "reduce_motion" and s.set_view != null:
+			s.set_view.reduce_motion = bool(value)
+			s.set_view.relayout()
 		if key == "show_hotspots":
+			if s.set_view != null:
+				s.set_view.set_show_hotspots(bool(value))
 			for id in s.order:
 				if s.elements[id] is VNUIHotspot:
 					s.elements[id].show_always = bool(value)
@@ -1136,7 +1307,10 @@ func handle_input(event: InputEvent) -> bool:
 		if focus == null or not top.is_ancestor_of(focus):
 			top.focus_first()
 			return true
-		if focus is VNUIHotspot:
+		if focus is VNSetHotspot:
+			focus.activated.emit()
+			focus.released.emit()
+		elif focus is VNUIHotspot:
 			focus.activated.emit()
 		elif focus is OptionButton:
 			focus.show_popup()
