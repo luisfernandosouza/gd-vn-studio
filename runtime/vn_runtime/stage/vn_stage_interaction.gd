@@ -307,15 +307,12 @@ func _fit_hotspot(h: VNUIHotspot, area: Dictionary) -> void:
 		else:
 			h.fit_rect(Rect2())
 	elif area.has("layer"):
-		var sp := _stage.set_layer_sprite(String(area.layer))
-		if sp != null and sp.visible and sp.texture != null:
-			var img := sp.texture.get_image()
-			if img != null:
-				if img.is_compressed():
-					img.decompress()
-				h.fit_mask(Rect2(sp.global_position, sp.texture.get_size() * sp.scale), img, sp.scale)
-				return
-		h.fit_rect(Rect2())
+		var view := _stage.set_view()
+		var m: Dictionary = view.layer_mask(String(area.layer)) if view != null else {}
+		if m.is_empty():
+			h.fit_rect(Rect2())
+		else:
+			h.set_mask(m.bitmap, m.rect, m.outlines)
 	else:
 		h.fit_rect(Rect2())
 

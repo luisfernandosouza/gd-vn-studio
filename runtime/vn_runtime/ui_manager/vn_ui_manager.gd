@@ -57,6 +57,14 @@ func module_id() -> StringName:
 @abstract func show_message(text_path: String) -> void
 
 
+# --- Licenças (licenses.json; BS §4.5) ---------------------------------------
+
+## Entrega o [code]licenses.json[/code] do bundle (o boot chama no passo 2).
+## Quem não mostra licenças ignora.
+func set_licenses(_licenses: Dictionary) -> void:
+	pass
+
+
 # --- Configurações do jogador (settings.json; UI Spec §8) -------------------
 
 ## Lê [code]settings.json[/code] (RT §3.0 passo 1): arquivo inválido vira

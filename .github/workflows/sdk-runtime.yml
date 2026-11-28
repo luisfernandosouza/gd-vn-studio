@@ -1,6 +1,7 @@
 # Runtime SDK (tarefas M3-02 em diante): addon GDScript em sdk/runtime/addons/vn_runtime_sdk/.
 # sdk/runtime/ é um projeto Godot só de teste; a release do SDK empacota apenas o addon.
 # 1. Testes unitários das fachadas contra uma ponte de teste (tests/fake_bridge.gd).
+# 1b. Os testes também conferem as APIs usadas pelo fishing de exemplo.
 # 2. Os plugins de exemplo das specs carregam com o addon (fishing-plugin e o probe das fixtures).
 name: Runtime SDK
 

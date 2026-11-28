@@ -395,10 +395,11 @@ func test_interact_demo_areas() -> String:
 		return "concha em %s %s" % [shell.position, shell.size]
 	# A lâmpada é a máscara alfa da camada "lamp" do set: cobre o sprite da camada.
 	var lamp := it.item(d.hotspots[1].id) as VNUIHotspot
-	var sp := st.set_layer_sprite("lamp")
+	var view := st.set_view()
+	var sp := view.layer_node("lamp") as Sprite2D if view != null else null
 	if sp == null:
 		return "camada lamp não achada"
-	if not _approx(Rect2(lamp.position, lamp.size), Rect2(sp.global_position, sp.texture.get_size() * sp.scale)):
+	if not _approx(Rect2(lamp.position, lamp.size), Rect2(sp.global_position, sp.texture.get_size() * sp.global_scale)):
 		return "área da lâmpada %s %s ≠ sprite" % [lamp.position, lamp.size]
 	if not lamp._has_point(lamp.size / 2.0) or lamp._has_point(lamp.size + Vector2.ONE):
 		return "o centro da lâmpada deve responder e fora dela não"
@@ -517,8 +518,10 @@ func test_interact_mascara_alfa() -> String:
 	for x in range(0, 5):
 		for y in range(0, 10):
 			img.set_pixel(x, y, Color(1, 1, 1, 1))
+	var bm := BitMap.new()
+	bm.create_from_image_alpha(img, 0.1)
 	var h := VNUIHotspot.new()
-	h.fit_mask(Rect2(100, 100, 50, 50), img, Vector2(5, 5))
+	h.set_mask(bm, Rect2(100, 100, 50, 50))
 	var ok_left := h._has_point(Vector2(10, 10))
 	var ok_right := h._has_point(Vector2(40, 10))
 	var out := h._has_point(Vector2(60, 10))

@@ -34,3 +34,9 @@ body,
   font-weight: 500;
   opacity: 0.5;
 }
+
+.app-language {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}

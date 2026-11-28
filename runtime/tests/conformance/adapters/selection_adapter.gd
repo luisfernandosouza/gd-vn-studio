@@ -14,10 +14,10 @@ func run(c: Dictionary) -> Dictionary:
 	if not missing.is_empty():
 		return missing
 	var st: Dictionary = c.get("state", {})
-	if st.has("rng_state"):
-		# O estado do PCG32 não tem contrato no M0-07 (spec 08 §1 permite pular o caso weighted).
-		return skip("estado do RNG reproduzível sem contrato (M1-08)")
 	var m := modules.create(true)
+	if st.has("rng_state"):
+		# Sorteio ponderado (RT §4.3): o Scheduler sorteia por modules().rng, no estado do caso (M1-08).
+		m.rng.set_state_hex(String(st["rng_state"]))
 	var chapter: Dictionary = c["chapter"]
 	var cid := String(chapter["id"])
 	var bundle := VNCaseModules.empty_bundle()
@@ -64,6 +64,8 @@ func run(c: Dictionary) -> Dictionary:
 		"selection_count_after": after.get("selection_count"),
 		"fallback_streak_after": after.get("fallback_streak"),
 	}
+	if st.has("rng_state"):
+		out["rng_state_after"] = m.rng.state_hex()
 	if ev.has("request_refused") and ev["request_refused"] != null:
 		out["request_refused"] = ev["request_refused"]
 	return result(out)

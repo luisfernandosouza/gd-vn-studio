@@ -82,19 +82,19 @@ export async function planMigration(
     try {
       files.set(rel, JSON.parse(text));
     } catch {
-      throw new ProjectManagerError('unreadable', `${rel} não é um JSON válido; corrija o arquivo antes de atualizar o projeto.`);
+      throw new ProjectManagerError('unreadable', 'studio/error/file_invalid_json', { file: rel });
     }
   }
   const project = files.get(ROOT_FILES.project) as { format_version?: unknown } | undefined;
   const fromVersion = String(project?.format_version ?? '');
   const from = parseSemVer(fromVersion);
-  if (!from) throw new ProjectManagerError('unreadable', `project.json tem format_version inválido ("${fromVersion}").`);
+  if (!from) throw new ProjectManagerError('unreadable', 'studio/error/invalid_format_version', { version: fromVersion });
 
   const steps: MigrationPlan['steps'] = [];
   for (let major = from.major; major < targetMajor; major++) {
     const step = migrators.find((m) => m.from === major && m.to === major + 1);
     if (!step) {
-      throw new ProjectManagerError('unreadable', `Este Studio não sabe atualizar projetos do formato ${major}.x para ${major + 1}.0.`);
+      throw new ProjectManagerError('unreadable', 'studio/error/cannot_migrate', { from: major, to: major + 1 });
     }
     files = step.migrate(files);
     steps.push({ from: step.from, to: step.to, description: step.description, destructive: step.destructive });
@@ -128,7 +128,7 @@ export async function applyMigration(
   options: { confirmed: boolean; now?: Date },
 ): Promise<string> {
   if (plan.destructive && !options.confirmed) {
-    throw new ProjectManagerError('not_confirmed', 'Esta atualização apaga dados do projeto e precisa de confirmação explícita.');
+    throw new ProjectManagerError('not_confirmed', 'studio/error/not_confirmed');
   }
   const backup = `${BACKUPS_DIR}/${stamp(options.now ?? new Date())}-format-${plan.fromVersion}-para-${plan.toVersion}`;
   for (const rel of plan.sourceFiles) await fs.copyFile(joinPath(plan.root, rel), joinPath(plan.root, backup, rel));

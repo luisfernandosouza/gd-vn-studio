@@ -1,0 +1,66 @@
+# Formato .vnb (tarefa M5-03; BS §5.2, §8.2): ida e volta TypeScript → Godot → TypeScript.
+# O compilador (cli/src/bundle/vnb.ts) grava a demo em .vnb cifrado e sem cifra; o runtime os lê com o
+# VNBundleLoader e grava os seus; o TypeScript lê de volta. Registra a medição do BS §15 item 4 (nativa).
+name: VNB round-trip
+
+on:
+  pull_request:
+    paths: [cli/src/bundle/**, cli/scripts/vnb_roundtrip.mjs, runtime/vn_runtime/boot/**, runtime/tests/boot/**, docs/specs/examples/**, .github/workflows/vnb-roundtrip.yml]
+  push:
+    branches: [main]
+    paths: [cli/src/bundle/**, cli/scripts/vnb_roundtrip.mjs, runtime/vn_runtime/boot/**, runtime/tests/boot/**, docs/specs/examples/**, .github/workflows/vnb-roundtrip.yml]
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: 4.7.2-stable
+
+jobs:
+  roundtrip:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npm run build -w @vnstudio/cli
+      - run: npm test -w @vnstudio/cli -- src/bundle/vnb.test.ts
+      - name: Cache do Godot ${{ env.GODOT_VERSION }}
+        id: cache-godot
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/godot-bin
+          key: godot-${{ env.GODOT_VERSION }}-linux-x86_64
+      - name: Baixa o Godot ${{ env.GODOT_VERSION }}
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          url="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/godot.zip" "$url"
+          mkdir -p ~/.cache/godot-bin
+          unzip -q "$RUNNER_TEMP/godot.zip" -d ~/.cache/godot-bin
+      - name: Instala o Godot
+        run: |
+          install -m 755 ~/.cache/godot-bin/"Godot_v${GODOT_VERSION}_linux.x86_64" /usr/local/bin/godot
+          godot --headless --version
+      - name: Importa o projeto
+        run: godot --headless --path runtime --import 2>&1 | tee "$RUNNER_TEMP/import.log"
+      - name: TypeScript grava os .vnb
+        run: node cli/scripts/vnb_roundtrip.mjs prepare "$RUNNER_TEMP/rt"
+      - name: Godot lê os .vnb do TypeScript e grava os seus
+        run: |
+          set -euo pipefail
+          godot --headless --path runtime --script res://tests/boot/test_vnb_roundtrip.gd -- --vnb-dir "$RUNNER_TEMP/rt" 2>&1 | tee "$RUNNER_TEMP/godot.log"
+          grep -q "ida e volta .vnb: ok" "$RUNNER_TEMP/godot.log"
+          { echo '### Medição .vnb (BS §15 item 4, Godot nativo)'; grep '^medição' "$RUNNER_TEMP/godot.log" | sed 's/^/- /'; } >> "$GITHUB_STEP_SUMMARY"
+      - name: TypeScript lê os .vnb do Godot
+        run: node cli/scripts/vnb_roundtrip.mjs check "$RUNNER_TEMP/rt"
+      - name: Sem erros no log do Godot
+        run: |
+          if grep -hE '(^|[^A-Z_])(ERROR|SCRIPT ERROR):' "$RUNNER_TEMP"/import.log "$RUNNER_TEMP"/godot.log; then
+            echo "::error title=Godot registrou erros::A ida e volta do .vnb deve rodar sem erros (M5-03)."
+            exit 1
+          fi
