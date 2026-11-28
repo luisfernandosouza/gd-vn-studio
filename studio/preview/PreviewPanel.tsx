@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useT } from '../src/i18n';
 import type { ProjectFs } from '../src/project-manager/fs';
 import type { PreviewTransport } from './client';
 import { closePreviewProject, openPreviewProject, runtimeAvailable } from './native';
@@ -17,10 +18,10 @@ export interface PreviewPanelProps {
   keepSaves?: boolean;
 }
 
-async function defaultTransport(host: HTMLElement, urls: ReturnType<typeof previewUrls>): Promise<{ transport: PreviewTransport; kind: 'runtime' | 'double' }> {
+async function defaultTransport(host: HTMLElement, urls: ReturnType<typeof previewUrls>, frameTitle: string): Promise<{ transport: PreviewTransport; kind: 'runtime' | 'double' }> {
   if (!(await runtimeAvailable())) return { transport: doubleTransport(), kind: 'double' };
   const frame = document.createElement('iframe');
-  frame.title = 'Preview do jogo';
+  frame.title = frameTitle;
   frame.className = 'preview-frame';
   const transport = new IframeTransport(frame);
   frame.src = urls.runtimePage;
@@ -30,6 +31,7 @@ async function defaultTransport(host: HTMLElement, urls: ReturnType<typeof previ
 
 /** Painel do Preview (M6-10): barra com os controles e o modo stream, e a página do runtime ao lado do editor. */
 export function PreviewPanel({ fs, root, createTransport, keepSaves = false }: PreviewPanelProps) {
+  const t = useT();
   const session = usePreviewStore((s) => s.session);
   const setSession = usePreviewStore((s) => s.setSession);
   const frameHost = useRef<HTMLDivElement>(null);
@@ -47,7 +49,7 @@ export function PreviewPanel({ fs, root, createTransport, keepSaves = false }: P
     const urls = previewUrls(detectPlatform());
     try {
       await openPreviewProject(root);
-      const { transport, kind } = await (createTransport ? createTransport(frameHost.current) : defaultTransport(frameHost.current, urls));
+      const { transport, kind } = await (createTransport ? createTransport(frameHost.current) : defaultTransport(frameHost.current, urls, t('studio/preview/frame_title')));
       setKind(kind);
       const next = new PreviewSession({ fs, root, transport, urls, keepSaves });
       setSession(next);
@@ -57,7 +59,7 @@ export function PreviewPanel({ fs, root, createTransport, keepSaves = false }: P
     } finally {
       setOpening(false);
     }
-  }, [createTransport, fs, keepSaves, opening, root, setSession]);
+  }, [createTransport, fs, keepSaves, opening, root, setSession, t]);
 
   const close = useCallback(() => {
     usePreviewStore.getState().session?.dispose();
@@ -82,55 +84,56 @@ export function PreviewPanel({ fs, root, createTransport, keepSaves = false }: P
   const run = (f: () => Promise<unknown>) => () => void f().catch(() => undefined);
 
   return (
-    <section className="preview-panel" aria-label="Preview">
-      <div className="preview-bar" role="toolbar" aria-label="Barra do Preview">
+    <section className="preview-panel" aria-label={t('studio/preview/panel')}>
+      <div className="preview-bar" role="toolbar" aria-label={t('studio/preview/toolbar')}>
         {!session ? (
           <button type="button" onClick={() => void open()} disabled={opening}>
-            Abrir Preview
+            {t('studio/preview/open')}
           </button>
         ) : (
           <>
             <button type="button" disabled={!live || running} onClick={run(() => session.start())}>
-              Iniciar
+              {t('studio/preview/start')}
             </button>
             <button type="button" disabled={!live || !running} onClick={run(() => session.stop())}>
-              Parar
+              {t('studio/preview/stop')}
             </button>
             {snap.runState === 'PAUSED' ? (
               <button type="button" onClick={run(() => session.resume())}>
-                Continuar
+                {t('studio/preview/resume')}
               </button>
             ) : (
               <button type="button" disabled={snap.runState !== 'RUNNING'} onClick={run(() => session.pause())}>
-                Pausar
+                {t('studio/preview/pause')}
               </button>
             )}
             <button type="button" disabled={snap.runState !== 'PAUSED'} onClick={run(() => session.step())}>
-              Passo
+              {t('studio/preview/step')}
             </button>
             <button type="button" aria-pressed={snap.contentFilter} disabled={!live} onClick={run(() => session.setContentFilter(!snap.contentFilter))}>
-              Modo stream
+              {t('studio/preview/stream_mode')}
             </button>
             <button type="button" disabled={!live} onClick={() => void reloadFromDisk()}>
-              Recarregar do disco
+              {t('studio/preview/reload_disk')}
             </button>
             <button type="button" onClick={close}>
-              Fechar Preview
+              {t('studio/preview/close')}
             </button>
           </>
         )}
       </div>
       {session && (
         <p className="preview-status" role="status">
-          {statusText(snap.status, snap.runState)}
-          {kind === 'double' && ' · runtime de teste (dublê)'}
-          {snap.reloads.lastMs !== null && ` · última recarga ${snap.reloads.lastKind === 'full' ? 'completa' : 'incremental'}: ${Math.round(snap.reloads.lastMs)} ms`}
+          {t(statusKey(snap.status, snap.runState))}
+          {kind === 'double' && ` · ${t('studio/preview/double')}`}
+          {snap.reloads.lastMs !== null &&
+            ` · ${t(snap.reloads.lastKind === 'full' ? 'studio/preview/last_full' : 'studio/preview/last_incremental', { ms: Math.round(snap.reloads.lastMs) })}`}
           {snap.error && ` · ${snap.error}`}
         </p>
       )}
       <div ref={frameHost} className="preview-frame-host" />
       {session && snap.log.length > 0 && (
-        <ul className="preview-log" aria-label="Log do Preview">
+        <ul className="preview-log" aria-label={t('studio/preview/log')}>
           {snap.log.slice(-8).map((entry, i) => (
             <li key={`${entry.at}-${i}`} data-level={entry.level}>
               {entry.message}
@@ -146,17 +149,17 @@ const noSubscribe = (): (() => void) => () => undefined;
 const emptySnapshot = { status: 'idle', runState: null, contentFilter: false, reloads: { lastMs: null, lastKind: null }, log: [], error: null } as never;
 const noSnapshot = () => emptySnapshot;
 
-function statusText(status: string, run: string | null): string {
+function statusKey(status: string, run: string | null): string {
   switch (status) {
     case 'connecting':
-      return 'Abrindo o runtime…';
+      return 'studio/preview/status/connecting';
     case 'ready':
-      return run === 'RUNNING' ? 'Jogo em andamento' : run === 'PAUSED' ? 'Jogo pausado' : 'Projeto carregado';
+      return run === 'RUNNING' ? 'studio/preview/status/running' : run === 'PAUSED' ? 'studio/preview/status/paused' : 'studio/preview/status/loaded';
     case 'closed':
-      return 'Preview fechado';
+      return 'studio/preview/status/closed';
     case 'error':
-      return 'Erro no Preview';
+      return 'studio/preview/status/error';
     default:
-      return '';
+      return 'studio/preview/status/closed';
   }
 }

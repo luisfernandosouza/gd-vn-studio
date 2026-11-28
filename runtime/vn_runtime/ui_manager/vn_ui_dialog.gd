@@ -9,6 +9,7 @@ signal answered(accepted: bool)
 
 var buttons: Array[Button] = []
 var label: RichTextLabel
+var panel: PanelContainer
 
 
 func setup(text: String, yes_text: String, no_text: String) -> void:
@@ -24,7 +25,7 @@ func setup(text: String, yes_text: String, no_text: String) -> void:
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(center)
-	var panel := PanelContainer.new()
+	panel = PanelContainer.new()
 	center.add_child(panel)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override(&"separation", 24)

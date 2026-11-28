@@ -1,10 +1,13 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { useI18n } from '../src/i18n';
 import { PreviewPanel } from './PreviewPanel';
 import { usePreviewStore } from './store';
 import { doubleTransport } from './transport';
 import { PLUGIN_DIR, PROJECT_ROOT, demoMemoryFs } from './testing';
 import { detectPlatform } from './urls';
+
+beforeEach(() => useI18n.setState({ locale: 'en' }));
 
 afterEach(() => {
   cleanup();
@@ -24,36 +27,36 @@ describe('PreviewPanel', () => {
       />,
     );
     expect(screen.queryByRole('toolbar')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Abrir Preview' }));
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Projeto carregado'));
-    expect(screen.getByRole('status')).toHaveTextContent('runtime de teste (dublê)');
+    fireEvent.click(screen.getByRole('button', { name: 'Open Preview' }));
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Project loaded'));
+    expect(screen.getByRole('status')).toHaveTextContent('test runtime (double)');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Iniciar' }));
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Jogo em andamento'));
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Game running'));
 
-    const stream = screen.getByRole('button', { name: 'Modo stream' });
+    const stream = screen.getByRole('button', { name: 'Stream mode' });
     expect(stream).toHaveAttribute('aria-pressed', 'false');
     fireEvent.click(stream);
     await waitFor(() => expect(stream).toHaveAttribute('aria-pressed', 'true'));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Pausar' }));
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Jogo pausado'));
-    fireEvent.click(screen.getByRole('button', { name: 'Passo' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Parar' }));
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Projeto carregado'));
+    fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Game paused'));
+    fireEvent.click(screen.getByRole('button', { name: 'Step' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Resume' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Stop' }));
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Project loaded'));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Recarregar do disco' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Fechar Preview' }));
-    expect(screen.getByRole('button', { name: 'Abrir Preview' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Reload from disk' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Close Preview' }));
+    expect(screen.getByRole('button', { name: 'Open Preview' })).toBeInTheDocument();
     expect(usePreviewStore.getState().session).toBeNull();
   });
 
   it('mostra o erro quando o projeto não abre', async () => {
     const fs = demoMemoryFs();
     render(<PreviewPanel fs={fs} root="/nao-existe" createTransport={async () => ({ transport: doubleTransport({ helloTimeoutMs: null }), kind: 'double' })} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Abrir Preview' }));
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Erro no Preview'));
+    fireEvent.click(screen.getByRole('button', { name: 'Open Preview' }));
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Preview error'));
   });
 });
 
