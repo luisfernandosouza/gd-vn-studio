@@ -26,6 +26,12 @@ Só as aceitas no [README das specs](../docs/specs/README.md) (2026-11-14): Reac
 
 O disco é acessado só pela interface `ProjectFs`: no app, os comandos `pm_*` de `src-tauri/src/project_fs.rs` (gravação atômica); nos testes, `MemoryFs`. O seletor de pasta usa `tauri-plugin-dialog`.
 
+## Configurações do projeto (M7-10)
+
+`src/settings/` edita tudo o que `project.json` aceita (Data Model §2), sem JSON: título, versão, autores, idiomas, resolução base e tamanhos de janela, modo de tela, FPS, velocidade do texto, salvamento automático, `reproducible_rng`, formato de números, capítulo inicial e ordem, seleção de cenas, grupos de exclusividade, finais, modo stream (`content_filter`), galeria, eventos `story.*`, exportação e versão do runtime. A tela edita uma cópia; **Salvar** confere os valores (`model.ts`) e grava `project.json` de forma atômica. O teste `validator.test.ts` roda `validate.py` num projeto com todas as opções preenchidas.
+
+A seção de acessibilidade mostra o contraste de `theme.colors.text` sobre `theme.colors.panel` e avisa abaixo de 4,5:1 (Req §12). O painel costuma ser translúcido, então a conta usa o pior caso entre cena toda preta e toda branca atrás dele.
+
 ## Desenvolvimento
 
 Precisa de Node 22 e Rust estável, mais as [dependências do Tauri](https://v2.tauri.app/start/prerequisites/) do sistema (no Linux, WebKitGTK 4.1).
