@@ -30,6 +30,15 @@ func _init(user_dir: String = "") -> void:
 	_backend.file_deleted.connect(_on_deleted)
 
 
+## Solta os sinais do armazenamento interno. Sem isto, o objeto e o [code]_backend[/code] se
+## seguram um ao outro (os sinais guardam o objeto) e só são liberados com o processo.
+func release() -> void:
+	if _backend.file_written.is_connected(_on_written):
+		_backend.file_written.disconnect(_on_written)
+	if _backend.file_deleted.is_connected(_on_deleted):
+		_backend.file_deleted.disconnect(_on_deleted)
+
+
 func _on_written(path: String, data: PackedByteArray) -> void:
 	file_written.emit(path, data)
 
