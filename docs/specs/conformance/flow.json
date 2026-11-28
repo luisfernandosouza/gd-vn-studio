@@ -5,7 +5,8 @@
     "Runtime Spec §5.1–§5.4",
     "Runtime Spec §7.2",
     "Data Model §8",
-    "Data Model §10.4"
+    "Data Model §10.4",
+    "UI Spec §6"
   ],
   "cases": [
     {
@@ -1864,6 +1865,730 @@
           },
           {
             "node": "019a7b01-b008-7000-8000-000000000000"
+          },
+          {
+            "event": "sys.scene_ended"
+          },
+          {
+            "end": "schedule"
+          }
+        ]
+      }
+    },
+    {
+      "id": "interact_hotspot_efeitos_record",
+      "description": "interact: hotspot escondido, hotspot desabilitado, exit; o clique aplica effects e record na mesma transação, emite sys.choice_made e vai para o goto",
+      "kind": "flow",
+      "scene": {
+        "id": "019a7b00-0100-7000-8000-000000000000",
+        "variables": [
+          {
+            "key": "last",
+            "type": "string",
+            "default": ""
+          }
+        ],
+        "nodes": [
+          {
+            "id": "019a7b00-0101-7000-8000-000000000000",
+            "type": "interact",
+            "prompt": "Look",
+            "record": "scene.last",
+            "hotspots": [
+              {
+                "id": "019a7b00-0102-7000-8000-000000000000",
+                "label": "Shell",
+                "area": {
+                  "rect": [
+                    0.1,
+                    0.5,
+                    0.1,
+                    0.1
+                  ]
+                },
+                "value": "shell",
+                "cursor": "look",
+                "effects": [
+                  {
+                    "op": "add",
+                    "variable": "global.score",
+                    "value": 1
+                  }
+                ],
+                "goto": "019a7b00-0106-7000-8000-000000000000"
+              },
+              {
+                "id": "019a7b00-0103-7000-8000-000000000000",
+                "label": "Ghost",
+                "area": {
+                  "rect": [
+                    0.3,
+                    0.5,
+                    0.1,
+                    0.1
+                  ]
+                },
+                "visible_if": [
+                  {
+                    "variable": "global.won",
+                    "operator": "equals",
+                    "value": true
+                  }
+                ],
+                "goto": "019a7b00-0106-7000-8000-000000000000"
+              },
+              {
+                "id": "019a7b00-0104-7000-8000-000000000000",
+                "label": "Locked",
+                "area": {
+                  "rect": [
+                    0.5,
+                    0.5,
+                    0.1,
+                    0.1
+                  ]
+                },
+                "enabled_if": [
+                  {
+                    "variable": "global.won",
+                    "operator": "equals",
+                    "value": true
+                  }
+                ],
+                "goto": "019a7b00-0106-7000-8000-000000000000"
+              }
+            ],
+            "exit": {
+              "label": "Leave",
+              "goto": "019a7b00-0107-7000-8000-000000000000"
+            }
+          },
+          {
+            "id": "019a7b00-0106-7000-8000-000000000000",
+            "type": "line",
+            "text": "Picked: {scene.last}",
+            "next": "019a7b00-0107-7000-8000-000000000000"
+          },
+          {
+            "id": "019a7b00-0107-7000-8000-000000000000",
+            "type": "end"
+          }
+        ]
+      },
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0,
+          "constraints": {
+            "min": 0,
+            "max": 100,
+            "on_overflow": "reject"
+          }
+        },
+        "global.won": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        },
+        "global.score": {
+          "type": "integer",
+          "value": 0,
+          "default": 0
+        }
+      },
+      "inputs": [
+        {
+          "choose": "019a7b00-0102-7000-8000-000000000000"
+        },
+        "advance"
+      ],
+      "locale": "en",
+      "expect": {
+        "trace": [
+          {
+            "event": "sys.scene_started"
+          },
+          {
+            "node": "019a7b00-0101-7000-8000-000000000000"
+          },
+          {
+            "options": [
+              {
+                "id": "019a7b00-0102-7000-8000-000000000000",
+                "enabled": true
+              },
+              {
+                "id": "019a7b00-0104-7000-8000-000000000000",
+                "enabled": false
+              },
+              {
+                "id": "exit",
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "changes": [
+              {
+                "variable": "global.score",
+                "old": 0,
+                "new": 1
+              },
+              {
+                "variable": "scene.last",
+                "old": "",
+                "new": "shell"
+              }
+            ]
+          },
+          {
+            "event": "sys.choice_made"
+          },
+          {
+            "node": "019a7b00-0106-7000-8000-000000000000"
+          },
+          {
+            "text": "Picked: shell"
+          },
+          {
+            "node": "019a7b00-0107-7000-8000-000000000000"
+          },
+          {
+            "event": "sys.scene_ended"
+          },
+          {
+            "end": "schedule"
+          }
+        ]
+      }
+    },
+    {
+      "id": "interact_once_e_saida",
+      "description": "interact em laço: o hotspot once some depois de usado, só a saída fica, e a saída não aplica efeitos, record nem evento",
+      "kind": "flow",
+      "scene": {
+        "id": "019a7b00-0110-7000-8000-000000000000",
+        "variables": [
+          {
+            "key": "last",
+            "type": "string",
+            "default": ""
+          }
+        ],
+        "nodes": [
+          {
+            "id": "019a7b00-0111-7000-8000-000000000000",
+            "type": "interact",
+            "record": "scene.last",
+            "hotspots": [
+              {
+                "id": "019a7b00-0112-7000-8000-000000000000",
+                "label": "Lamp",
+                "area": {
+                  "rect": [
+                    0.2,
+                    0.5,
+                    0.1,
+                    0.1
+                  ]
+                },
+                "once": true,
+                "effects": [
+                  {
+                    "op": "add",
+                    "variable": "global.money",
+                    "value": 5
+                  }
+                ],
+                "goto": "019a7b00-0115-7000-8000-000000000000"
+              },
+              {
+                "id": "019a7b00-0113-7000-8000-000000000000",
+                "label": "Door",
+                "area": {
+                  "rect": [
+                    0.6,
+                    0.5,
+                    0.1,
+                    0.1
+                  ]
+                },
+                "effects": [
+                  {
+                    "op": "add",
+                    "variable": "global.score",
+                    "value": 1
+                  }
+                ],
+                "goto": "019a7b00-0115-7000-8000-000000000000"
+              }
+            ],
+            "exit": {
+              "label": "Leave",
+              "goto": "019a7b00-0116-7000-8000-000000000000"
+            }
+          },
+          {
+            "id": "019a7b00-0115-7000-8000-000000000000",
+            "type": "line",
+            "text": "Back to look",
+            "next": "019a7b00-0111-7000-8000-000000000000"
+          },
+          {
+            "id": "019a7b00-0116-7000-8000-000000000000",
+            "type": "end"
+          }
+        ]
+      },
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0,
+          "constraints": {
+            "min": 0,
+            "max": 100,
+            "on_overflow": "reject"
+          }
+        },
+        "global.won": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        },
+        "global.score": {
+          "type": "integer",
+          "value": 0,
+          "default": 0
+        }
+      },
+      "inputs": [
+        {
+          "choose": "019a7b00-0112-7000-8000-000000000000"
+        },
+        "advance",
+        {
+          "choose": "019a7b00-0113-7000-8000-000000000000"
+        },
+        "advance",
+        {
+          "choose": "exit"
+        }
+      ],
+      "locale": "en",
+      "expect": {
+        "trace": [
+          {
+            "event": "sys.scene_started"
+          },
+          {
+            "node": "019a7b00-0111-7000-8000-000000000000"
+          },
+          {
+            "options": [
+              {
+                "id": "019a7b00-0112-7000-8000-000000000000",
+                "enabled": true
+              },
+              {
+                "id": "019a7b00-0113-7000-8000-000000000000",
+                "enabled": true
+              },
+              {
+                "id": "exit",
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "changes": [
+              {
+                "variable": "global.money",
+                "old": 30,
+                "new": 35
+              },
+              {
+                "variable": "scene.last",
+                "old": "",
+                "new": "019a7b00-0112-7000-8000-000000000000"
+              }
+            ]
+          },
+          {
+            "event": "sys.choice_made"
+          },
+          {
+            "node": "019a7b00-0115-7000-8000-000000000000"
+          },
+          {
+            "text": "Back to look"
+          },
+          {
+            "node": "019a7b00-0111-7000-8000-000000000000"
+          },
+          {
+            "options": [
+              {
+                "id": "019a7b00-0113-7000-8000-000000000000",
+                "enabled": true
+              },
+              {
+                "id": "exit",
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "changes": [
+              {
+                "variable": "global.score",
+                "old": 0,
+                "new": 1
+              },
+              {
+                "variable": "scene.last",
+                "old": "019a7b00-0112-7000-8000-000000000000",
+                "new": "019a7b00-0113-7000-8000-000000000000"
+              }
+            ]
+          },
+          {
+            "event": "sys.choice_made"
+          },
+          {
+            "node": "019a7b00-0115-7000-8000-000000000000"
+          },
+          {
+            "text": "Back to look"
+          },
+          {
+            "node": "019a7b00-0111-7000-8000-000000000000"
+          },
+          {
+            "options": [
+              {
+                "id": "019a7b00-0113-7000-8000-000000000000",
+                "enabled": true
+              },
+              {
+                "id": "exit",
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "node": "019a7b00-0116-7000-8000-000000000000"
+          },
+          {
+            "event": "sys.scene_ended"
+          },
+          {
+            "end": "schedule"
+          }
+        ]
+      }
+    },
+    {
+      "id": "interact_sem_hotspot_visivel_sem_saida",
+      "description": "interact sem hotspot visível e sem exit: segue next sem esperar",
+      "kind": "flow",
+      "scene": {
+        "id": "019a7b00-0120-7000-8000-000000000000",
+        "nodes": [
+          {
+            "id": "019a7b00-0121-7000-8000-000000000000",
+            "type": "interact",
+            "hotspots": [
+              {
+                "id": "019a7b00-0122-7000-8000-000000000000",
+                "label": "Ghost",
+                "area": {
+                  "rect": [
+                    0.2,
+                    0.5,
+                    0.1,
+                    0.1
+                  ]
+                },
+                "visible_if": [
+                  {
+                    "variable": "global.won",
+                    "operator": "equals",
+                    "value": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "019a7b00-0123-7000-8000-000000000000",
+            "type": "line",
+            "text": "Nothing to see"
+          },
+          {
+            "id": "019a7b00-0124-7000-8000-000000000000",
+            "type": "end"
+          }
+        ]
+      },
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0,
+          "constraints": {
+            "min": 0,
+            "max": 100,
+            "on_overflow": "reject"
+          }
+        },
+        "global.won": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        },
+        "global.score": {
+          "type": "integer",
+          "value": 0,
+          "default": 0
+        }
+      },
+      "inputs": [
+        "advance"
+      ],
+      "locale": "en",
+      "expect": {
+        "trace": [
+          {
+            "event": "sys.scene_started"
+          },
+          {
+            "node": "019a7b00-0121-7000-8000-000000000000"
+          },
+          {
+            "node": "019a7b00-0123-7000-8000-000000000000"
+          },
+          {
+            "text": "Nothing to see"
+          },
+          {
+            "node": "019a7b00-0124-7000-8000-000000000000"
+          },
+          {
+            "event": "sys.scene_ended"
+          },
+          {
+            "end": "schedule"
+          }
+        ]
+      }
+    },
+    {
+      "id": "interact_sem_hotspot_visivel_com_saida",
+      "description": "interact sem hotspot visível mas com exit: espera só pela saída",
+      "kind": "flow",
+      "scene": {
+        "id": "019a7b00-0130-7000-8000-000000000000",
+        "nodes": [
+          {
+            "id": "019a7b00-0131-7000-8000-000000000000",
+            "type": "interact",
+            "hotspots": [
+              {
+                "id": "019a7b00-0132-7000-8000-000000000000",
+                "label": "Ghost",
+                "area": {
+                  "rect": [
+                    0.2,
+                    0.5,
+                    0.1,
+                    0.1
+                  ]
+                },
+                "visible_if": [
+                  {
+                    "variable": "global.won",
+                    "operator": "equals",
+                    "value": true
+                  }
+                ]
+              }
+            ],
+            "exit": {
+              "label": "Leave"
+            }
+          },
+          {
+            "id": "019a7b00-0133-7000-8000-000000000000",
+            "type": "line",
+            "text": "Left"
+          },
+          {
+            "id": "019a7b00-0134-7000-8000-000000000000",
+            "type": "end"
+          }
+        ]
+      },
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0,
+          "constraints": {
+            "min": 0,
+            "max": 100,
+            "on_overflow": "reject"
+          }
+        },
+        "global.won": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        },
+        "global.score": {
+          "type": "integer",
+          "value": 0,
+          "default": 0
+        }
+      },
+      "inputs": [],
+      "locale": "en",
+      "expect": {
+        "trace": [
+          {
+            "event": "sys.scene_started"
+          },
+          {
+            "node": "019a7b00-0131-7000-8000-000000000000"
+          },
+          {
+            "options": [
+              {
+                "id": "exit",
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "waiting": "interact"
+          }
+        ]
+      }
+    },
+    {
+      "id": "interact_efeito_rejeitado",
+      "description": "interact: restrição reject no efeito do hotspot desfaz a transação inteira (inclusive o record) e a cena segue pelo goto",
+      "kind": "flow",
+      "scene": {
+        "id": "019a7b00-0140-7000-8000-000000000000",
+        "variables": [
+          {
+            "key": "last",
+            "type": "string",
+            "default": ""
+          }
+        ],
+        "nodes": [
+          {
+            "id": "019a7b00-0141-7000-8000-000000000000",
+            "type": "interact",
+            "record": "scene.last",
+            "hotspots": [
+              {
+                "id": "019a7b00-0142-7000-8000-000000000000",
+                "label": "Chest",
+                "area": {
+                  "rect": [
+                    0.2,
+                    0.5,
+                    0.1,
+                    0.1
+                  ]
+                },
+                "effects": [
+                  {
+                    "op": "add",
+                    "variable": "global.score",
+                    "value": 1
+                  },
+                  {
+                    "op": "set",
+                    "variable": "global.money",
+                    "value": 500
+                  }
+                ],
+                "goto": "019a7b00-0143-7000-8000-000000000000"
+              }
+            ]
+          },
+          {
+            "id": "019a7b00-0143-7000-8000-000000000000",
+            "type": "line",
+            "text": "Last: [{scene.last}]"
+          },
+          {
+            "id": "019a7b00-0144-7000-8000-000000000000",
+            "type": "end"
+          }
+        ]
+      },
+      "variables": {
+        "global.money": {
+          "type": "integer",
+          "value": 30,
+          "default": 0,
+          "constraints": {
+            "min": 0,
+            "max": 100,
+            "on_overflow": "reject"
+          }
+        },
+        "global.won": {
+          "type": "boolean",
+          "value": false,
+          "default": false
+        },
+        "global.score": {
+          "type": "integer",
+          "value": 0,
+          "default": 0
+        }
+      },
+      "inputs": [
+        {
+          "choose": "019a7b00-0142-7000-8000-000000000000"
+        },
+        "advance"
+      ],
+      "locale": "en",
+      "expect": {
+        "trace": [
+          {
+            "event": "sys.scene_started"
+          },
+          {
+            "node": "019a7b00-0141-7000-8000-000000000000"
+          },
+          {
+            "options": [
+              {
+                "id": "019a7b00-0142-7000-8000-000000000000",
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "event": "sys.choice_made"
+          },
+          {
+            "node": "019a7b00-0143-7000-8000-000000000000"
+          },
+          {
+            "text": "Last: []"
+          },
+          {
+            "node": "019a7b00-0144-7000-8000-000000000000"
           },
           {
             "event": "sys.scene_ended"

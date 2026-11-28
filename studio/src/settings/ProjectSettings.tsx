@@ -1,7 +1,9 @@
 import './settings.css';
 import type { Project } from '@vnstudio/plugin-schema';
 import { produce, type Draft } from 'immer';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useDocumentSession } from '../document/session';
+import type { DocumentStore } from '../document/store';
 import type { ProjectFs } from '../project-manager/fs';
 import { uniqueName } from '../project-manager/ids';
 import { UI_LOCALES } from '../i18n';
@@ -15,7 +17,7 @@ import {
   PAYLOAD_TYPES,
   payloadToFields,
   prune,
-  saveProjectSettings,
+  applyProjectSettings,
   validateSettings,
   type SettingsContext,
   type PayloadType,
@@ -36,10 +38,21 @@ const ratioText = (r: number) => r.toFixed(1).replace('.', ',');
  * Configurações do projeto (M7-10): todas as opções de `project.json` sem editar JSON. Edita uma cópia;
  * "Salvar" confere os valores e grava de forma atômica.
  */
+function useDocumentProject(store: DocumentStore | null): Project | undefined {
+  return useSyncExternalStore(
+    (notify) => (store ? store.subscribe(notify) : () => undefined),
+    () => store?.getState().doc.project as Project | undefined,
+  );
+}
+
 export function ProjectSettings({ fs }: { fs: ProjectFs }) {
   const current = useProjectSession((s) => s.current);
   const setCurrent = useProjectSession((s) => s.setCurrent);
-  const [draft, setDraft] = useState<Project | null>(current?.project ?? null);
+  const store = useDocumentSession((s) => s.store);
+  // A fonte da verdade é o documento do projeto (M6-02); sem ele, vale o que o Project Manager abriu.
+  const base = useDocumentProject(store) ?? current?.project;
+  const [draft, setDraft] = useState<Project | null>(base ?? null);
+  const lastBase = useRef(base);
   const [ctx, setCtx] = useState<SettingsContext | null>(null);
   const [status, setStatus] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
   const [saving, setSaving] = useState(false);
@@ -56,11 +69,18 @@ export function ProjectSettings({ fs }: { fs: ProjectFs }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fs, current?.root]);
 
+  // Mudança vinda de fora (desfazer, refazer, plugin): sem edição pendente, a tela acompanha o documento.
+  useEffect(() => {
+    const previous = lastBase.current;
+    lastBase.current = base;
+    if (!base || base === previous) return;
+    setDraft((d) => (d && previous && JSON.stringify(prune(d)) === JSON.stringify(prune(previous)) ? base : d));
+  }, [base]);
+
   const issues = useMemo(() => (draft && ctx ? validateSettings(draft, ctx) : []), [draft, ctx]);
-  const dirty = useMemo(() => !!draft && !!current && JSON.stringify(prune(draft)) !== JSON.stringify(prune(current.project)), [draft, current]);
+  const dirty = useMemo(() => !!draft && !!base && JSON.stringify(prune(draft)) !== JSON.stringify(prune(base)), [draft, base]);
 
   if (!current || !draft) return null;
-  const root = current.root;
   const edit = (fn: (d: Draft<Project>) => void) => {
     setStatus(null);
     setDraft((p) => (p ? produce(p, fn) : p));
@@ -83,9 +103,13 @@ export function ProjectSettings({ fs }: { fs: ProjectFs }) {
   const assetList = (ctx?.assets ?? []).filter((a) => ['image', 'background', 'sprite'].includes(a.type));
 
   const save = async () => {
+    if (!store) {
+      setStatus({ kind: 'error', text: 'O documento do projeto ainda está carregando; tente de novo em instantes.' });
+      return;
+    }
     setSaving(true);
     try {
-      const saved = await saveProjectSettings(fs, root, draft);
+      const saved = await applyProjectSettings(store, draft);
       setCurrent({ ...current, project: saved });
       setDraft(saved);
       setStatus({ kind: 'ok', text: 'Configurações salvas em project.json.' });
@@ -552,7 +576,7 @@ export function ProjectSettings({ fs }: { fs: ProjectFs }) {
           type="button"
           disabled={!dirty || saving}
           onClick={() => {
-            setDraft(current.project);
+            setDraft(base ?? current.project);
             setStatus(null);
           }}
         >

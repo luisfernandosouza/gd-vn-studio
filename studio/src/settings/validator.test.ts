@@ -15,7 +15,8 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { createProject } from '../project-manager/create';
 import type { DirEntry, ProjectFs } from '../project-manager/fs';
 import { openProject } from '../project-manager/open';
-import { fieldsToPayload, loadSettingsContext, saveProjectSettings, validateSettings } from './model';
+import { openDocumentSession } from '../document/session';
+import { applyProjectSettings, fieldsToPayload, loadSettingsContext, validateSettings } from './model';
 
 const VALIDATE = resolve(__dirname, '../../../docs/specs/tools/validate.py');
 const PYTHON = process.platform === 'win32' ? 'python' : 'python3';
@@ -92,7 +93,9 @@ describe.skipIf(!hasValidator)('Configurações do projeto passam no validador (
       },
     };
     expect(validateSettings(edited, ctx)).toEqual([]);
-    await saveProjectSettings(diskFs, root, edited);
+    const store = await openDocumentSession(diskFs, opened.project);
+    await applyProjectSettings(store, edited);
+    await store.dispose();
 
     const out = execFileSync(PYTHON, [VALIDATE, root], { encoding: 'utf8' });
     expect(out).toContain('0 erro(s)');

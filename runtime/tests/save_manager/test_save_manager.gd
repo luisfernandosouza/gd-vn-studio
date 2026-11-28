@@ -26,6 +26,8 @@ func _init() -> void:
 		"save_de_outro_projeto_ou_formato", "save_e_load_no_no_certo", "save_fora_de_ponto_de_save",
 		"autosave_rodizio_e_configuracao", "continuar_e_lista", "apagar_slot",
 		"perfil_assinado_e_debounce", "perfil_adulterado", "reset_perfil", "recordes",
+		"migracao_variaveis_versao_antiga", "migracao_capitulo_cena_no", "migracao_aliases_estrutura",
+		"migracao_so_com_hash_diferente", "perfil_alias_e_saida",
 	]:
 		_run(t)
 	print("%d/%d testes do Save Manager passaram." % [_passed, _passed + _failed])
@@ -559,3 +561,219 @@ func test_recordes() -> String:
 		return "desc padrão"
 	saves.set_plugin_profile_data(&"fishing", {"rod": 2})
 	return "" if saves.get_plugin_profile_data(&"fishing").rod == 2 and saves.is_profile_dirty() else "dados de perfil"
+
+
+# --- Save de versão antiga do jogo (M2-11; RT §8.4) -------------------------------
+
+const NEW_CHAPTER := "019a7a00-ffff-7e8e-9f34-b5a38f4a780b"
+const NODE_A := "019a7a00-aaaa-730c-a8a2-c3737040ab76"
+const NODE_NESTED := "019a7a00-bbbb-730c-a8a2-c3737040ab76"
+const NODE_LOST := "019a7a00-cccc-730c-a8a2-c3737040ab76"
+
+
+## Bundle de uma versão nova do jogo: variável renomeada, uma a mais, uma a menos,
+## tipo e restrição mudados, e o Variable Manager real.
+func _setup_new_version(content_hash: String = "sha256-BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=") -> VNModules:
+	var m := VNFakeModules.create()
+	var saves := VNRuntimeSaveManager.new()
+	m.saves = saves
+	m.storage = VNMemoryStorage.new()
+	var vars := VNVariableManagerImpl.new()
+	vars.quiet = true
+	m.variables = vars
+	m.bind_all()
+	var bundle := {
+		"content_hash": content_hash,
+		"project": {"id": DEMO_PROJECT, "version": "0.2.0", "start_chapter": CHAPTER, "default_locale": "pt-BR", "settings": {}},
+		"variables": {
+			"global.money": {"type": "integer", "default": 30},
+			"global.fishing_won": {"type": "boolean", "default": false},
+			"global.fishing_skill": {"type": "integer", "default": 0, "constraints": {"min": 0, "max": 10}},
+			"character.alice.affection": {"type": "number", "default": 0.0},
+			"character.alice.met": {"type": "boolean", "default": false},
+			"global.brand_new": {"type": "boolean", "default": true},
+			"global.ng_plus": {"type": "integer", "default": 0, "persistence": "profile"},
+		},
+		"aliases": {"global.player_money": "global.money"},
+		"chapters": {
+			CHAPTER: {"id": CHAPTER, "variables": [{"key": "days_passed", "type": "integer", "default": 0}]},
+			NEW_CHAPTER: {"id": NEW_CHAPTER, "variables": []},
+		},
+		"scenes": {
+			SCENE: {"id": SCENE, "chapter": CHAPTER, "start": NODE_A, "variables": [{"key": "tries", "type": "integer", "default": 0}],
+				"nodes": [{"id": NODE_A, "type": "line"}, {"id": NODE_NESTED, "type": "choice", "options": [{"id": "o1", "nodes": [{"id": NODE, "type": "line"}]}]}]},
+		},
+	}
+	vars.load_bundle(bundle)
+	saves.load_bundle(bundle)
+	return m
+
+
+## O estado que o Save Manager entregou ao Engine em resume_from_save.
+func _resumed(e: FakeNarrativeEngine) -> Dictionary:
+	for c in e.calls:
+		if c.method == &"resume_from_save":
+			return c.args[0]
+	return {}
+
+
+func _old_save() -> Dictionary:
+	return JSON.parse_string(_demo_save_text())
+
+
+func test_migracao_variaveis_versao_antiga() -> String:
+	var m := _setup_new_version()
+	var doc := _old_save()
+	doc.state.variables["global.fishing_skill"] = 12          # acima do novo máximo
+	doc.state.variables["character.alice.affection"] = 15      # int → number
+	doc.state.variables["global.removida"] = 1                  # não existe mais
+	var r: VNResult = m.saves.load_save_data(doc, &"slot_1")
+	if not r.ok:
+		return "load: %s" % r.message
+	var v: VNVariableManager = m.variables
+	if v.read("global.money") != 130:
+		return "renomeada pelo alias: %s" % v.read("global.money")
+	if v.read("global.brand_new") != true:
+		return "variável nova recebe o default"
+	if v.read("global.fishing_skill") != 10:
+		return "clamp: %s" % v.read("global.fishing_skill")
+	if typeof(v.read("character.alice.affection")) != TYPE_FLOAT or v.read("character.alice.affection") != 15.0:
+		return "int → number"
+	if v.has("global.removida") or v.has("global.player_money"):
+		return "variável descartada não deveria existir"
+	if v.read("global.fishing_won") != true:
+		return "o valor do save vale"
+	if r.message.find("global.removida") < 0 or r.message.find("global.fishing_skill") < 0:
+		return "avisos: %s" % r.message
+	# O capítulo existe, a cena do save é um ponto de seleção: retoma sem mexer.
+	var e: FakeNarrativeEngine = m.engine
+	return "" if e.current_chapter() == CHAPTER and e.phase() == VNPhase.SELECTION_POINT else "retomada %s/%s" % [e.current_chapter(), e.phase()]
+
+
+func test_migracao_capitulo_cena_no() -> String:
+	var e: FakeNarrativeEngine
+	# Capítulo ausente: entra em start_chapter, histórico mantido, cena e scene.*/chapter.* descartadas.
+	var m := _setup_new_version()
+	var doc := _old_save()
+	doc.state.chapter = {"id": "019a7a00-dead-7e8e-9f34-b5a38f4a780b", "entered_at": 0}
+	doc.state.scene = {"id": SCENE, "node": NODE, "stage": {}}
+	doc.state.variables["scene.tries"] = 4
+	doc.state.variables["chapter.days_passed"] = 6
+	var r: VNResult = m.saves.load_save_data(doc, &"slot_1")
+	e = m.engine
+	if not r.ok or e.current_chapter() != CHAPTER or not e.current_scene().is_empty() or e.phase() != VNPhase.SELECTION_POINT:
+		return "capítulo ausente: %s %s %s" % [e.current_chapter(), e.current_scene(), e.phase()]
+	var resumed: Dictionary = _resumed(e)
+	if int(resumed.history.selection_count) != 2 or resumed.chapter.id != CHAPTER or resumed.scene != null:
+		return "estado entregue ao Engine: %s" % resumed
+	if resumed.variables.has("scene.tries") or resumed.variables.has("chapter.days_passed"):
+		return "scene.*/chapter.* do capítulo antigo não deveriam seguir"
+	# Cena ausente: volta ao ponto de seleção, mesmo capítulo.
+	m = _setup_new_version()
+	doc = _old_save()
+	doc.state.scene = {"id": "019a7a00-dead-755e-a143-bcfdef94a367", "node": NODE}
+	doc.state.variables["scene.tries"] = 4
+	r = m.saves.load_save_data(doc, &"slot_1")
+	e = m.engine
+	if not r.ok or e.current_chapter() != CHAPTER or not e.current_scene().is_empty() or e.phase() != VNPhase.SELECTION_POINT:
+		return "cena ausente: %s %s" % [e.current_scene(), e.phase()]
+	if r.message.find("não existe mais") < 0:
+		return "sem aviso"
+	# Nó ausente: a cena recomeça do início, com scene.* zeradas e sem o palco.
+	m = _setup_new_version()
+	doc = _old_save()
+	doc.state.scene = {"id": SCENE, "node": NODE_LOST, "stage": {"layers": {}}, "used_hotspots": ["h1"]}
+	doc.state.variables["scene.tries"] = 4
+	r = m.saves.load_save_data(doc, &"slot_1")
+	e = m.engine
+	if not r.ok or e.current_scene() != SCENE or e.node != NODE_A:
+		return "nó ausente: %s/%s" % [e.current_scene(), e.node]
+	resumed = _resumed(e)
+	if resumed.scene.has("stage") or resumed.scene.has("used_hotspots") or resumed.variables.has("scene.tries"):
+		return "recomeço limpo: %s" % resumed
+	# Nó dentro de uma escolha existe: segue onde estava.
+	m = _setup_new_version()
+	doc = _old_save()
+	doc.state.scene = {"id": SCENE, "node": NODE}
+	m.saves.load_save_data(doc, &"slot_1")
+	e = m.engine
+	return "" if e.current_scene() == SCENE and e.node == NODE else "nó aninhado: %s" % e.node
+
+
+func test_migracao_aliases_estrutura() -> String:
+	var m := _setup_new_version()
+	var saves: VNRuntimeSaveManager = m.saves
+	var bundle := {
+		"content_hash": "sha256-BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=",
+		"project": {"id": DEMO_PROJECT, "version": "0.2.0", "start_chapter": NEW_CHAPTER},
+		"aliases": {"old-chapter": NEW_CHAPTER, "old-scene": SCENE, "old-node": NODE_A},
+		"chapters": {NEW_CHAPTER: {"id": NEW_CHAPTER}},
+		"scenes": {SCENE: {"id": SCENE, "start": NODE_A, "nodes": [{"id": NODE_A}]}},
+	}
+	saves.load_bundle(bundle)
+	var doc := _old_save()
+	doc.state.chapter = {"id": "old-chapter", "entered_at": 0}
+	doc.state.scene = {"id": "old-scene", "node": "old-node"}
+	doc.state.history.scenes = {"old-scene": {"plays": 1, "starts": 1, "last_selection": 1}}
+	doc.state.history.chapters = {"old-chapter": {"entries": 1, "completed": false}}
+	var r: VNResult = m.saves.load_save_data(doc, &"slot_1")
+	var e: FakeNarrativeEngine = m.engine
+	if not r.ok or e.current_chapter() != NEW_CHAPTER or e.current_scene() != SCENE or e.node != NODE_A:
+		return "aliases: %s/%s/%s" % [e.current_chapter(), e.current_scene(), e.node]
+	var resumed: Dictionary = _resumed(e)
+	if not resumed.history.scenes.has(SCENE) or resumed.history.scenes.has("old-scene") or not resumed.history.chapters.has(NEW_CHAPTER):
+		return "histórico com ids novos: %s" % resumed.history
+	return ""
+
+
+func test_migracao_so_com_hash_diferente() -> String:
+	# content_hash igual: o save é do jogo atual e não é reescrito (mesmo com cena que o bundle não tem).
+	var hash := "sha256-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC="
+	var m := _setup_new_version(hash)
+	var doc := _old_save()
+	doc.project["content_hash"] = hash
+	doc.state.scene = {"id": "019a7a00-dead-755e-a143-bcfdef94a367", "node": NODE}
+	m.saves.load_save_data(doc, &"slot_1")
+	var e: FakeNarrativeEngine = m.engine
+	if e.current_scene() != "019a7a00-dead-755e-a143-bcfdef94a367":
+		return "migrou um save do mesmo hash"
+	# Sem content_hash no save: tratado como diferente.
+	m = _setup_new_version(hash)
+	doc = _old_save()
+	doc.state.scene = {"id": "019a7a00-dead-755e-a143-bcfdef94a367", "node": NODE}
+	m.saves.load_save_data(doc, &"slot_1")
+	e = m.engine
+	return "" if e.current_scene().is_empty() else "save sem hash deveria migrar"
+
+
+func test_perfil_alias_e_saida() -> String:
+	var m := _setup_new_version()
+	var saves: VNRuntimeSaveManager = m.saves
+	# Perfil gravado por uma versão em que a variável tinha outro nome.
+	var bundle: Dictionary = {"content_hash": "x", "project": {"id": DEMO_PROJECT, "version": "0.2.0"},
+		"variables": {"global.ng_plus": {"type": "integer", "default": 0, "persistence": "profile"},
+			"global.old_ng": {"type": "integer", "default": 0, "persistence": "profile"}}}
+	var old := _setup_new_version()
+	old.variables.load_bundle(bundle)
+	old.saves.load_bundle(bundle)
+	old.saves.load_profile()
+	old.variables.store("global.old_ng", 4)
+	old.saves.flush_profile()
+	m.storage = old.storage
+	m.bind_all()
+	m.variables.load_bundle({"project": {}, "variables": {"global.ng_plus": {"type": "integer", "default": 0, "persistence": "profile"}},
+		"aliases": {"global.old_ng": "global.ng_plus"}})
+	if not saves.load_profile().ok:
+		return "load_profile"
+	if m.variables.read("global.ng_plus") != 4:
+		return "alias do perfil: %s" % m.variables.read("global.ng_plus")
+	if not saves.is_profile_dirty():
+		return "perfil com chave antiga deveria ser regravado"
+	# Sair do jogo grava o que estava pendente (RT §8.5).
+	saves.flush_on_exit()
+	var data: Dictionary = m.storage.read_json("profile.json")
+	if saves.is_profile_dirty() or not data.variables.has("global.ng_plus") or data.variables.has("global.old_ng"):
+		return "regravado com a chave nova: %s" % data.variables
+	m.saves.record_ending("festival_ending")
+	saves.flush_on_exit()
+	return "" if m.storage.read_json("profile.json").endings == ["festival_ending"] else "final não gravado ao sair"

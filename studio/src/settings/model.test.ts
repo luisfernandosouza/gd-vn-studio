@@ -1,9 +1,10 @@
 import type { Project } from '@vnstudio/plugin-schema';
 import { describe, expect, it } from 'vitest';
+import { openDocumentSession } from '../document/session';
 import { createProject } from '../project-manager/create';
 import { MemoryFs } from '../project-manager/memory-fs';
 import { openProject } from '../project-manager/open';
-import { fieldsToPayload, loadSettingsContext, payloadToFields, prune, saveProjectSettings, validateSettings } from './model';
+import { applyProjectSettings, fieldsToPayload, loadSettingsContext, payloadToFields, prune, validateSettings } from './model';
 
 const ROOT = '/jogos/verao';
 const noCtx = { chapters: [], endingUsage: {} };
@@ -85,10 +86,11 @@ describe('payload de evento', () => {
   });
 });
 
-describe('saveProjectSettings', () => {
-  it('grava project.json no formato do Studio, sem vazios', async () => {
+describe('applyProjectSettings', () => {
+  it('grava project.json pelo documento, em um passo de undo, sem vazios', async () => {
     const { fs, opened } = await fresh();
-    const saved = await saveProjectSettings(fs, ROOT, { ...opened.project, version: '0.2.0', authors: [], settings: { reproducible_rng: true } });
+    const store = await openDocumentSession(fs, opened);
+    const saved = await applyProjectSettings(store, { ...opened.project, version: '0.2.0', authors: [], settings: { reproducible_rng: true } });
     const text = await fs.readText(`${ROOT}/project.json`);
     expect(text.endsWith('}\n')).toBe(true);
     const json = JSON.parse(text);
@@ -96,5 +98,10 @@ describe('saveProjectSettings', () => {
     expect(json.authors).toBeUndefined();
     expect(json.settings).toEqual({ reproducible_rng: true });
     expect(saved).toEqual(json);
+    expect(store.getState().undoStack.map((e) => e.label)).toEqual(['Configurações do projeto']);
+
+    store.undo();
+    await store.flush();
+    expect(JSON.parse(await fs.readText(`${ROOT}/project.json`)).version).toBe(opened.project.version);
   });
 });

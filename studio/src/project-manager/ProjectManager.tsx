@@ -7,6 +7,7 @@ import { joinPath, type ProjectFs } from './fs';
 import { slugify } from './ids';
 import { PRODUCT_LOCALES } from './layout';
 import { applyMigration, type MigrationPlan } from './migrate';
+import { openDocumentSession } from '../document/session';
 import { openProject, type OpenedProject } from './open';
 import { loadRecents, rememberRecent, useProjectSession, type RecentProject } from './session';
 
@@ -51,6 +52,7 @@ export function ProjectManager({ fs, pickFolder }: ProjectManagerProps) {
   const finish = (project: OpenedProject) => {
     setRecents(rememberRecent({ root: project.root, title: project.project.title }));
     setCurrent(project);
+    void openDocumentSession(fs, project).catch((e: unknown) => setError(describeError(e, t)));
   };
 
   const run = async (task: () => Promise<void>) => {

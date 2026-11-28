@@ -4,9 +4,9 @@
  * limpa, valida e grava no formato do Studio (UTF-8, 2 espaços, `\n` no fim).
  */
 import type { Project, Theme } from '@vnstudio/plugin-schema';
+import type { DocumentStore } from '../document/store';
 import { joinPath, type ProjectFs } from '../project-manager/fs';
 import { ID_PATTERN } from '../project-manager/ids';
-import { formatJson } from '../project-manager/json';
 import { LOCALE_PATTERN, ROOT_FILES } from '../project-manager/layout';
 import type { OpenedProject } from '../project-manager/open';
 
@@ -209,10 +209,16 @@ export function validateSettings(project: Project, ctx: Pick<SettingsContext, 'c
   return issues;
 }
 
-/** Grava `project.json` (já limpo) de forma atômica e devolve o projeto gravado. */
-export async function saveProjectSettings(fs: ProjectFs, root: string, project: Project): Promise<Project> {
+/**
+ * Aplica as configurações ao documento do projeto (M6-02): um único passo de undo ("Configurações do
+ * projeto") e gravação pelo autosave do documento, que aqui é esperada. Devolve o projeto gravado.
+ */
+export async function applyProjectSettings(store: DocumentStore, project: Project): Promise<Project> {
   const clean = prune(project);
-  await fs.writeText(joinPath(root, ROOT_FILES.project), formatJson(clean));
+  store.applyEdit([{ op: 'replace', path: '/project', value: clean }], { label: 'Configurações do projeto', autoTest: true });
+  await store.flush();
+  const { saveStatus, saveError } = store.getState();
+  if (saveStatus === 'error') throw new Error(saveError ?? 'falha ao gravar project.json');
   return clean;
 }
 

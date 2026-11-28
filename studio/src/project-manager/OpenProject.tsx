@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { closeDocumentSession } from '../document/session';
 import { useT } from '../i18n';
 import { ProjectSettings } from '../settings/ProjectSettings';
 import type { ProjectFs } from './fs';
@@ -41,7 +42,12 @@ export function OpenProjectSummary({ fs }: { fs: ProjectFs }) {
       <button type="button" onClick={() => setView('settings')}>
         Configurações do projeto
       </button>
-      <button type="button" onClick={() => setCurrent(null)}>
+      <button
+        type="button"
+        onClick={() => {
+          void closeDocumentSession().then(() => setCurrent(null));
+        }}
+      >
         {t('studio/project/close')}
       </button>
     </section>

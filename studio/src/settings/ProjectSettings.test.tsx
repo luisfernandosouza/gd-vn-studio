@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { closeDocumentSession, openDocumentSession } from '../document/session';
 import { createProject } from '../project-manager/create';
 import { MemoryFs } from '../project-manager/memory-fs';
 import { openProject } from '../project-manager/open';
@@ -14,6 +15,7 @@ async function setup() {
   const opened = await openProject(fs, ROOT);
   if (opened.status !== 'opened') throw new Error('não abriu');
   useProjectSession.setState({ current: opened.project });
+  await openDocumentSession(fs, opened.project);
   render(<ProjectSettings fs={fs} />);
   // espera o contexto (capítulos, assets, tema) carregar: o botão Salvar só liga depois
   await screen.findByRole('option', { name: 'Capítulo 1' });
@@ -24,7 +26,10 @@ const saved = async (fs: MemoryFs) => JSON.parse(await fs.readText(`${ROOT}/proj
 
 describe('ProjectSettings (M7-10)', () => {
   beforeEach(() => useProjectSession.setState({ current: null }));
-  afterEach(cleanup);
+  afterEach(async () => {
+    cleanup();
+    await closeDocumentSession();
+  });
 
   it('edita título, resolução, FPS e sorteios sem JSON e grava em project.json', async () => {
     const fs = await setup();
@@ -80,6 +85,7 @@ describe('ProjectSettings (M7-10)', () => {
     const opened = await openProject(fs, ROOT);
     if (opened.status !== 'opened') throw new Error('não abriu');
     useProjectSession.setState({ current: opened.project });
+    await openDocumentSession(fs, opened.project);
     render(<ProjectSettings fs={fs} />);
     await screen.findByText('Usado em 1 cena(s).');
     fireEvent.click(screen.getByRole('button', { name: 'Remover final 1' }));
@@ -98,6 +104,7 @@ describe('ProjectSettings (M7-10)', () => {
     const opened = await openProject(fs, ROOT);
     if (opened.status !== 'opened') throw new Error('não abriu');
     useProjectSession.setState({ current: opened.project });
+    await openDocumentSession(fs, opened.project);
     render(<ProjectSettings fs={fs} />);
     expect(await screen.findByText(/Contraste baixo/)).toBeInTheDocument();
   });
