@@ -26,6 +26,7 @@ Porte em TypeScript de `docs/specs/tools/compile_bundle.py` ([Build System §5.1
 | `compile.ts` | compilação, uma função por entidade (cena, capítulo, tela, asset…) | não |
 | `incremental.ts` | `planReload`/`applyPatch`: patches do `preview.reload` (Preview Protocol §3) | não |
 | `load.ts`, `write.ts` | leitura do projeto e gravação do bundle | sim |
+| `vnb.ts` | formato `.vnb` (M5-03): Zstandard nível 19 + AES-256-CBC, `CONTENT_HASHES`, leitura de conferência (G001/G002) | sim (`node:zlib`, `node:crypto`) |
 
 Os módulos puros servem também ao Studio (WebView). O compilador não valida: quem chama roda o validador antes (M5-01) e para em erro, como a referência.
 
@@ -35,6 +36,10 @@ writeBundle('out', compileProject(loadProject('docs/specs/examples/demo-project'
 ```
 
 Os testes conferem os 7 vetores de `conformance/canonical.json`, os 8 de `conformance/compile/cases.json`, a equivalência incremental em cada vetor e a igualdade byte a byte com `compile_bundle.py` (exemplo das specs nas duas edições e os 8 vetores; precisa de `python3`, sem `jsonschema`).
+
+### Formato `.vnb` (M5-03)
+
+`writeVnbBundle(pasta, compilado, { key })` grava `narrative.vnb`, `locales/<idioma>.vnb`, `plugins.vnb` e `licenses.vnb` ([BS §5.2](../docs/specs/05-build-system-specification.md)) e devolve o `CONTENT_HASHES` do `build_config.gd` (BS §4.4). `key` é a `CONTENT_KEY` do build (`generateContentKey()`, 32 bytes novos a cada build); com `key: null` os arquivos saem sem cifra (build de debug, BS §11.1). `decodeVnb` faz as mesmas conferências do `VNBundleLoader` do runtime. A ida e volta com o Godot roda na CI (`vnb-roundtrip.yml`, `scripts/vnb_roundtrip.mjs`).
 
 ## Validador de conteúdo (M5-01)
 

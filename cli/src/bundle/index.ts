@@ -9,3 +9,4 @@ export * from './compile.js';
 export * from './incremental.js';
 export { loadProject, loadPreset, defaultPresetsDir, readText, type LoadOptions } from './load.js';
 export { writeBundle } from './write.js';
+export * from './vnb.js';
