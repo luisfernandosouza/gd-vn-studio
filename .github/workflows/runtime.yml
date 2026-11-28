@@ -124,6 +124,9 @@ jobs:
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/pw" && cd "$RUNNER_TEMP/pw"
           npm init -y >/dev/null && npm i -s playwright@1
+          # O `apt-get update` do --with-deps falha com 403 no repositório da Microsoft da imagem do runner
+          # (packages.microsoft.com), que o Chromium não usa: tira esse repositório antes.
+          sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/microsoft-prod.sources /etc/apt/sources.list.d/*microsoft*.list /etc/apt/sources.list.d/*microsoft*.sources
           npx playwright install --with-deps chromium
           echo "NODE_PATH=$RUNNER_TEMP/pw/node_modules" >> "$GITHUB_ENV"
       - name: Vetores no runtime nativo
