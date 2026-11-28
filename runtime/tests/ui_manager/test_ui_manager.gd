@@ -65,6 +65,8 @@ func _main() -> void:
 		"extras_recusado_no_jogo", "acoes_if_else", "acoes_confirm_then_else", "acoes_effects_titulo",
 		"acoes_effects_e_emit_no_jogo", "acoes_elementos", "pausa_pausa_o_engine", "hud_durante_atividade",
 		"textos_interpolacao", "reset_profile",
+		"acess_acoes_input", "acess_contraste", "acess_text_scale", "acess_foco_visivel",
+		"acess_alto_contraste_dialogo", "acess_vn_menu_cancel",
 	]:
 		await _run(t)
 	print("%d/%d testes do UI Manager passaram." % [_passed, _passed + _failed])
@@ -605,8 +607,9 @@ func test_credits_licencas() -> String:
 	ui.open_screen("credits")
 	var s := ui.top_screen()
 	var list: Control = s.elements["licenses"]
-	if int(list.get_meta(&"vn_count", 0)) != 3:
-		return "Godot, runtime e o plugin de pesca: %d" % list.get_meta(&"vn_count", 0)
+	var base := VNRuntimeUIManager.engine_notice_entries().size()
+	if int(list.get_meta(&"vn_count", 0)) != base + 1:
+		return "aviso do motor (%d) e o plugin de pesca: %d" % [base, list.get_meta(&"vn_count", 0)]
 	var text := ""
 	for l in list.get_child(0).get_children():
 		text += l.text
@@ -617,9 +620,62 @@ func test_credits_licencas() -> String:
 		return "label: %s" % lbl.text
 	# Só engine: o aviso do motor aparece mesmo assim, o plugin não.
 	var only := VNUIElements.build(s, {"id": "x", "type": "licenses_list", "include": ["fonts"]})
-	if int(only.get_meta(&"vn_count")) != 2:
+	if int(only.get_meta(&"vn_count")) != base:
 		return "include sem plugins: %d" % only.get_meta(&"vn_count")
 	only.free()
+	return ""
+
+
+func test_licencas_aviso_do_motor_e_creditos() -> String:
+	# Pasta de licenças no formato gerado por sync_generated_copies.py.
+	var dir := "user://vn_test_licenses/"
+	DirAccess.make_dir_recursive_absolute(dir)
+	var files := {
+		"vn_runtime-LICENSE.txt": "MIT runtime text",
+		"OFL-NotoSans.txt": "OFL text",
+		"index.json": JSON.stringify({"licenses": [
+			{"kind": "runtime", "name": "VN Studio runtime", "license": "MIT", "file": "vn_runtime-LICENSE.txt"},
+			{"kind": "font", "name": "Noto Sans", "license": "OFL-1.1", "file": "OFL-NotoSans.txt"},
+			{"kind": "font", "name": "Noto Sans JP", "license": "OFL-1.1", "file": "OFL-NotoSans.txt"},
+		]}),
+	}
+	for f in files:
+		var fa := FileAccess.open(dir + f, FileAccess.WRITE)
+		fa.store_string(files[f])
+		fa.close()
+	var notice := VNRuntimeUIManager.engine_notice_entries(dir)
+	for e in notice:
+		if e.kind != "engine":
+			return "aviso do motor tem kind engine"
+	var titles: Array = notice.map(func(e): return e.title)
+	if not titles.has("Godot Engine") or not titles.has("Visual Novel Studio runtime"):
+		return "Godot e runtime: %s" % [titles]
+	if not titles.has("Noto Sans, Noto Sans JP"):
+		return "fontes do preset agrupadas por licença: %s" % [titles]
+	for e in notice:
+		if e.title == "Visual Novel Studio runtime" and e.get("text", "") != "MIT runtime text":
+			return "texto do runtime"
+		if e.title == "Noto Sans, Noto Sans JP" and e.get("text", "") != "OFL text":
+			return "texto da OFL"
+	for f in files:
+		DirAccess.remove_absolute(dir + f)
+	DirAccess.remove_absolute(dir)
+	# Créditos de assets (Noraneko e sutemo) aparecem na lista, e o aviso do motor com include vazio.
+	var r := _setup()
+	var ui: VNRuntimeUIManager = r[1]
+	_to_title(r[0])
+	ui.open_screen("credits")
+	ui.set_licenses({"entries": [
+		{"kind": "asset", "title": "Noraneko Games", "author": "Noraneko Games", "license": "Noraneko terms"},
+		{"kind": "asset", "title": "sutemo", "author": "sutemo", "license": "sutemo terms"},
+	]})
+	var list := VNUIElements.build(ui.top_screen(), {"id": "x", "type": "licenses_list", "include": ["assets"]})
+	var text := ""
+	for l in list.get_child(0).get_children():
+		text += l.text
+	list.free()
+	if not text.contains("Noraneko Games") or not text.contains("sutemo") or not text.contains("Godot Engine"):
+		return "créditos e aviso do motor: %s" % text
 	return ""
 
 
@@ -930,4 +986,158 @@ func test_reset_profile() -> String:
 	_to_game(m)
 	if ui.run_actions([{"do": "reset_profile"}]).ok:
 		return "reset_profile no jogo é recusado"
+	return ""
+
+
+# --- Acessibilidade mínima (M2-15; Req §12, RT §10.1) -------------------------
+
+func test_acess_acoes_input() -> String:
+	for a in VNInputActions.ACTIONS:
+		if not InputMap.has_action(a):
+			return "ação %s fora do InputMap" % a
+		if InputMap.action_get_events(a).is_empty():
+			return "ação %s sem eventos" % a
+	# Registro só do que falta: tira uma, registra de novo e confere o padrão do RT §10.1.
+	InputMap.erase_action(&"vn_hide")
+	InputMap.erase_action(&"vn_quick_save")
+	var added := VNInputActions.ensure_registered()
+	if added != [&"vn_hide", &"vn_quick_save"]:
+		return "registrou %s" % [added]
+	var k := InputEventKey.new()
+	k.keycode = KEY_H
+	k.pressed = true
+	if not InputMap.event_is_action(k, &"vn_hide"):
+		return "vn_hide sem a tecla H"
+	var mid := InputEventMouseButton.new()
+	mid.button_index = MOUSE_BUTTON_MIDDLE
+	mid.pressed = true
+	if not InputMap.event_is_action(mid, &"vn_hide"):
+		return "vn_hide sem o botão do meio"
+	var f5 := InputEventKey.new()
+	f5.keycode = KEY_F5
+	if not InputMap.event_is_action(f5, &"vn_quick_save"):
+		return "vn_quick_save sem F5"
+	var pad := InputEventJoypadButton.new()
+	pad.button_index = JOY_BUTTON_START
+	if not InputMap.event_is_action(pad, &"vn_menu"):
+		return "vn_menu sem Start"
+	# Ação que o projeto já tem não é tocada.
+	var before := InputMap.action_get_events(&"vn_confirm").size()
+	VNInputActions.ensure_registered()
+	if InputMap.action_get_events(&"vn_confirm").size() != before:
+		return "ensure_registered mexeu em ação existente"
+	return ""
+
+
+func test_acess_contraste() -> String:
+	if not is_equal_approx(VNUIAccessibility.contrast_ratio(Color.BLACK, Color.WHITE), 21.0):
+		return "preto sobre branco deveria dar 21:1"
+	if not VNUIAccessibility.has_enough_contrast(Color.WHITE, Color("101826")):
+		return "branco sobre o painel do classic deveria passar"
+	if VNUIAccessibility.has_enough_contrast(Color("777777"), Color("888888")):
+		return "cinza sobre cinza não deveria passar"
+	# Texto com alfa é composto sobre o painel antes da conta.
+	if VNUIAccessibility.has_enough_contrast(Color(1, 1, 1, 0.1), Color.BLACK):
+		return "branco a 10% sobre preto não deveria passar"
+	return ""
+
+
+func test_acess_text_scale() -> String:
+	var r := _setup()
+	var m: VNModules = r[0]
+	var ui: VNRuntimeUIManager = r[1]
+	_to_title(m)
+	await process_frame
+	var btn := VNUIElements.focus_control(ui.top_screen().elements["btn_new_game"]) as Button
+	var base := btn.get_theme_font_size(&"font_size")
+	ui.set_setting(&"text_scale", 2.0)
+	if btn.get_theme_font_size(&"font_size") != base * 2:
+		return "200%%: %d, esperado %d" % [btn.get_theme_font_size(&"font_size"), base * 2]
+	ui.set_setting(&"text_scale", 0.8)
+	if btn.get_theme_font_size(&"font_size") != roundi(base * 0.8):
+		return "80%%: %d" % btn.get_theme_font_size(&"font_size")
+	ui.set_setting(&"text_scale", 1.0)
+	if btn.get_theme_font_size(&"font_size") != base:
+		return "100%% volta ao tamanho do tema: %d" % btn.get_theme_font_size(&"font_size")
+	# Fora da faixa o valor é rejeitado ou limitado; a escala nunca passa de 200%.
+	ui.set_setting(&"text_scale", 5.0)
+	if ui.text_scale() > 2.0:
+		return "escala acima de 200%%: %s" % ui.text_scale()
+	ui.set_setting(&"text_scale", 1.5)
+	ui.open_screen("settings")
+	await process_frame
+	var other := VNUIElements.focus_control(ui.top_screen().elements["sl_master"])
+	var lbl := ui.top_screen().find_children("*", "Label", true, false)
+	for l: Label in lbl:
+		if l.get_theme_font_size(&"font_size") != VNUIAccessibility.scaled_size(l.get_meta(&"vn_base_font_sizes")["font_size"], 1.5):
+			return "tela aberta depois do ajuste não nasce escalada"
+	return "" if other != null else "sem slider"
+
+
+func test_acess_foco_visivel() -> String:
+	var r := _setup()
+	var m: VNModules = r[0]
+	var ui: VNRuntimeUIManager = r[1]
+	_to_title(m)
+	await process_frame
+	var btn := VNUIElements.focus_control(ui.top_screen().elements["btn_new_game"]) as Button
+	var sb := btn.get_theme_stylebox(&"focus") as StyleBoxFlat
+	if sb == null or sb.border_width_left < 2 or sb.draw_center:
+		return "botão sem moldura de foco"
+	if sb.border_color != VNUIAccessibility.DEFAULT_FOCUS:
+		return "cor do foco: %s" % sb.border_color
+	# colors.focus do tema vale quando existe.
+	if VNUIAccessibility.focus_color({"colors": {"focus": "#ff0000"}}) != Color("ff0000"):
+		return "colors.focus do tema ignorado"
+	if VNUIAccessibility.focus_color({"colors": {"focus": "lixo"}}) != VNUIAccessibility.DEFAULT_FOCUS:
+		return "cor inválida deveria cair no padrão"
+	return ""
+
+
+func test_acess_alto_contraste_dialogo() -> String:
+	var dim := {"colors": {"text": "#777777", "panel": "#88888880"}}
+	var normal := VNUIAccessibility.dialog_colors(dim, false)
+	if normal.panel.a >= 1.0 or normal.text != Color("777777"):
+		return "sem alto contraste, o tema fica como está"
+	var hc := VNUIAccessibility.dialog_colors(dim, true)
+	if not is_equal_approx(hc.panel.a, 1.0):
+		return "painel deveria ficar opaco"
+	if not VNUIAccessibility.has_enough_contrast(hc.text, hc.panel):
+		return "texto com contraste %.2f" % VNUIAccessibility.contrast_ratio(hc.text, hc.panel)
+	# Texto do tema que já passa é mantido.
+	var ok := VNUIAccessibility.dialog_colors({"colors": {"text": "#ffffff", "panel": "#000000"}}, true)
+	if ok.text != Color.WHITE:
+		return "texto que já passa não deveria mudar"
+	# A caixa de confirmação acompanha a configuração.
+	var r := _setup()
+	var m: VNModules = r[0]
+	var ui: VNRuntimeUIManager = r[1]
+	_to_title(m)
+	ui.set_setting(&"high_contrast", true)
+	ui.show_message("runtime/message/ok")
+	await process_frame
+	var dlg: VNUIDialog = ui.layer_root(VNLayers.SYSTEM).find_children("*", "Control", true, false).filter(func(n): return n is VNUIDialog)[0]
+	var panel_sb := dlg.panel.get_theme_stylebox(&"panel") as StyleBoxFlat
+	if panel_sb == null or not is_equal_approx(panel_sb.bg_color.a, 1.0):
+		return "caixa não ficou opaca com alto contraste"
+	return ""
+
+
+func test_acess_vn_menu_cancel() -> String:
+	var r := _setup()
+	var m: VNModules = r[0]
+	var ui: VNRuntimeUIManager = r[1]
+	_to_game(m)
+	await process_frame
+	if not ui.screen_stack().is_empty():
+		return "pilha deveria estar vazia no jogo"
+	if not _press(ui, &"vn_menu") or ui.screen_stack() != PackedStringArray(["pause"]):
+		return "vn_menu na história deveria abrir a pausa: %s" % ui.screen_stack()
+	# Com uma tela aberta, vn_menu não empilha outra pausa; vn_cancel fecha a do topo.
+	_press(ui, &"vn_menu")
+	if ui.screen_stack() != PackedStringArray(["pause"]):
+		return "vn_menu com tela aberta: %s" % ui.screen_stack()
+	_press(ui, &"vn_cancel")
+	if not ui.screen_stack().is_empty():
+		return "vn_cancel deveria fechar a pausa: %s" % ui.screen_stack()
 	return ""

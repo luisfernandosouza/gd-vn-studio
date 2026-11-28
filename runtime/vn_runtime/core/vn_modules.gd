@@ -32,6 +32,11 @@ var audio: VNAudioManager               ## Audio Manager, parte do Stage (RT §1
 var ui: VNUIManager                     ## UI Manager: pilha de telas e settings.json
 var assets: VNAssets                    ## VNAssets: resolve ids de asset em recursos
 
+## RNG do jogo (RT §12.2, M1-08). Não é um [VNModule] nem está em [constant MODULE_IDS]: é um
+## serviço sem dublê, o mesmo nos testes e no jogo. [method load_bundle] lê
+## [code]settings.reproducible_rng[/code]; o Narrative Engine semeia com [method VNGameRng.new_game].
+var rng: VNGameRng = VNGameRng.new()
+
 
 ## O módulo registrado com o id dado, ou [code]null[/code].
 func get_module(id: StringName) -> VNModule:
@@ -67,6 +72,7 @@ func bind_all() -> void:
 
 ## Entrega o bundle a todos os módulos, na ordem de [constant MODULE_IDS].
 func load_bundle(bundle: Dictionary) -> void:
+	rng.configure_from_bundle(bundle)
 	for m in all():
 		m.load_bundle(bundle)
 

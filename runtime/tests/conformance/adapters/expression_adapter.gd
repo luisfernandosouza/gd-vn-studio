@@ -12,10 +12,9 @@ func run(c: Dictionary) -> Dictionary:
 	var missing := require([&"conditions"])
 	if not missing.is_empty():
 		return missing
-	if c.has("rng_state"):
-		# O estado do PCG32 não tem contrato no M0-07; a tarefa do RNG (M1-08) liga aqui.
-		return skip("estado do RNG reproduzível sem contrato (M1-08)")
 	var m := modules.create(true)
+	if c.has("rng_state"):
+		m.rng.set_state_hex(String(c["rng_state"]))   # random_int sorteia por modules().rng (M1-08)
 	var bundle := VNCaseModules.empty_bundle()
 	var vars: Dictionary = c.get("variables", {})
 	var err := VNCaseModules.add_variables(bundle, vars, "", "")

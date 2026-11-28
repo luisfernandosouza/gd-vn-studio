@@ -14,7 +14,7 @@ describe('App', () => {
   it('abre a janela no Project Manager e marca o Studio como pronto', () => {
     render(<App io={{ fs: new MemoryFs(), pickFolder: async () => null }} />);
     expect(screen.getByRole('heading', { name: 'Visual Novel Studio' })).toBeInTheDocument();
-    expect(screen.getByRole('form', { name: 'Novo projeto' })).toBeInTheDocument();
+    expect(screen.getByRole('form', { name: 'New project' })).toBeInTheDocument();
     expect(screen.getByRole('main')).toHaveAttribute('data-ready', 'true');
   });
 });
