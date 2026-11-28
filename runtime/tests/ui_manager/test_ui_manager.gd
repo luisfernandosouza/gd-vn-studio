@@ -59,7 +59,7 @@ func _initialize() -> void:
 func _main() -> void:
 	for t in [
 		"contrato", "titulo_condicoes", "titulo_novo_jogo", "titulo_continuar", "titulo_foco_teclado",
-		"titulo_on_open_set", "titulo_sair_confirma", "pilha_e_voltar", "settings_controles",
+		"titulo_on_open_set", "titulo_set_composto", "titulo_sair_confirma", "pilha_e_voltar", "settings_controles",
 		"settings_arquivo_invalido", "settings_sobrevivem_reinicio", "settings_legado_fullscreen",
 		"fps_novel_e_atividade", "settings_traducao", "credits_licencas", "extras_modo_livre",
 		"extras_recusado_no_jogo", "acoes_if_else", "acoes_confirm_then_else", "acoes_effects_titulo",
@@ -309,6 +309,60 @@ func test_titulo_on_open_set() -> String:
 		return "hotspot da concha: %s" % [got]
 	if (m.audio as FakeAudioManager).calls.filter(func(c): return c.method == &"play" and c.args[0] == "sfx/shell").size() != 1:
 		return "play_sfx da concha"
+	return ""
+
+
+func _tex(size: Vector2i) -> Texture2D:
+	var img := Image.create_empty(size.x, size.y, false, Image.FORMAT_RGBA8)
+	img.fill(Color.WHITE)
+	return ImageTexture.create_from_image(img)
+
+
+## O set beach_title atrás do título (M2-08): camadas, on_open, hotspot da
+## lâmpada com o mouse e com o teclado.
+func test_titulo_set_composto() -> String:
+	var r := _setup()
+	var m: VNModules = r[0]
+	var ui: VNRuntimeUIManager = r[1]
+	var fa := m.assets as FakeAssets
+	for id in ["bg/sky_day", "bg/sky_night", "bg/sea"]:
+		fa.resources[id] = _tex(Vector2i(1920, 1080))
+	for id in ["obj/lamp_off", "obj/lamp_on"]:
+		fa.resources[id] = _tex(Vector2i(220, 420))
+	fa.resources["obj/shell"] = _tex(Vector2i(140, 120))
+	m.state.set_system_value("sys.endings.festival_ending", true)
+	_to_title(m)
+	await process_frame
+	var screen := ui.top_screen()
+	var view := screen.set_view
+	if view == null or view.set_id != "beach_title":
+		return "a tela title tem o set beach_title atrás"
+	if view.layer_ids().size() != 4 or view.state_of("sky") != "night":
+		return "on_open com set_state:set:sky muda o céu do set da tela: %s" % view.states()
+	if (view.layer_node("sky") as Sprite2D).texture != fa.resources["bg/sky_night"]:
+		return "céu da noite"
+	var lamp := view.hotspot_node("lamp_click")
+	if lamp == null or lamp.focus_mode != Control.FOCUS_ALL:
+		return "hotspot da lâmpada alcançável por teclado"
+	if not screen.focusables().has(lamp):
+		return "o hotspot do set entra na navegação da tela"
+	lamp.activated.emit()
+	if view.state_of("lamp") != "on":
+		return "clicar acende a lâmpada"
+	if (m.audio as FakeAudioManager).calls.filter(func(c): return c.method == &"play" and c.args[0] == "sfx/click").size() != 1:
+		return "play_sfx da lâmpada"
+	lamp.grab_focus()
+	if not _press(ui, &"vn_confirm") or view.state_of("lamp") != "default":
+		return "vn_confirm no hotspot focado apaga a lâmpada"
+	var got := []
+	ui.set_target_action.connect(func(scope, target, action, args): got.append([scope, target]))
+	ui.run_actions([{"do": "toggle_state", "target": "set:lamp", "states": ["default", "on"]}], {"screen": "title"})
+	if view.state_of("lamp") != "on" or got != [[&"set", "lamp"]]:
+		return "ação set: da tela chega ao set: %s" % view.states()
+	ui.run_actions([{"do": "set_state", "target": "set:nao_existe", "state": "on"}], {"screen": "title"})
+	ui.set_setting(&"show_hotspots", true)
+	if not lamp.show_always:
+		return "show_hotspots destaca os hotspots do set"
 	return ""
 
 
