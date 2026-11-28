@@ -594,6 +594,7 @@ def run_flow(c):
         env.vars[f"scene.{d['key']}"] = {"type": d["type"], "value": float(d["default"]) if d["type"] == "number" else d["default"], "default": d["default"], **({"constraints": d["constraints"]} if "constraints" in d else {})}
     nodes = scene["nodes"]; index = {n["id"]: i for i, n in enumerate(nodes)}
     inputs = list(c.get("inputs", [])); trace = []; queue = []
+    used_hotspots = set()                                  # hotspots once já usados nesta execução da cena (UI Spec §6)
     def emit(name, payload=None): queue.append(name)
     def drain():
         while queue: trace.append({"event": queue.pop(0)})
@@ -694,6 +695,25 @@ def run_flow(c):
             transaction(eff)
             emit("sys.choice_made"); drain()
             i = index[o["goto"]] if o.get("goto") else nxt(i, n)
+        elif t == "interact":
+            # Runtime Spec §5.2 / UI Spec §6: como a choice, com hotspots; a saída tem o id reservado "exit".
+            vis = [h for h in n["hotspots"] if h["id"] not in used_hotspots and check_conditions(h.get("visible_if", []), env)]
+            ex = n.get("exit")
+            if not vis and not ex: i = nxt(i, n); continue
+            opts = [{"id": h["id"], "enabled": check_conditions(h.get("enabled_if", []), env)} for h in vis]
+            if ex: opts.append({"id": "exit", "enabled": True})
+            trace.append({"options": opts})
+            inp = inputs.pop(0) if inputs else None
+            if not (isinstance(inp, dict) and "choose" in inp): return trace + [{"waiting": "interact"}]
+            if inp["choose"] == "exit":                    # a saída vai para o seu goto, sem efeitos, record nem evento
+                i = index[ex["goto"]] if ex.get("goto") else nxt(i, n); continue
+            h = next(h for h in vis if h["id"] == inp["choose"])
+            if h.get("once"): used_hotspots.add(h["id"])
+            eff = list(h.get("effects", []))
+            if n.get("record"): eff.append({"op": "set", "variable": n["record"], "value": h.get("value", h["id"])})
+            transaction(eff)
+            emit("sys.choice_made"); drain()
+            i = index[h["goto"]] if h.get("goto") else nxt(i, n)
         elif t == "effects":
             code = transaction(n["effects"])
             if code == "CONSTRAINT_VIOLATION" and n.get("on_fail"): i = index[n["on_fail"]]; continue
@@ -721,7 +741,7 @@ def run_flow(c):
         elif t == "end":
             then = n.get("then", "schedule")
             trace.append({"event": "sys.scene_ended"}); trace.append({"end": then}); break
-        else:   # background, show, hide, audio, wait, interact sem entrada: o palco só entra no traço ao mudar o modo
+        else:   # background, show, hide, audio, wait: o palco só entra no traço ao mudar o modo
             put_on_stage(n)
             i = nxt(i, n)
     return trace

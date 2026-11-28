@@ -1,14 +1,14 @@
-# Stage do runtime (tarefa M2-02; RT §1.1, §5.2; DM §10.2).
-# Roda os testes do Stage real contra os dublês dos outros módulos, com as cenas da demo
+# Stage do runtime (tarefas M2-02 e M2-04; RT §1.1, §5.2; DM §10.2; UI Spec §6).
+# Roda os testes do Stage real e das escolhas e do interact contra os dublês dos outros módulos, com as cenas da demo
 # de docs/specs/examples/demo-project/ em 16:9, 21:9 e 4:3.
 name: Runtime stage
 
 on:
   pull_request:
-    paths: [runtime/vn_runtime/stage/**, runtime/vn_runtime/sets/**, runtime/vn_runtime/core/**, runtime/tests/stage/**, runtime/tests/fakes/**, runtime/project.godot, docs/specs/examples/demo-project/**, .github/workflows/runtime-stage.yml]
+    paths: [runtime/vn_runtime/stage/**, runtime/vn_runtime/sets/**, runtime/vn_runtime/core/**, runtime/vn_runtime/ui_manager/vn_ui_hotspot.gd, runtime/tests/stage/**, runtime/tests/fakes/**, runtime/project.godot, docs/specs/examples/demo-project/**, .github/workflows/runtime-stage.yml]
   push:
     branches: [main]
-    paths: [runtime/vn_runtime/stage/**, runtime/vn_runtime/sets/**, runtime/vn_runtime/core/**, runtime/tests/stage/**, runtime/tests/fakes/**, runtime/project.godot, docs/specs/examples/demo-project/**, .github/workflows/runtime-stage.yml]
+    paths: [runtime/vn_runtime/stage/**, runtime/vn_runtime/sets/**, runtime/vn_runtime/core/**, runtime/vn_runtime/ui_manager/vn_ui_hotspot.gd, runtime/tests/stage/**, runtime/tests/fakes/**, runtime/project.godot, docs/specs/examples/demo-project/**, .github/workflows/runtime-stage.yml]
   workflow_dispatch:
 
 env:
@@ -45,10 +45,14 @@ jobs:
         run: |
           set -euo pipefail
           godot --headless --path runtime --script res://tests/stage/test_stage.gd 2>&1 | tee "$RUNNER_TEMP/stage.log"
+      - name: Testes das escolhas e do interact (M2-04)
+        run: |
+          set -euo pipefail
+          godot --headless --path runtime --script res://tests/stage/test_interaction.gd 2>&1 | tee "$RUNNER_TEMP/interaction.log"
       - name: Sem erros no log do Godot
         run: |
           # O Godot sai com 0 mesmo quando um script não compila; qualquer ERROR nos logs falha a CI.
-          if grep -hE '(^|[^A-Z_])(ERROR|SCRIPT ERROR):' "$RUNNER_TEMP"/{import,stage}.log; then
-            echo "::error title=Godot registrou erros::O Stage e os testes devem rodar sem erros (M2-02)."
+          if grep -hE '(^|[^A-Z_])(ERROR|SCRIPT ERROR):' "$RUNNER_TEMP"/{import,stage,interaction}.log; then
+            echo "::error title=Godot registrou erros::O Stage e os testes devem rodar sem erros (M2-02, M2-04)."
             exit 1
           fi

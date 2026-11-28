@@ -42,6 +42,10 @@ extends VNStage
 ## hotspots de [code]interact[/code] (M2-04), base por item do modo stream
 ## (M2-12) e miniatura do save (M2-10). Os métodos dessas partes guardam os
 ## dados e ficam documentados como tal.
+##
+## [b]Escolhas e [code]interact[/code] (M2-04).[/b] [VNStageInteraction] desenha
+## os botões das opções (camada 30), os hotspots (camada 15) e a saída, e
+## avisa a escolha por [signal VNStage.option_selected].
 
 ## Camadas criadas pelo Stage. HUD (40) e telas (50) são do UI Manager;
 ## atividade (60) é do Plugin Host; a camada do sistema (100) é compartilhada.
@@ -93,12 +97,12 @@ var _order: Array[String] = []
 ## Transições em andamento: alvo → Tween.
 var _tweens: Dictionary = {}
 
-# Dados guardados para as tarefas M2-03 e M2-04.
+## Escolhas e hotspots de interact (M2-04).
+var _interaction: VNStageInteraction = null
+var _theme: Dictionary = {}
+
+# Dados guardados para a tarefa M2-03.
 var _line: Dictionary = {}
-var _choices: Array[Dictionary] = []
-var _choices_prompt: String = ""
-var _hotspots: Array[Dictionary] = []
-var _exit_option: Dictionary = {}
 var _textbox_hidden := false
 
 
@@ -119,6 +123,9 @@ func load_bundle(bundle: Dictionary) -> void:
 	if res is Array and res.size() == 2 and float(res[0]) > 0 and float(res[1]) > 0:
 		base_size = Vector2(float(res[0]), float(res[1]))
 	_placeholder = String(project.get("content_filter", {}).get("placeholder", ""))
+	_theme = bundle.get("theme", {})
+	if _interaction != null:
+		_interaction.set_theme(_theme)
 	if _root != null:
 		_relayout()
 
@@ -141,6 +148,10 @@ func attach(parent: Node) -> void:
 	_bg_holder = Node2D.new()
 	_bg_holder.name = "Scenery"
 	_layers[VNLayers.BACKGROUND].add_child(_bg_holder)
+	_interaction = VNStageInteraction.new(self)
+	_interaction.set_theme(_theme)
+	_interaction.selected.connect(_on_option_selected)
+	_interaction.attach(_layers[VNLayers.TEXTBOX], _layers[VNLayers.HOTSPOTS])
 	_root.tree_entered.connect(_on_tree_entered)
 	_root.tree_exiting.connect(_on_tree_exiting)
 	parent.add_child(_root)
@@ -151,6 +162,9 @@ func attach(parent: Node) -> void:
 func detach() -> void:
 	_disconnect_ui()
 	_kill_tweens()
+	if _interaction != null:
+		_interaction.detach()
+		_interaction = null
 	if _root != null:
 		if _root.is_inside_tree():
 			_on_tree_exiting()
@@ -756,6 +770,8 @@ func _redraw_all() -> void:
 		layer.add_child(entry.node)
 		_place_character(id)
 	_restack()
+	if _interaction != null:
+		_interaction.refit()
 
 
 # --- Texto, escolhas e hotspots (tarefas M2-03 e M2-04) ----------------------
@@ -765,24 +781,42 @@ func show_line(line: Dictionary) -> void:
 	_line = line
 
 
-## Guarda as opções; os botões de escolha são da tarefa M2-04.
+func _on_option_selected(option_id: String) -> void:
+	option_selected.emit(option_id)
+
+
+## Botões das opções na camada 30 (M2-04); a escolha sai por [signal VNStage.option_selected].
 func show_choices(prompt: String, options: Array[Dictionary]) -> void:
-	_choices_prompt = prompt
-	_choices = options
+	if _interaction == null:
+		_interaction = VNStageInteraction.new(self)
+		_interaction.set_theme(_theme)
+		_interaction.selected.connect(_on_option_selected)
+	_interaction.show_choices(prompt, options)
 
 
-## Guarda os hotspots; as áreas clicáveis na camada 15 são da tarefa M2-04.
-func show_hotspots(hotspots: Array[Dictionary], exit_option: Dictionary = {}) -> void:
-	_hotspots = hotspots
-	_exit_option = exit_option
+## Hotspots na camada 15 e a saída (M2-04); a escolha sai por [signal VNStage.option_selected].
+func show_hotspots(hotspots: Array[Dictionary], exit_option: Dictionary = {}, prompt: String = "") -> void:
+	if _interaction == null:
+		_interaction = VNStageInteraction.new(self)
+		_interaction.set_theme(_theme)
+		_interaction.selected.connect(_on_option_selected)
+	_interaction.show_hotspots(hotspots, exit_option, prompt)
 
 
 func clear_interaction() -> void:
 	_line = {}
-	_choices = []
-	_choices_prompt = ""
-	_hotspots = []
-	_exit_option = {}
+	if _interaction != null:
+		_interaction.clear()
+
+
+## A escolha e o [code]interact[/code] em tela (ver [VNStageInteraction]).
+func interaction() -> VNStageInteraction:
+	return _interaction
+
+
+## A textura de um asset (cursor de hotspot); [code]null[/code] se não carrega.
+func asset_texture(asset_id: String) -> Texture2D:
+	return _texture(asset_id)
 
 
 func set_textbox_hidden(hidden: bool) -> void:

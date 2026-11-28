@@ -244,7 +244,7 @@ Para cliques que **mudam a história**, a cena usa o nó `interact`, uma escolha
   "record": "scene.last_clicked" }
 ```
 
-- Semântica igual à da `choice` (Data Model §8.2): `visible_if`, `enabled_if`, `effects` + `record` numa transação, `goto` (ausente: `next`). Sem hotspot visível, segue `next` (aviso W006).
+- Semântica igual à da `choice` (Data Model §8.2): `visible_if`, `enabled_if`, `effects` + `record` numa transação, `goto` (ausente: `next`). Sem hotspot visível e sem `exit`, segue `next` (aviso W006); com `exit`, o jogo mostra só a saída e espera (RT §5.2). Para o runtime e os vetores de conformidade, a saída é a opção de id reservado `exit` (os ids dos hotspots são UUIDs, então não colidem); ela vai para o seu `goto` (ausente: `next`) sem `effects`, sem `record` e sem `sys.choice_made`.
 - `once: true`: o hotspot some depois de usado nesta execução da cena. O padrão "investigar até sair" é o `goto` de cada hotspot voltar ao próprio nó `interact` depois das falas; `exit` é o botão de saída (opcional).
 - `label` é traduzível (caminho `<cena>/<nó>/<hotspot>`) e aparece como dica e na navegação por teclado/gamepad, que percorre os hotspots em ordem.
 - Os hotspots cosméticos do set em cena continuam ativos durante o `interact`.

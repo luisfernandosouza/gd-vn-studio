@@ -182,6 +182,21 @@ func layer_ids() -> PackedStringArray:
 	return PackedStringArray(_layers.keys())
 
 
+## Máscara alfa de uma camada visível e com textura, para hotspots de [code]interact[/code]
+## com área [code]layer[/code]: [code]{ bitmap, outlines, rect }[/code], com [code]rect[/code]
+## em coordenadas da camada do Stage; vazio se a camada está escondida ou sem textura.
+func layer_mask(layer: String) -> Dictionary:
+	var node: CanvasItem = _nodes.get(layer)
+	if not node is Sprite2D or not node.visible or node.texture == null:
+		return {}
+	var sp := node as Sprite2D
+	var m := _mask_of(layer, sp.texture)
+	if m.is_empty():
+		return {}
+	return {"bitmap": m.bitmap, "outlines": m.outlines,
+		"rect": Rect2(sp.global_position, sp.texture.get_size() * sp.global_scale)}
+
+
 func hotspot_node(hotspot_id: String) -> VNSetHotspot:
 	return _hotspots.get(hotspot_id)
 
