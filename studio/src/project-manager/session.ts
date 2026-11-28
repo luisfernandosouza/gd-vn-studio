@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type { OpenedProject } from './open';
 
-/** Projeto aberto no Studio. O modelo em memória de cada entidade chega no M6-02. */
+/** Projeto aberto no Studio. O documento lógico em memória fica em `document/session.ts` (M6-02). */
 export interface ProjectSessionState {
   current: OpenedProject | null;
   setCurrent: (project: OpenedProject | null) => void;
