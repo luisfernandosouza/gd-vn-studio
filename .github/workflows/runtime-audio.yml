@@ -5,10 +5,10 @@ name: Runtime audio
 
 on:
   pull_request:
-    paths: [runtime/vn_runtime/audio/**, runtime/vn_runtime/core/**, runtime/tests/audio/**, runtime/tests/fakes/**, runtime/tests/fixtures/**, docs/specs/conformance/flow.json, .github/workflows/runtime-audio.yml]
+    paths: [runtime/vn_runtime/audio/**, runtime/vn_runtime/core/**, runtime/vn_runtime/ui_manager/vn_ui_theme.gd, runtime/tests/audio/**, runtime/tests/fakes/**, runtime/tests/fixtures/**, docs/specs/conformance/flow.json, .github/workflows/runtime-audio.yml]
   push:
     branches: [main]
-    paths: [runtime/vn_runtime/audio/**, runtime/vn_runtime/core/**, runtime/tests/audio/**, runtime/tests/fakes/**, runtime/tests/fixtures/**, docs/specs/conformance/flow.json, .github/workflows/runtime-audio.yml]
+    paths: [runtime/vn_runtime/audio/**, runtime/vn_runtime/core/**, runtime/vn_runtime/ui_manager/vn_ui_theme.gd, runtime/tests/audio/**, runtime/tests/fakes/**, runtime/tests/fixtures/**, docs/specs/conformance/flow.json, .github/workflows/runtime-audio.yml]
   workflow_dispatch:
 
 env:

@@ -2,13 +2,14 @@ class_name VNUIDialog
 extends Control
 ## Caixa de confirmação do tema e mensagem bloqueante (camada
 ## [constant VNLayers.SYSTEM]; UI Spec §4 [code]confirm[/code], RT §3.0).
-## Bloqueia o clique nas camadas de baixo enquanto está aberta. O visual do
-## tema é da tarefa M2-07.
+## Bloqueia o clique nas camadas de baixo enquanto está aberta. O visual vem do
+## tema ([method VNUITheme.style_dialog]).
 
 signal answered(accepted: bool)
 
 var buttons: Array[Button] = []
 var label: RichTextLabel
+## Painel da caixa (o tema troca o estilo dele).
 var panel: PanelContainer
 
 

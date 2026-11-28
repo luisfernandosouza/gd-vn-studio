@@ -7,14 +7,16 @@ extends CanvasLayer
 ## mostra o que o [VNRuntimeAudioManager] manda por
 ## [signal VNAudioManager.caption_changed]: o texto já vem traduzido, no modo
 ## atual, e só com [code]subtitles[/code] ligado. Texto vazio apaga a linha do
-## canal. O visual é neutro (painel escuro, texto claro); o tema do projeto
-## entra com a tarefa M2-07.
+## canal. O visual é neutro (painel escuro, texto claro) até o UI Manager passar
+## o tema do projeto por [method apply_theme] (M2-07): fonte e cores do tema, e
+## painel opaco com [code]high_contrast[/code].
 
 const MARGIN_TOP := 48.0
 const FONT_SIZE := 30
 
 var _box: VBoxContainer
 var _labels: Dictionary = {}   # canal → Label
+var _theme: VNUITheme = null
 
 
 func _init() -> void:
@@ -58,6 +60,15 @@ func caption(channel: StringName) -> String:
 	return label.text if label != null else ""
 
 
+## Usa fonte, tamanho, cor do texto e painel do tema ([code]fonts.ui[/code],
+## [code]colors[/code]); com [code]high_contrast[/code] o painel é opaco e o
+## texto tem contraste de pelo menos 4,5:1. Vale também para as legendas já na tela.
+func apply_theme(theme: VNUITheme) -> void:
+	_theme = theme
+	for label: Label in _labels.values():
+		_style(label)
+
+
 ## Apaga todas as legendas.
 func clear() -> void:
 	for ch: StringName in _labels.keys():
@@ -69,14 +80,29 @@ func _make_label(channel: StringName) -> Label:
 	label.name = String(channel).capitalize()
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.add_theme_font_size_override(&"font_size", FONT_SIZE)
-	label.add_theme_color_override(&"font_color", Color(1, 1, 1))
+	_style(label)
+	return label
+
+
+func _style(label: Label) -> void:
+	var size := FONT_SIZE
+	var color := Color(1, 1, 1)
+	var fill := Color(0, 0, 0, 0.7)
+	if _theme != null:
+		var st := {"font_size": FONT_SIZE}
+		label.add_theme_font_override(&"font", _theme.font_for(st))
+		size = _theme.scaled(_theme.font_size_of(st))
+		color = _theme.colors().text
+		if _theme.high_contrast:
+			fill = Color(0, 0, 0, 1.0)
+			color = VNUITheme.ensure_contrast(color, fill)
+	label.add_theme_font_size_override(&"font_size", size)
+	label.add_theme_color_override(&"font_color", color)
 	var panel := StyleBoxFlat.new()
-	panel.bg_color = Color(0, 0, 0, 0.7)
+	panel.bg_color = fill
 	panel.set_content_margin_all(10)
 	panel.set_corner_radius_all(6)
 	label.add_theme_stylebox_override(&"normal", panel)
-	return label
 
 
 ## Ordem fixa das linhas: a dos canais em [constant VNAudioManager.CHANNELS].

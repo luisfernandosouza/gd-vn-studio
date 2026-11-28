@@ -1,15 +1,17 @@
 # UI Manager do runtime (tarefa M2-06; UI Spec §2–§4, §8, §12).
 # Compila a demo das specs com o compilador de referência e roda os testes do
-# UI Manager contra as telas title, settings, credits e extras, com os dublês
-# dos outros módulos (tests/fakes/).
+# UI Manager contra as telas title, settings, credits e extras e contra o
+# theme.json da demo (tarefa M2-07: estilos, fontes por idioma, auto_shrink,
+# alto contraste, animações e sons), com os dublês dos outros módulos
+# (tests/fakes/).
 name: Runtime UI Manager
 
 on:
   pull_request:
-    paths: [runtime/vn_runtime/ui_manager/**, runtime/vn_runtime/sets/**, runtime/vn_runtime/core/**, runtime/tests/ui_manager/**, runtime/tests/fakes/**, docs/specs/examples/**, docs/specs/presets/**, docs/specs/tools/compile_bundle.py, .github/workflows/runtime-ui-manager.yml]
+    paths: [runtime/vn_runtime/ui_manager/**, runtime/vn_runtime/sets/**, runtime/vn_runtime/core/**, runtime/vn_runtime/audio/vn_caption_view.gd, runtime/tests/ui_manager/**, runtime/tests/fakes/**, docs/specs/examples/**, docs/specs/presets/**, docs/specs/tools/compile_bundle.py, .github/workflows/runtime-ui-manager.yml]
   push:
     branches: [main]
-    paths: [runtime/vn_runtime/ui_manager/**, runtime/vn_runtime/sets/**, runtime/vn_runtime/core/**, runtime/tests/ui_manager/**, runtime/tests/fakes/**, docs/specs/examples/**, docs/specs/presets/**, docs/specs/tools/compile_bundle.py, .github/workflows/runtime-ui-manager.yml]
+    paths: [runtime/vn_runtime/ui_manager/**, runtime/vn_runtime/sets/**, runtime/vn_runtime/core/**, runtime/vn_runtime/audio/vn_caption_view.gd, runtime/tests/ui_manager/**, runtime/tests/fakes/**, docs/specs/examples/**, docs/specs/presets/**, docs/specs/tools/compile_bundle.py, .github/workflows/runtime-ui-manager.yml]
   workflow_dispatch:
 
 env:

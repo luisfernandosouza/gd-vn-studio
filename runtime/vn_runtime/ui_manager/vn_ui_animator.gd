@@ -5,7 +5,8 @@ extends RefCounted
 ## [code]slide[/code], [code]scale[/code], [code]pulse[/code], [code]float[/code],
 ## [code]shake[/code], [code]rotate[/code], [code]blink[/code]. Com
 ## [code]reduce_motion[/code], só [code]fade[/code] (o resto vira corte seco).
-## O acabamento fino (estilos, [code]idle[/code], easing do tema) é da tarefa M2-07.
+## Os estilos de botão, o [code]idle[/code] e os efeitos de hover são do tema
+## ([VNUITheme], [VNUIButtonFx]); o easing de cada animação vem do tema.
 
 
 ## Anima [param node] conforme [param anim] ([code]theme.schema.json → Animation[/code]).
@@ -90,6 +91,15 @@ static func play(node: Control, anim: Dictionary, reduce_motion: bool = false, a
 	if loops == 0 and not appear:
 		tw.set_loops()
 	return tw
+
+
+## Transição e curva do Godot para o nome de [code]easing[/code] do tema.
+static func transition_of(easing: String) -> Tween.TransitionType:
+	return _trans(easing)
+
+
+static func ease_of(easing: String) -> Tween.EaseType:
+	return _ease(easing)
 
 
 static func _from_offset(from: String, dist: float) -> Vector2:
