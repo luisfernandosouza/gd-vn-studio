@@ -7,6 +7,7 @@ Runtime das visual novels: projeto Godot 4.7.2 + GDScript ([Runtime Spec](../doc
 | `project.godot` | Projeto Godot: resolução base 1920×1080, `stretch_mode = canvas_items`, `stretch_aspect = expand` (RT §1.1), ações de input `vn_*` (RT §10.1), cena principal `res://vn_runtime/boot.tscn`. No build, o Build System gera um `project.godot` novo a partir deste (BS §4.3) |
 | `vn_runtime/boot.tscn`, `boot.gd` | Cena de boot: despacha `--vn-test`, lê `--vn-bundle` e `--vn-fakes` e roda o boot do RT §3.0 (ver [Boot](#boot)) |
 | `vn_runtime/boot/` | Boot (M2-01): leitor do bundle em JSON e `.vnb`, JSON canônico (JCS), constantes do build, sequência do RT §3.0 e tela dos erros fatais G001/G002 |
+| `vn_runtime/sets/` | Sets compostos e hotspots cosméticos (M2-08): `VNSetView` (camadas, estados, animação, parallax, ações cosméticas) e `VNSetHotspot`; usados pelo UI Manager (fundo das telas) e pelo Stage (fundo das cenas). Testes: `godot --headless --path runtime --script res://tests/sets/test_sets.gd` |
 | `vn_runtime/` | Narrative Engine (`narrative_engine/`, ver [Narrative Engine](#narrative-engine)), Scheduler, State Manager, UI Manager… |
 | `vn_runtime/presets/` | Cópia gerada de `docs/specs/presets/` + fontes embutidas em `fonts/` (os ids `preset/font_*`); fora do Git e nunca editada à mão |
 | `vn_runtime/licenses/` | Gerada: licenças do runtime (MIT), do Godot e das bibliotecas dele, e a OFL de cada fonte do preset, com o índice `index.json` ([Build System §4.5](../docs/specs/05-build-system-specification.md)); fora do Git |

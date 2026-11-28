@@ -6,10 +6,10 @@ name: Runtime UI Manager
 
 on:
   pull_request:
-    paths: [runtime/vn_runtime/ui_manager/**, runtime/vn_runtime/core/**, runtime/tests/ui_manager/**, runtime/tests/fakes/**, docs/specs/examples/**, docs/specs/presets/**, docs/specs/tools/compile_bundle.py, .github/workflows/runtime-ui-manager.yml]
+    paths: [runtime/vn_runtime/ui_manager/**, runtime/vn_runtime/sets/**, runtime/vn_runtime/core/**, runtime/tests/ui_manager/**, runtime/tests/fakes/**, docs/specs/examples/**, docs/specs/presets/**, docs/specs/tools/compile_bundle.py, .github/workflows/runtime-ui-manager.yml]
   push:
     branches: [main]
-    paths: [runtime/vn_runtime/ui_manager/**, runtime/vn_runtime/core/**, runtime/tests/ui_manager/**, runtime/tests/fakes/**, docs/specs/examples/**, docs/specs/presets/**, docs/specs/tools/compile_bundle.py, .github/workflows/runtime-ui-manager.yml]
+    paths: [runtime/vn_runtime/ui_manager/**, runtime/vn_runtime/sets/**, runtime/vn_runtime/core/**, runtime/tests/ui_manager/**, runtime/tests/fakes/**, docs/specs/examples/**, docs/specs/presets/**, docs/specs/tools/compile_bundle.py, .github/workflows/runtime-ui-manager.yml]
   workflow_dispatch:
 
 env:
