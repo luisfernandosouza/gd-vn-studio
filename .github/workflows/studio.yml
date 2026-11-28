@@ -4,6 +4,7 @@
 # Os ícones são gerados no build (scripts/gen-icons.mjs), porque o repositório não guarda imagens (spec 09 §1.1).
 # O Studio é um pacote do workspace npm da raiz (M0-06): o `npm ci` roda na raiz, e o Studio usa os tipos de
 # @vnstudio/plugin-schema (sdk/plugin-schema/), gerados de docs/specs/schemas/. Por isso um schema mudado também roda aqui.
+# O painel do Preview (M6-10) usa o compilador do bundle da CLI (cli/src/bundle/), os presets e os vetores de compilação.
 name: Studio
 
 on:
@@ -12,6 +13,9 @@ on:
       - studio/**
       - sdk/plugin-schema/**
       - docs/specs/schemas/**
+      - docs/specs/presets/**
+      - docs/specs/conformance/compile/**
+      - cli/src/bundle/**
       - docs/specs/tools/validate.py
       - package.json
       - package-lock.json
@@ -22,6 +26,9 @@ on:
       - studio/**
       - sdk/plugin-schema/**
       - docs/specs/schemas/**
+      - docs/specs/presets/**
+      - docs/specs/conformance/compile/**
+      - cli/src/bundle/**
       - docs/specs/tools/validate.py
       - package.json
       - package-lock.json

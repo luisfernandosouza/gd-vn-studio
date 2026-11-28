@@ -6,7 +6,7 @@ Editor de visual novels: Tauri 2 + React + TypeScript (ADD §2.1, [spec 09 §1](
 |---|---|
 | `src/` | Interface (React) |
 | `src-tauri/` | Processo nativo (Rust): arquivos, Godot embutido, Git |
-| `preview/` | Painel do Preview: ponte com o runtime Web ([Preview Protocol §1.1](../docs/specs/07-preview-protocol.md)) |
+| `preview/` | Painel do Preview: protocolo `vnpreview`, cliente JSON-RPC, recarga incremental e barra com o modo stream ([Preview Protocol §1.1](../docs/specs/07-preview-protocol.md), M6-10) |
 | `scripts/` | Scripts do build (ícones gerados) |
 
 Os schemas e os presets não são copiados à mão para cá: o build do Studio os lê de `docs/specs/schemas/` e `docs/specs/presets/` (spec 09 §1 e §1.2).

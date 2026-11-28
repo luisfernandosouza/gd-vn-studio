@@ -1,9 +1,11 @@
+import { PreviewPanel } from '../../preview/PreviewPanel';
 import { closeDocumentSession } from '../document/session';
 import { useT } from '../i18n';
+import type { ProjectFs } from './fs';
 import { useProjectSession } from './session';
 
 /** Resumo do projeto aberto. Os editores (M6-02 em diante) ocupam este lugar. */
-export function OpenProjectSummary() {
+export function OpenProjectSummary({ fs }: { fs?: ProjectFs } = {}) {
   const t = useT();
   const current = useProjectSession((s) => s.current);
   const setCurrent = useProjectSession((s) => s.setCurrent);
@@ -25,6 +27,7 @@ export function OpenProjectSummary() {
         <li>{t('studio/project/scenes', { count: entities.scenes.length })}</li>
         <li>{t('studio/project/characters', { count: entities.characters.length })}</li>
       </ul>
+      {fs && <PreviewPanel fs={fs} root={current.root} />}
       <button
         type="button"
         onClick={() => {

@@ -39,7 +39,7 @@ export function App({ io }: { io?: ProjectManagerProps } = {}) {
           ))}
         </select>
       </label>
-      {current ? <OpenProjectSummary /> : <ProjectManager fs={projectIo.fs} pickFolder={projectIo.pickFolder} />}
+      {current ? <OpenProjectSummary fs={projectIo.fs} /> : <ProjectManager fs={projectIo.fs} pickFolder={projectIo.pickFolder} />}
     </main>
   );
 }
