@@ -42,6 +42,9 @@ func _ready() -> void:
 			print("vn-boot: bundle %s conferido (%s); os módulos do runtime ainda não existem, o boot para no passo 2." % [loader.dir, loader.bundle.content_hash])
 		return
 	modules.attach_all(self)
+	# Preview (PP §1): só abre com as opções do Studio, e só em debug ou no runtime do Preview.
+	VNPreview.launch(self, modules, func(session: VNPreviewSession): VNPreviewMethods.install(session, modules),
+		PackedStringArray(["reproducible_rng", "show_screen"]))
 	boot = VNBoot.new(modules, loader)
 	boot.failed.connect(_show_fatal)
 	boot.reached_title.connect(func(): print("vn-boot: título aberto (%s, idioma %s)." % [loader.bundle.content_hash, boot.locale]))

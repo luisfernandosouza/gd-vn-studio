@@ -44,19 +44,6 @@ export const NEW_PROJECT_RUNTIME_MIN = '1.0.0';
 /** Idiomas do produto (Req §9.1), oferecidos como idioma-fonte de um projeto novo. */
 export const PRODUCT_LOCALES = ['pt-BR', 'en', 'es', 'fr', 'it', 'de', 'ja', 'zh-Hans', 'zh-Hant'] as const;
 
-/** Nome de cada idioma do produto, no próprio idioma. */
-export const LOCALE_NAMES: Record<string, string> = {
-  'pt-BR': 'Português (Brasil)',
-  en: 'English',
-  es: 'Español',
-  fr: 'Français',
-  it: 'Italiano',
-  de: 'Deutsch',
-  ja: '日本語',
-  'zh-Hans': '简体中文',
-  'zh-Hant': '繁體中文',
-};
-
 export const LOCALE_PATTERN = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
 
 interface StarterTexts {

@@ -4,7 +4,8 @@ import { produce, type Draft } from 'immer';
 import { useEffect, useMemo, useState } from 'react';
 import type { ProjectFs } from '../project-manager/fs';
 import { uniqueName } from '../project-manager/ids';
-import { LOCALE_NAMES, LOCALE_PATTERN, PRODUCT_LOCALES } from '../project-manager/layout';
+import { UI_LOCALES } from '../i18n';
+import { LOCALE_PATTERN, PRODUCT_LOCALES } from '../project-manager/layout';
 import { useProjectSession } from '../project-manager/session';
 import { dialogContrast, MIN_CONTRAST } from './contrast';
 import { CheckField, LinesField, NumberField, Section, SelectField, TextField } from './fields';
@@ -27,6 +28,7 @@ const PLATFORMS = [
   ['web', 'Web'],
 ] as const;
 
+const LOCALE_NAMES: Record<string, string> = Object.fromEntries(UI_LOCALES.map((l) => [l.code, l.name]));
 const localeLabel = (l: string) => (LOCALE_NAMES[l] ? `${LOCALE_NAMES[l]} (${l})` : l);
 const ratioText = (r: number) => r.toFixed(1).replace('.', ',');
 
