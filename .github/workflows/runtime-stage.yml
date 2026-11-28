@@ -5,10 +5,10 @@ name: Runtime stage
 
 on:
   pull_request:
-    paths: [runtime/vn_runtime/stage/**, runtime/vn_runtime/core/**, runtime/tests/stage/**, runtime/tests/fakes/**, runtime/project.godot, docs/specs/examples/demo-project/**, .github/workflows/runtime-stage.yml]
+    paths: [runtime/vn_runtime/stage/**, runtime/vn_runtime/sets/**, runtime/vn_runtime/core/**, runtime/tests/stage/**, runtime/tests/fakes/**, runtime/project.godot, docs/specs/examples/demo-project/**, .github/workflows/runtime-stage.yml]
   push:
     branches: [main]
-    paths: [runtime/vn_runtime/stage/**, runtime/vn_runtime/core/**, runtime/tests/stage/**, runtime/tests/fakes/**, runtime/project.godot, docs/specs/examples/demo-project/**, .github/workflows/runtime-stage.yml]
+    paths: [runtime/vn_runtime/stage/**, runtime/vn_runtime/sets/**, runtime/vn_runtime/core/**, runtime/tests/stage/**, runtime/tests/fakes/**, runtime/project.godot, docs/specs/examples/demo-project/**, .github/workflows/runtime-stage.yml]
   workflow_dispatch:
 
 env:
