@@ -49,6 +49,10 @@ var _project_id: String = ""
 var _project_version: String = "0.0.0"
 var _content_hash: String = ""
 var _autosave_setting: String = AUTOSAVE_AT_SELECTION
+var _start_chapter: String = ""
+var _chapters: Dictionary = {}   # bundle.chapters (sem o bundle, a migração do RT §8.4 não confere nada)
+var _scenes: Dictionary = {}     # bundle.scenes
+var _aliases: Dictionary = {}    # bundle.aliases: id antigo → id atual (capítulos, cenas, nós)
 
 var _profile: Dictionary = {}
 var _profile_loaded: bool = false
@@ -131,6 +135,16 @@ func load_bundle(bundle: Dictionary) -> void:
 	var settings: Dictionary = project.get("settings", {})
 	_autosave_setting = String(settings.get("autosave", AUTOSAVE_AT_SELECTION))
 	_profile.project_id = _project_id
+	_start_chapter = String(project.get("start_chapter", ""))
+	_chapters = bundle.get("chapters", {})
+	_scenes = bundle.get("scenes", {})
+	_aliases = bundle.get("aliases", {})
+
+
+## Fim do programa (janela fechada): grava o perfil pendente (RT §8.5, "ao sair").
+func flush_on_exit() -> void:
+	if _profile_dirty:
+		flush_profile()
 
 
 func _on_phase_changed(phase: StringName, _previous: StringName) -> void:
@@ -323,14 +337,17 @@ func load_save_data(data: Variant, slot: StringName = &"") -> VNResult:
 	if not valid and policy == TAMPER_FLAG:
 		push_warning("Save %s com assinatura inválida: sys.save_modified ligado (BS §8.3)" % slot)
 	_save_modified = not valid and policy == TAMPER_FLAG
-	var state: Dictionary = doc.state
+	var state: Dictionary = doc.state.duplicate(true)
+	var warnings := PackedStringArray()
+	# Save de outra versão do jogo (RT §8.4): conferido contra o bundle atual.
+	if not _content_hash.is_empty() and String(doc.project.get("content_hash", "")) != _content_hash:
+		warnings.append_array(migrate_state(state))
 
 	# 2. Jogo em andamento: _vn_game_ended() nos plugins.
 	if m.engine != null and VNPhase.is_in_game(m.engine.phase()) and m.plugins != null:
 		m.plugins.notify_game_ended()
 
 	# 3. Defaults → perfil → variáveis do save (com chapter.*/scene.* ativas).
-	var warnings := PackedStringArray()
 	if m.variables != null:
 		m.variables.reset_game()
 		m.variables.apply_profile(_profile.get("variables", {}))
@@ -340,7 +357,7 @@ func load_save_data(data: Variant, slot: StringName = &"") -> VNResult:
 		var scene: Variant = state.get("scene")
 		if scene is Dictionary:
 			m.variables.enter_scene(String(scene.id))
-		warnings = m.variables.restore_save_values(state.get("variables", {}))
+		warnings.append_array(m.variables.restore_save_values(state.get("variables", {})))
 		for w in warnings:
 			push_warning("Save %s: %s" % [slot, w])
 	if m.state != null:
@@ -378,6 +395,113 @@ func load_save_data(data: Variant, slot: StringName = &"") -> VNResult:
 	var result := VNResult.success()
 	result.message = "\n".join(warnings)
 	return result
+
+
+# --- Save de versão antiga do jogo (RT §8.4) ------------------------------------
+
+## Ajusta o [param state] de um save de outra versão do jogo ao bundle atual
+## (RT §8.4): aliases de [code]renamed_from[/code] em capítulo, cena, nó e
+## histórico; capítulo ausente → [code]start_chapter[/code] (histórico mantido);
+## cena ausente → ponto de seleção; nó ausente → cena reiniciada do início, com
+## [code]scene.*[/code] zeradas. As variáveis (alias, descartadas, novas, tipo,
+## [code]clamp[/code]) são do Variable Manager, em [code]restore_save_values[/code].
+## Devolve os avisos. Sem capítulos e cenas no bundle não há o que conferir.
+func migrate_state(state: Dictionary) -> PackedStringArray:
+	var warnings := PackedStringArray()
+	if _chapters.is_empty() and _scenes.is_empty():
+		return warnings
+	var history: Variant = state.get("history")
+	if history is Dictionary:
+		if history.get("scenes") is Dictionary:
+			history["scenes"] = _rekey(history.scenes, _scenes)
+		if history.get("chapters") is Dictionary:
+			history["chapters"] = _rekey(history.chapters, _chapters)
+	var variables: Dictionary = state.get("variables", {})
+	var chapter: Variant = state.get("chapter")
+	if chapter is Dictionary and not _chapters.is_empty():
+		var cid := _resolve_id(String(chapter.id))
+		if _chapters.has(cid):
+			chapter["id"] = cid
+		else:
+			warnings.append("capítulo %s não existe mais: entra em %s" % [chapter.id, _start_chapter])
+			var count := int(history.get("selection_count", 0)) if history is Dictionary else 0
+			state["chapter"] = {"id": _start_chapter, "entered_at": count}
+			state["scene"] = null
+			_drop_scoped(variables, "chapter.")
+			_drop_scoped(variables, "scene.")
+	var scene: Variant = state.get("scene")
+	if scene is Dictionary and not _scenes.is_empty():
+		var sid := _resolve_id(String(scene.id))
+		if not _scenes.has(sid):
+			warnings.append("cena %s não existe mais: volta ao ponto de seleção" % scene.id)
+			state["scene"] = null
+			_drop_scoped(variables, "scene.")
+		else:
+			scene["id"] = sid
+			var nid := _resolve_id(String(scene.node))
+			if _has_node(_scenes[sid], nid):
+				scene["node"] = nid
+			else:
+				warnings.append("nó %s não existe mais em %s: a cena recomeça do início" % [scene.node, sid])
+				scene["node"] = _scene_start(_scenes[sid])
+				scene.erase("stage")
+				scene.erase("used_hotspots")
+				_drop_scoped(variables, "scene.")
+	return warnings
+
+
+## Id atual de um id antigo, seguindo a cadeia de aliases (sem laço).
+func _resolve_id(id: String) -> String:
+	var seen := {}
+	while _aliases.has(id) and not seen.has(id):
+		seen[id] = true
+		id = String(_aliases[id])
+	return id
+
+
+## Traduz as chaves de [param entries] pelos aliases; a chave nova vence a antiga.
+func _rekey(entries: Dictionary, known: Dictionary) -> Dictionary:
+	var out := {}
+	for key in entries:
+		var id := _resolve_id(String(key))
+		if id != String(key) and known.has(id) and not entries.has(id):
+			out[id] = entries[key]
+		elif id == String(key) or not known.has(id):
+			out[key] = entries[key]
+	return out
+
+
+static func _drop_scoped(variables: Dictionary, prefix: String) -> void:
+	for key in variables.keys():
+		if String(key).begins_with(prefix):
+			variables.erase(key)
+
+
+static func _scene_start(scene: Dictionary) -> String:
+	var start := String(scene.get("start", ""))
+	if not start.is_empty():
+		return start
+	var nodes: Array = scene.get("nodes", [])
+	return String(nodes[0].get("id", "")) if not nodes.is_empty() and nodes[0] is Dictionary else ""
+
+
+## Há um nó com esse id na cena, em qualquer nível (ramos de escolha, [code]if[/code]…).
+static func _has_node(scene: Dictionary, node_id: String) -> bool:
+	return _find_id(scene.get("nodes", []), node_id)
+
+
+static func _find_id(value: Variant, id: String) -> bool:
+	if value is Dictionary:
+		if value.get("id") == id:
+			return true
+		for k in value:
+			if (value[k] is Dictionary or value[k] is Array) and _find_id(value[k], id):
+				return true
+	elif value is Array:
+		for item in value:
+			if (item is Dictionary or item is Array) and _find_id(item, id):
+				return true
+	return false
 
 
 ## Confere o save contra o essencial de [code]save.schema.json[/code] e a
@@ -520,6 +644,11 @@ func load_profile() -> VNResult:
 	var m := modules()
 	if m != null and m.variables != null:
 		m.variables.apply_profile(_profile.variables)
+		# Chave antiga (renamed_from, RT §8.3): o próximo ponto de seleção regrava com a nova.
+		for key in _profile.variables:
+			if m.variables.resolve_alias(String(key)) != String(key):
+				mark_profile_dirty()
+				break
 	if m != null and m.state != null:
 		m.state.set_system_value("sys.save_modified", is_modified())
 	return result
