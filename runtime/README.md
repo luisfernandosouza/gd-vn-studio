@@ -61,7 +61,7 @@ O executor aceita a pasta `docs/specs/conformance/` (os `*.json` do primeiro ní
 
   | `kind` | Chama | Pulado até |
   |---|---|---|
-  | `expression`, `condition` | `VNConditionEvaluator` | M1-03, M1-04 |
+  | `expression`, `condition` | `VNConditionEvaluator` | (implementado: `VNConditionEvaluatorImpl`, M1-03; as condições completas são do M1-04) |
   | `effects` | `VNStateManager.apply_effects()` (com o Condition Evaluator); com erro, confere também que nada mudou | M1-06 |
   | `selection` | `VNSceneScheduler.select()` (com o Condition Evaluator) | M1-10; o caso `weighted` também espera o contrato do estado do RNG (M1-08) |
   | `flow` | Narrative Engine e o traço da spec 07 §4.2 | M1-12 (integração do núcleo) |
