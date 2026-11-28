@@ -1,10 +1,11 @@
 /** `vnstudio stage <projeto> --out <pasta> [--plugin <pasta>...]`: monta o Build Staging (BS §4) e para aí. */
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import type { PluginLock } from '@vnstudio/plugin-schema';
 import { join, resolve } from 'node:path';
 import { compileProject, loadProject } from '../bundle/index.js';
 import { PluginCache } from '../plugins/cache.js';
 import { githubTokenProvider } from '../plugins/credentials.js';
-import { prepareDependencies, readLocks, type PreparedPlugin } from '../plugins/dependencies.js';
+import { LOCK_FILE, prepareDependencies, readLocks, type PreparedPlugin } from '../plugins/dependencies.js';
 import { fetchGet } from '../plugins/http.js';
 import { packPluginFolder } from '../plugins/pack.js';
 import { validateProject } from '../validate/index.js';
@@ -48,7 +49,10 @@ export async function runStage(args: string[]): Promise<number> {
         prepared.push({ id: manifest.id, version: manifest.version, namespace: manifest.namespace, trust: 'local', from: 'embedded', folder: dir, package: await packPluginFolder(dir) });
       }
     } else {
-      const { lock, localLock } = await readLocks(projectDir);
+      // Projeto sem plugins pode não ter plugin-lock.json: lock vazio.
+      const { lock, localLock } = existsSync(join(projectDir, LOCK_FILE))
+        ? await readLocks(projectDir)
+        : { lock: { lock_version: 1, plugins: {} } as PluginLock, localLock: undefined };
       const report = await prepareDependencies({
         projectDir,
         lock,

@@ -1,4 +1,4 @@
-# Build Staging (tarefa M5-06, Build System §4): `vnstudio stage` monta o staging da demo, e o Godot 4.7.2
+# Build Staging (tarefa M5-06, Build System §4): `vnstudio stage` monta o staging de um projeto de teste, e o Godot 4.7.2
 # importa o projeto gerado e o abre até o boot conferir o bundle. O passo `--vn-selfcheck` (BS §12) entra
 # com a tarefa M5-08, que ainda não existe no runtime; até lá, o boot que confere o bundle é a verificação.
 name: Build Staging
@@ -39,7 +39,7 @@ concurrency:
 
 jobs:
   staging:
-    name: Staging da demo abre no Godot
+    name: Staging abre no Godot
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -55,21 +55,24 @@ jobs:
       - run: npm ci
       - name: Gera as cópias de presets e licenças do runtime
         run: python docs/specs/tools/sync_generated_copies.py runtime
-      - name: Commit da demo que as specs copiam (SOURCE.json)
-        id: demo
-        run: echo "commit=$(jq -r .commit docs/specs/examples/demo-project/SOURCE.json)" >> "$GITHUB_OUTPUT"
-      - uses: actions/checkout@v5
-        with:
-          repository: luisfernandosouza/gd-vn-studio-demo
-          ref: ${{ steps.demo.outputs.commit }}
-          path: demo
+      - name: Projeto de teste com assets sintéticos (runtime/tests/fixtures, M0-08)
+        # O repositório da demo é privado e o GITHUB_TOKEN do PR não o lê; o projeto `dialogue` das fixtures
+        # monta a mesma estrutura (project.json, assets.json, cenas, idiomas) com PNG e WAV gerados.
+        run: |
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, 'runtime/tests/fixtures')
+          import generate
+          generate.assemble('dialogue', Path('project'), {})
+          PY
       - name: Testes do staging
         run: |
           npm run build -w @vnstudio/cli
           npx vitest run src/build
         working-directory: cli
-      - name: Monta o staging da demo
-        run: node cli/dist/bin/vnstudio.js stage demo --plugin docs/specs/examples/fishing-plugin --out "$RUNNER_TEMP/staging"
+      - name: Monta o staging do projeto de teste
+        run: node cli/dist/bin/vnstudio.js stage project --out "$RUNNER_TEMP/staging"
       - name: Cache do Godot ${{ env.GODOT_VERSION }}
         id: cache-godot
         uses: actions/cache@v5
@@ -98,6 +101,6 @@ jobs:
       - name: Sem erros no log do Godot
         run: |
           if grep -hE '(^|[^A-Z_])(ERROR|SCRIPT ERROR):' "$RUNNER_TEMP"/{import,run}.log; then
-            echo "::error title=Godot registrou erros::O staging da demo deve importar e abrir sem erros (M5-06)."
+            echo "::error title=Godot registrou erros::O staging deve importar e abrir sem erros (M5-06)."
             exit 1
           fi
