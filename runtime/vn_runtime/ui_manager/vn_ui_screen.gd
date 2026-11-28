@@ -21,8 +21,11 @@ var elements: Dictionary = {}
 var parents: Dictionary = {}
 ## id do elemento → ids na ordem de construção.
 var order: PackedStringArray = []
-## Nó do fundo ([code]background[/code]) ou do set (preenchido pela tarefa M2-08).
+## Nó do fundo ([code]background[/code]) ou o que guarda o set ([code]Set[/code]).
 var backdrop: Control = null
+## O set composto atrás dos elementos ([code]set[/code], M2-08), ou [code]null[/code].
+var set_view: VNSetView = null
+var _set_view_size := Vector2.ZERO
 ## Elemento que tinha o foco quando a tela perdeu o topo da pilha.
 var last_focus: Control = null
 
@@ -50,14 +53,18 @@ func _build() -> void:
 		add_child(bg)
 		backdrop = bg
 	elif data.has("set"):
-		# O set composto é desenhado pela tarefa M2-08; aqui fica o nó onde ele entra.
 		var holder := Control.new()
 		holder.name = "Set"
 		holder.set_anchors_preset(Control.PRESET_FULL_RECT)
 		holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		holder.clip_contents = true
 		holder.set_meta(&"vn_set", String(data.set))
 		add_child(holder)
 		backdrop = holder
+		set_view = manager.make_set_view(String(data.set), base_size, view_size())
+		if set_view != null:
+			holder.add_child(set_view)
+			_set_view_size = view_size()
 	for def in data.get("elements", []):
 		add_child(add_element(def, ""))
 	resized.connect(layout)
@@ -223,6 +230,12 @@ func view_size() -> Vector2:
 func layout() -> void:
 	var view := view_size()
 	var origin := (view - base_size) / 2.0
+	if set_view != null:
+		if view != _set_view_size:
+			_set_view_size = view
+			set_view.view_size = view
+			set_view.relayout()
+		set_view.position = origin
 	for id in order:
 		if not parents.get(id, "").is_empty():
 			continue
@@ -259,6 +272,11 @@ func focusables() -> Array[Control]:
 			for c in _grid_focusables(elements[id]):
 				if is_element_visible(id):
 					out.append(c)
+	# Hotspots do set: depois dos elementos, na ordem do set (UI Spec §1, princípio 4).
+	if set_view != null:
+		for h in set_view.hotspot_nodes():
+			if h.has_area() and h.is_visible_in_tree() and h.mouse_filter != Control.MOUSE_FILTER_IGNORE:
+				out.append(h)
 	return out
 
 
